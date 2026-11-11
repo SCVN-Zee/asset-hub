@@ -9,7 +9,7 @@ import { FbxViewer } from './FbxViewer'
 import { ANIM_THUMB_VERSION } from './thumbVersions'
 
 const W = 320
-const H = 240
+const H = 320
 const COLORS = ['#7fb2ff', '#ff5ca8', '#3ddc97', '#f5a524', '#b48cff', '#5ad1e6']
 
 /** Clips without a rig to show them on: their curves, each scaled to its own range, and their kind. */
@@ -18,8 +18,6 @@ function curveCard(info: AnimClipInfo, label: string): string {
   canvas.width = W
   canvas.height = H
   const g = canvas.getContext('2d')!
-  g.fillStyle = '#1a1e26'
-  g.fillRect(0, 0, W, H)
   const series = [
     ...info.transformCurves.flatMap((c) => c.keys[0].v.map((_, i) => ({ keys: c.keys, i }))),
     ...info.floatCurves.map((c) => ({ keys: c.keys, i: 0 }))
@@ -40,7 +38,7 @@ function curveCard(info: AnimClipInfo, label: string): string {
     })
     g.stroke()
   })
-  g.fillStyle = '#8a93a3'
+  g.fillStyle = '#f1f0ec'
   g.font = '600 18px sans-serif'
   g.fillText(label, 16, H - 18)
   return canvas.toDataURL('image/webp', 0.85)

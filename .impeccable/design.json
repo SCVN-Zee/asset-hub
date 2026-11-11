@@ -1,0 +1,675 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T17:07:24+07:00",
+  "title": "Design System: Asset Hub",
+  "extensions": {
+    "colorMeta": {
+      "checker-orange": {
+        "role": "primary",
+        "displayName": "Checker Orange",
+        "canonical": "#d67e2c",
+        "tonalRamp": [
+          "oklch(15% 0.036 59)",
+          "oklch(26% 0.052 59)",
+          "oklch(38% 0.088 59)",
+          "oklch(49% 0.124 59)",
+          "oklch(61% 0.124 59)",
+          "oklch(72% 0.088 59)",
+          "oklch(84% 0.052 59)",
+          "oklch(95% 0.036 59)"
+        ]
+      },
+      "checker-orange-hover": {
+        "role": "primary",
+        "displayName": "Checker Orange, Lifted",
+        "canonical": "#e08a3a",
+        "tonalRamp": [
+          "oklch(15% 0.035 60)",
+          "oklch(26% 0.051 60)",
+          "oklch(38% 0.087 60)",
+          "oklch(49% 0.122 60)",
+          "oklch(61% 0.122 60)",
+          "oklch(72% 0.087 60)",
+          "oklch(84% 0.051 60)",
+          "oklch(95% 0.035 60)"
+        ]
+      },
+      "on-orange": {
+        "role": "primary",
+        "displayName": "Burnt Umber Ink",
+        "canonical": "#1a1208",
+        "tonalRamp": [
+          "oklch(15% 0.006 72)",
+          "oklch(26% 0.008 72)",
+          "oklch(38% 0.014 72)",
+          "oklch(49% 0.020 72)",
+          "oklch(61% 0.020 72)",
+          "oklch(72% 0.014 72)",
+          "oklch(84% 0.008 72)",
+          "oklch(95% 0.006 72)"
+        ]
+      },
+      "graphite-ground": {
+        "role": "neutral",
+        "displayName": "Graphite Ground",
+        "canonical": "#1f1f20",
+        "tonalRamp": [
+          "oklch(15% 0.000 286)",
+          "oklch(26% 0.001 286)",
+          "oklch(38% 0.001 286)",
+          "oklch(49% 0.002 286)",
+          "oklch(61% 0.002 286)",
+          "oklch(72% 0.001 286)",
+          "oklch(84% 0.001 286)",
+          "oklch(95% 0.000 286)"
+        ]
+      },
+      "graphite-panel": {
+        "role": "neutral",
+        "displayName": "Graphite Panel",
+        "canonical": "#2a2a2b",
+        "tonalRamp": [
+          "oklch(15% 0.000 286)",
+          "oklch(26% 0.001 286)",
+          "oklch(38% 0.001 286)",
+          "oklch(49% 0.002 286)",
+          "oklch(61% 0.002 286)",
+          "oklch(72% 0.001 286)",
+          "oklch(84% 0.001 286)",
+          "oklch(95% 0.000 286)"
+        ]
+      },
+      "graphite-raise": {
+        "role": "neutral",
+        "displayName": "Graphite Raise",
+        "canonical": "#343435",
+        "tonalRamp": [
+          "oklch(15% 0.000 286)",
+          "oklch(26% 0.001 286)",
+          "oklch(38% 0.001 286)",
+          "oklch(49% 0.002 286)",
+          "oklch(61% 0.002 286)",
+          "oklch(72% 0.001 286)",
+          "oklch(84% 0.001 286)",
+          "oklch(95% 0.000 286)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#3a3a3c",
+        "tonalRamp": [
+          "oklch(15% 0.001 286)",
+          "oklch(26% 0.001 286)",
+          "oklch(38% 0.002 286)",
+          "oklch(49% 0.003 286)",
+          "oklch(61% 0.003 286)",
+          "oklch(72% 0.002 286)",
+          "oklch(84% 0.001 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#4b4b4e",
+        "tonalRamp": [
+          "oklch(15% 0.001 286)",
+          "oklch(26% 0.002 286)",
+          "oklch(38% 0.003 286)",
+          "oklch(49% 0.004 286)",
+          "oklch(61% 0.004 286)",
+          "oklch(72% 0.003 286)",
+          "oklch(84% 0.002 286)",
+          "oklch(95% 0.001 286)"
+        ]
+      },
+      "stage-grey": {
+        "role": "neutral",
+        "displayName": "Stage Grey 18%",
+        "canonical": "#767676",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "paper-text": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "canonical": "#e9e9e6",
+        "tonalRamp": [
+          "oklch(15% 0.001 106)",
+          "oklch(26% 0.001 106)",
+          "oklch(38% 0.002 106)",
+          "oklch(49% 0.003 106)",
+          "oklch(61% 0.003 106)",
+          "oklch(72% 0.002 106)",
+          "oklch(84% 0.001 106)",
+          "oklch(95% 0.001 106)"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Soft Paper",
+        "canonical": "#c9c9c5",
+        "tonalRamp": [
+          "oklch(15% 0.001 107)",
+          "oklch(26% 0.002 107)",
+          "oklch(38% 0.003 107)",
+          "oklch(49% 0.005 107)",
+          "oklch(61% 0.005 107)",
+          "oklch(72% 0.003 107)",
+          "oklch(84% 0.002 107)",
+          "oklch(95% 0.001 107)"
+        ]
+      },
+      "text-mute": {
+        "role": "neutral",
+        "displayName": "Mute Grey",
+        "canonical": "#a3a3a0",
+        "tonalRamp": [
+          "oklch(15% 0.001 107)",
+          "oklch(26% 0.002 107)",
+          "oklch(38% 0.003 107)",
+          "oklch(49% 0.004 107)",
+          "oklch(61% 0.004 107)",
+          "oklch(72% 0.003 107)",
+          "oklch(84% 0.002 107)",
+          "oklch(95% 0.001 107)"
+        ]
+      },
+      "text-dim": {
+        "role": "neutral",
+        "displayName": "Dim Grey",
+        "canonical": "#94948f",
+        "tonalRamp": [
+          "oklch(15% 0.002 107)",
+          "oklch(26% 0.003 107)",
+          "oklch(38% 0.004 107)",
+          "oklch(49% 0.006 107)",
+          "oklch(61% 0.006 107)",
+          "oklch(72% 0.004 107)",
+          "oklch(84% 0.003 107)",
+          "oklch(95% 0.002 107)"
+        ]
+      },
+      "decoration-faint": {
+        "role": "neutral",
+        "displayName": "Faint Grey",
+        "canonical": "#7a7a76",
+        "tonalRamp": [
+          "oklch(15% 0.002 107)",
+          "oklch(26% 0.002 107)",
+          "oklch(38% 0.004 107)",
+          "oklch(49% 0.005 107)",
+          "oklch(61% 0.005 107)",
+          "oklch(72% 0.004 107)",
+          "oklch(84% 0.002 107)",
+          "oklch(95% 0.002 107)"
+        ]
+      },
+      "state-ok": {
+        "role": "state",
+        "displayName": "Checker Green",
+        "canonical": "#7cc47a",
+        "tonalRamp": [
+          "oklch(15% 0.032 144)",
+          "oklch(26% 0.046 144)",
+          "oklch(38% 0.078 144)",
+          "oklch(49% 0.111 144)",
+          "oklch(61% 0.111 144)",
+          "oklch(72% 0.078 144)",
+          "oklch(84% 0.046 144)",
+          "oklch(95% 0.032 144)"
+        ]
+      },
+      "state-warn": {
+        "role": "state",
+        "displayName": "Checker Yellow",
+        "canonical": "#e6b84a",
+        "tonalRamp": [
+          "oklch(15% 0.034 86)",
+          "oklch(26% 0.050 86)",
+          "oklch(38% 0.084 86)",
+          "oklch(49% 0.119 86)",
+          "oklch(61% 0.119 86)",
+          "oklch(72% 0.084 86)",
+          "oklch(84% 0.050 86)",
+          "oklch(95% 0.034 86)"
+        ]
+      },
+      "state-danger": {
+        "role": "state",
+        "displayName": "Soft Red",
+        "canonical": "#ee7a80",
+        "tonalRamp": [
+          "oklch(15% 0.036 18)",
+          "oklch(26% 0.052 18)",
+          "oklch(38% 0.088 18)",
+          "oklch(49% 0.125 18)",
+          "oklch(61% 0.125 18)",
+          "oklch(72% 0.088 18)",
+          "oklch(84% 0.052 18)",
+          "oklch(95% 0.036 18)"
+        ]
+      },
+      "state-info": {
+        "role": "state",
+        "displayName": "Calm Blue",
+        "canonical": "#8fa8c8",
+        "tonalRamp": [
+          "oklch(15% 0.014 255)",
+          "oklch(26% 0.020 255)",
+          "oklch(38% 0.034 255)",
+          "oklch(49% 0.048 255)",
+          "oklch(61% 0.048 255)",
+          "oklch(72% 0.034 255)",
+          "oklch(84% 0.020 255)",
+          "oklch(95% 0.014 255)"
+        ]
+      },
+      "type-fbx": {
+        "role": "type",
+        "displayName": "Blue Patch (models)",
+        "canonical": "#6a76c4",
+        "tonalRamp": [
+          "oklch(15% 0.030 275)",
+          "oklch(26% 0.044 275)",
+          "oklch(38% 0.074 275)",
+          "oklch(49% 0.105 275)",
+          "oklch(61% 0.105 275)",
+          "oklch(72% 0.074 275)",
+          "oklch(84% 0.044 275)",
+          "oklch(95% 0.030 275)"
+        ]
+      },
+      "type-texture": {
+        "role": "type",
+        "displayName": "Orange-Yellow Patch (textures)",
+        "canonical": "#e0a32e",
+        "tonalRamp": [
+          "oklch(15% 0.036 79)",
+          "oklch(26% 0.052 79)",
+          "oklch(38% 0.089 79)",
+          "oklch(49% 0.125 79)",
+          "oklch(61% 0.125 79)",
+          "oklch(72% 0.089 79)",
+          "oklch(84% 0.052 79)",
+          "oklch(95% 0.036 79)"
+        ]
+      },
+      "type-material": {
+        "role": "type",
+        "displayName": "Bluish-Green Patch (materials)",
+        "canonical": "#67bdaa",
+        "tonalRamp": [
+          "oklch(15% 0.022 178)",
+          "oklch(26% 0.032 178)",
+          "oklch(38% 0.055 178)",
+          "oklch(49% 0.077 178)",
+          "oklch(61% 0.077 178)",
+          "oklch(72% 0.055 178)",
+          "oklch(84% 0.032 178)",
+          "oklch(95% 0.022 178)"
+        ]
+      },
+      "type-audio": {
+        "role": "type",
+        "displayName": "Moderate Red Patch (audio)",
+        "canonical": "#c15a63",
+        "tonalRamp": [
+          "oklch(15% 0.033 17)",
+          "oklch(26% 0.048 17)",
+          "oklch(38% 0.082 17)",
+          "oklch(49% 0.115 17)",
+          "oklch(61% 0.115 17)",
+          "oklch(72% 0.082 17)",
+          "oklch(84% 0.048 17)",
+          "oklch(95% 0.033 17)"
+        ]
+      },
+      "type-prefab": {
+        "role": "type",
+        "displayName": "Blue Sky Patch (prefabs)",
+        "canonical": "#627a9d",
+        "tonalRamp": [
+          "oklch(15% 0.015 258)",
+          "oklch(26% 0.022 258)",
+          "oklch(38% 0.038 258)",
+          "oklch(49% 0.053 258)",
+          "oklch(61% 0.053 258)",
+          "oklch(72% 0.038 258)",
+          "oklch(84% 0.022 258)",
+          "oklch(95% 0.015 258)"
+        ]
+      },
+      "type-animation": {
+        "role": "type",
+        "displayName": "Yellow-Green Patch (animation)",
+        "canonical": "#9dbc40",
+        "tonalRamp": [
+          "oklch(15% 0.038 122)",
+          "oklch(26% 0.056 122)",
+          "oklch(38% 0.095 122)",
+          "oklch(49% 0.133 122)",
+          "oklch(61% 0.133 122)",
+          "oklch(72% 0.095 122)",
+          "oklch(84% 0.056 122)",
+          "oklch(95% 0.038 122)"
+        ]
+      },
+      "type-font": {
+        "role": "type",
+        "displayName": "Purple Patch (fonts)",
+        "canonical": "#8d67a3",
+        "tonalRamp": [
+          "oklch(15% 0.025 313)",
+          "oklch(26% 0.036 313)",
+          "oklch(38% 0.061 313)",
+          "oklch(49% 0.087 313)",
+          "oklch(61% 0.087 313)",
+          "oklch(72% 0.061 313)",
+          "oklch(84% 0.036 313)",
+          "oklch(95% 0.025 313)"
+        ]
+      },
+      "type-vfx": {
+        "role": "type",
+        "displayName": "Magenta Patch (VFX)",
+        "canonical": "#bb5695",
+        "tonalRamp": [
+          "oklch(15% 0.037 344)",
+          "oklch(26% 0.055 344)",
+          "oklch(38% 0.092 344)",
+          "oklch(49% 0.130 344)",
+          "oklch(61% 0.130 344)",
+          "oklch(72% 0.092 344)",
+          "oklch(84% 0.055 344)",
+          "oklch(95% 0.037 344)"
+        ]
+      },
+      "type-sprite": {
+        "role": "type",
+        "displayName": "Cyan Patch (sprites)",
+        "canonical": "#0885a1",
+        "tonalRamp": [
+          "oklch(15% 0.026 220)",
+          "oklch(26% 0.037 220)",
+          "oklch(38% 0.063 220)",
+          "oklch(49% 0.089 220)",
+          "oklch(61% 0.089 220)",
+          "oklch(72% 0.063 220)",
+          "oklch(84% 0.037 220)",
+          "oklch(95% 0.026 220)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Toolbar heading, inspector asset name, Settings and dialog headings, sign-in title, lead and code cells."
+      },
+      "body-lg": {
+        "displayName": "Body Large",
+        "purpose": "Settings and dialog body, field labels, export-list summary, brand name."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "The base size: rows, buttons, card names, menus, pills."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Sentence-case group labels, card chips, fold summaries, fact captions."
+      },
+      "measure": {
+        "displayName": "Measure",
+        "purpose": "Counts, sizes, triangles, versions and paths in tabular mono."
+      },
+      "measure-lg": {
+        "displayName": "Measure Large",
+        "purpose": "Inspector fact values."
+      }
+    },
+    "shadows": [
+      {
+        "name": "menu",
+        "value": "0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.5)",
+        "purpose": "Dropdowns, pickers, popovers, context menus, multi-select bar, menu notice."
+      },
+      {
+        "name": "pop",
+        "value": "0 12px 32px rgba(0, 0, 0, 0.45)",
+        "purpose": "Dialogs and search suggestions."
+      },
+      {
+        "name": "sheet",
+        "value": "-16px 0 40px rgba(0, 0, 0, 0.4)",
+        "purpose": "The Settings sheet edge."
+      },
+      {
+        "name": "floor",
+        "value": "radial-gradient(closest-side, rgba(0, 0, 0, 0.4), transparent)",
+        "purpose": "The asset's own floor shadow on the stage (0.32 in viewers)."
+      },
+      {
+        "name": "ring-hover",
+        "value": "0 0 0 1px #1f1f20, 0 0 0 2px #94948f",
+        "purpose": "Card stage on hover."
+      },
+      {
+        "name": "ring-selected",
+        "value": "0 0 0 2px #1f1f20, 0 0 0 4px #e9e9e6",
+        "purpose": "Card stage selected, focused or picked."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "The one easing for every transition and entrance."
+      },
+      {
+        "name": "export-added",
+        "value": "pack-fresh 0.9s ease-out",
+        "purpose": "One quiet flash on the export-list summary when an item is added."
+      },
+      {
+        "name": "sheet-in",
+        "value": "translateX(24px) to 0, opacity, 0.16s",
+        "purpose": "The Settings sheet entrance."
+      },
+      {
+        "name": "dialog-in",
+        "value": "translateY(6px) to 0, opacity, 0.14s",
+        "purpose": "Dialog entrance."
+      },
+      {
+        "name": "state",
+        "value": "0.1s to 0.15s",
+        "purpose": "Chevrons, checkbox tick, splitter line, hover rings, viewer controls."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "none",
+        "purpose": "Under prefers-reduced-motion every animation and transition above stops, including card effect playback, spinners and shimmer."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-shell",
+        "value": "1200px"
+      },
+      {
+        "name": "export-strip-narrow",
+        "value": "760px (container)"
+      },
+      {
+        "name": "settings-stack",
+        "value": "600px"
+      },
+      {
+        "name": "signin-stack",
+        "value": "560px"
+      }
+    ],
+    "layout": {
+      "topbar": "48px",
+      "sidebar": "232px (208px at 1200px and below)",
+      "inspector": "380px (340px at 1200px and below), resizable",
+      "cellMin": "120px small, 180px large",
+      "controls": {
+        "row": "28px",
+        "field": "30px",
+        "small": "24px"
+      }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action on a surface: Export, Download, Sign in.",
+      "html": "<button class=\"ds-btn ds-btn-primary\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10\"/></svg>Export 4 files</button>",
+      "css": ".ds-btn { height: 28px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; border: 1px solid #3a3a3c; background: #343435; color: #e9e9e6; font-family: 'Geist', -apple-system, system-ui, sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; } .ds-btn-primary { border-color: #d67e2c; background: #d67e2c; color: #1a1208; font-weight: 600; } .ds-btn-primary:hover { background: #e08a3a; border-color: #e08a3a; } .ds-btn:focus-visible { outline: 2px solid #e9e9e6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Every other action: Import into Unity, Add to export list, Choose…",
+      "html": "<button class=\"ds-btn-secondary\">Import into Unity</button>",
+      "css": ".ds-btn-secondary { height: 28px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid #3a3a3c; background: #343435; color: #e9e9e6; font-family: 'Geist', -apple-system, system-ui, sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; } .ds-btn-secondary:hover { background: color-mix(in srgb, #343435 82%, #e9e9e6); border-color: #4b4b4e; } .ds-btn-secondary:focus-visible { outline: 2px solid #e9e9e6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Sign-out Button",
+      "kind": "button",
+      "refersTo": "button-signout",
+      "description": "A normal choice in calm blue, never danger red.",
+      "html": "<button class=\"ds-btn-signout\">Sign out</button>",
+      "css": ".ds-btn-signout { height: 28px; padding: 0 9px; border-radius: 6px; border: 1px solid color-mix(in srgb, #8fa8c8 45%, #3a3a3c); background: transparent; color: #8fa8c8; font-family: 'Geist', -apple-system, system-ui, sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; } .ds-btn-signout:hover { background: color-mix(in srgb, #8fa8c8 14%, transparent); color: #e9e9e6; } .ds-btn-signout:focus-visible { outline: 2px solid #e9e9e6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "30px field on ground; scope tabs fused to the left edge, shortcut at the right.",
+      "html": "<label class=\"ds-search\"><span class=\"ds-scope\"><button class=\"ds-scope-tab\" aria-pressed=\"true\">This branch</button><button class=\"ds-scope-tab\">All repos</button></span><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><circle cx=\"7\" cy=\"7\" r=\"4.5\"/><path d=\"m10.5 10.5 3 3\"/></svg><input placeholder=\"Search names or keywords\"><kbd>⌘K</kbd></label>",
+      "css": ".ds-search { display: flex; align-items: center; gap: 8px; width: 520px; height: 30px; padding-right: 8px; background: #2a2a2b; border: 1px solid #3a3a3c; border-radius: 6px; color: #a3a3a0; font-family: 'Geist', -apple-system, system-ui, sans-serif; font-size: 12px; } .ds-search:focus-within { border-color: #4b4b4e; outline: 2px solid #e9e9e6; outline-offset: 1px; } .ds-scope { align-self: stretch; display: flex; gap: 2px; padding: 2px; border-right: 1px solid #3a3a3c; background: #1f1f20; border-radius: 6px 0 0 6px; } .ds-scope-tab { padding: 0 9px; border: 0; border-radius: 4px; background: transparent; color: #a3a3a0; font: inherit; font-weight: 500; cursor: pointer; } .ds-scope-tab:hover { color: #e9e9e6; } .ds-scope-tab[aria-pressed='true'] { background: #343435; color: #e9e9e6; } .ds-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: #e9e9e6; font: inherit; } .ds-search input::placeholder { color: #94948f; } .ds-search kbd { padding: 1px 5px; border: 1px solid #3a3a3c; border-radius: 4px; font: 400 11px 'Geist Mono', ui-monospace, monospace; color: #a3a3a0; }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "sidebar-row",
+      "description": "28px rows, quiet until pressed; type rows lead with a checker patch, counts in mono.",
+      "html": "<nav class=\"ds-side\"><span class=\"ds-side-label\">Types</span><button class=\"ds-tab\"><i class=\"ds-dot\" style=\"background:#e9e9e6\"></i>All<span class=\"ds-num\">9808</span></button><button class=\"ds-tab\" aria-pressed=\"true\"><i class=\"ds-dot\" style=\"background:#6a76c4\"></i>FBX<span class=\"ds-num\">1007</span></button><button class=\"ds-tab\"><i class=\"ds-dot\" style=\"background:#e0a32e\"></i>Texture<span class=\"ds-num\">3295</span></button><button class=\"ds-tab\"><i class=\"ds-dot\" style=\"background:#67bdaa\"></i>Material<span class=\"ds-num\">1269</span></button></nav>",
+      "css": ".ds-side { width: 212px; padding: 12px 10px; background: #2a2a2b; display: flex; flex-direction: column; gap: 2px; font-family: 'Geist', -apple-system, system-ui, sans-serif; } .ds-side-label { margin: 0 8px 2px; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: #94948f; } .ds-tab { height: 28px; padding: 0 8px; display: flex; align-items: center; gap: 9px; border: 0; border-radius: 6px; background: transparent; color: #a3a3a0; font: inherit; font-size: 12px; text-align: left; cursor: pointer; } .ds-tab:hover { background: color-mix(in srgb, #343435 55%, transparent); color: #e9e9e6; } .ds-tab[aria-pressed='true'] { background: #343435; color: #e9e9e6; } .ds-tab:focus-visible { outline: 2px solid #e9e9e6; outline-offset: 2px; } .ds-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; } .ds-num { margin-left: auto; font: 400 11px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: #a3a3a0; }"
+    },
+    {
+      "name": "Filter Chip and Active Pill",
+      "kind": "chip",
+      "refersTo": "filter-pill",
+      "description": "Filter chips (pressed or not) and the removable pill for an active filter.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">Rigged</button><button class=\"ds-chip\">Animated</button><button class=\"ds-pill\">Under 2 MB <svg class=\"ds-pill-x\" width=\"10\" height=\"10\" viewBox=\"0 0 10 10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M2 2l6 6M8 2 2 8\"/></svg></button></div>",
+      "css": ".ds-chips { display: flex; gap: 4px; font-family: 'Geist', -apple-system, system-ui, sans-serif; } .ds-chip { height: 24px; padding: 0 9px; border-radius: 12px; border: 1px solid #3a3a3c; background: transparent; color: #c9c9c5; font: inherit; font-size: 12px; cursor: pointer; } .ds-chip:hover { border-color: #4b4b4e; color: #e9e9e6; } .ds-chip[aria-pressed='true'] { background: #343435; border-color: #4b4b4e; color: #e9e9e6; } .ds-chip:focus-visible, .ds-pill:focus-visible { outline: 2px solid #e9e9e6; outline-offset: 2px; } .ds-pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 7px 0 10px; border: 1px solid #3a3a3c; border-radius: 12px; background: #343435; color: #e9e9e6; font: inherit; font-size: 12px; cursor: pointer; } .ds-pill:hover { border-color: #4b4b4e; } .ds-pill-x { color: #a3a3a0; } .ds-pill:hover .ds-pill-x { color: #e9e9e6; }"
+    },
+    {
+      "name": "Asset Card on the Stage",
+      "kind": "card",
+      "refersTo": "asset-stage",
+      "description": "The frameless card: an 18% grey stage with a floor shadow, a type chip, the name and mono facts.",
+      "html": "<button class=\"ds-card\"><span class=\"ds-stage\"><span class=\"ds-type\"><i style=\"background:#6a76c4\"></i>FBX</span></span><span class=\"ds-name\">unitychan_DAMAGED00.fbx</span><span class=\"ds-fact\">1.3 MB · 2.2k tris</span></button>",
+      "css": ".ds-card { display: flex; flex-direction: column; width: 140px; padding: 0; border: 0; background: transparent; color: #e9e9e6; text-align: left; cursor: pointer; font-family: 'Geist', -apple-system, system-ui, sans-serif; } .ds-stage { position: relative; aspect-ratio: 1; width: 100%; border-radius: 6px; background: radial-gradient(ellipse 120% 90% at 50% 30%, #7e7e7e, #767676 55%, #6c6c6c); transition: box-shadow 0.12s; } .ds-stage::before { content: ''; position: absolute; left: 18%; right: 18%; bottom: 13%; height: 9%; background: radial-gradient(closest-side, rgba(0,0,0,0.4), transparent); } .ds-card:hover .ds-stage { box-shadow: 0 0 0 1px #1f1f20, 0 0 0 2px #94948f; } .ds-card:focus-visible { outline: none; } .ds-card:focus-visible .ds-stage, .ds-card[aria-pressed='true'] .ds-stage { box-shadow: 0 0 0 2px #1f1f20, 0 0 0 4px #e9e9e6; } .ds-type { position: absolute; top: 6px; left: 6px; display: inline-flex; align-items: center; gap: 5px; padding: 0 6px 0 5px; border-radius: 4px; background: rgba(31,31,32,0.88); font-size: 11px; font-weight: 500; line-height: 18px; } .ds-type i { width: 7px; height: 7px; border-radius: 2px; } .ds-name { margin-top: 6px; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-fact { font: 400 11px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: #a3a3a0; }"
+    },
+    {
+      "name": "Calibration Strip",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Under the inspector viewer: grey ball, chrome ball, checker patches and the stated stage.",
+      "html": "<div class=\"ds-cal\"><i class=\"ds-ball\"></i><i class=\"ds-ball ds-chrome\"></i><span class=\"ds-patches\"><i style=\"background:#d67e2c\"></i><i style=\"background:#6a76c4\"></i><i style=\"background:#c15a63\"></i><i style=\"background:#9dbc40\"></i><i style=\"background:#e0a32e\"></i><i style=\"background:#67bdaa\"></i></span><span class=\"ds-cal-num\">Stage 18% grey</span></div>",
+      "css": ".ds-cal { display: flex; align-items: center; gap: 6px; width: 360px; height: 34px; padding: 0 16px; background: #1f1f20; border-bottom: 1px solid #3a3a3c; } .ds-ball { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #bdbdbd, #767676 45%, #2e2e2e 95%); } .ds-chrome { background: radial-gradient(circle at 34% 28%, #fff 0 8%, transparent 14%), linear-gradient(170deg, #f4f4f2 0 30%, #5b5b5d 46%, #1b1b1c 52%, #9a9a96 70%, #e8e8e4); } .ds-patches { display: flex; gap: 2px; margin-left: 8px; } .ds-patches i { width: 16px; height: 16px; border-radius: 2px; } .ds-cal-num { margin-left: auto; font: 400 11px 'Geist Mono', ui-monospace, monospace; color: #a3a3a0; }"
+    },
+    {
+      "name": "Raised Menu",
+      "kind": "custom",
+      "refersTo": "raised-panel",
+      "description": "Dropdowns, pickers and context menus: panel, strong hairline, menu shadow, 28px rows.",
+      "html": "<div class=\"ds-menu\" role=\"menu\"><button class=\"ds-menu-item\">Copy link</button><button class=\"ds-menu-item\">Add to collection</button><div class=\"ds-menu-sep\"></div><button class=\"ds-menu-item ds-danger\">Remove from list</button></div>",
+      "css": ".ds-menu { display: flex; flex-direction: column; width: 220px; padding: 4px; border: 1px solid #4b4b4e; border-radius: 8px; background: #2a2a2b; box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 28px rgba(0,0,0,0.5); font-family: 'Geist', -apple-system, system-ui, sans-serif; } .ds-menu-item { height: 28px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: #e9e9e6; font: inherit; font-size: 12px; text-align: left; } .ds-menu-item:hover { background: #343435; } .ds-menu-item:focus-visible { background: #343435; outline: none; box-shadow: inset 0 0 0 1px #c9c9c5; } .ds-danger { color: #ee7a80; } .ds-menu-sep { height: 1px; margin: 4px 6px; background: #3a3a3c; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calibration Bench",
+    "overview": "Asset Hub is a look-dev bench, not a showroom. Every thumbnail and viewer sits on the same true 18% grey stage with a soft floor shadow. An asset is judged in the same light wherever it appears. A graphite shell frames that stage and stays quiet: three close greys for ground, panel and raised surfaces, hairline borders, and warm off-white text. The calibration tools of a lighting artist are the visual source: the grey ball, the chrome ball and the colour checker.\n\nColour carries meaning only. The colour checker's orange patch marks the one primary action on a surface. The other checker patches mark asset types, as small swatches on chips and sidebar rows. Green, yellow and red mark state. Nothing else is coloured. The density is high and steady: a 48px top bar, a 232px sidebar, 28px rows, a grid of small cells (120px or 180px minimum) and a 380px inspector. People scan hundreds of assets at once and read the facts that decide.\n\nThe system rejects the dark-panel asset grid with huge cards, a neon accent, and decoration that carries no information. It also replaces the 2.0 look (gunmetal, amber accent, Chakra Petch display face, chest logo) in full.",
+    "keyCharacteristics": [
+      "One calibrated stage (18% grey) under every preview, cards and viewers alike.",
+      "Graphite shell in three tonal steps, separated by 1px hairlines, not by shadow.",
+      "One orange for the primary action. Colour-checker patches for asset types. Green, yellow and red for state.",
+      "Geist for words, Geist Mono for figures and paths, four fixed size steps.",
+      "Dense, keyboard-first rows at 28px. Quiet until hovered or pressed."
+    ],
+    "rules": [
+      {
+        "name": "The One Orange Rule",
+        "body": "Checker Orange is the fill of the single primary action on a surface. It is not a highlight, a selection colour or a pressed state. Selection and pressed states use Paper White, Graphite Raise and Ground.",
+        "section": "colors"
+      },
+      {
+        "name": "The Colour Means Something Rule",
+        "body": "Outside the primary action and state, colour comes only from the colour-checker type patches, and only as a small swatch. A coloured surface, border or text that names no type and no state is a defect.",
+        "section": "colors"
+      },
+      {
+        "name": "The Same Light Rule",
+        "body": "Every preview of an asset sits on Stage Grey. A dark backdrop is a viewer option the user picks, never a default.",
+        "section": "colors"
+      },
+      {
+        "name": "The Four Steps Rule",
+        "body": "Text uses exactly four sizes: 11, 12, 13 and 16px (`--fs-xs` to `--fs-lg`). There is no display size. Hierarchy comes from weight (400, 500, 600) and from colour (Paper White to Dim Grey), not from new sizes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Is Data Rule",
+        "body": "Geist Mono is for figures and machine strings: sizes, counts, times, versions, file paths and typed paths. Prose never takes the mono face. A path field whose empty hint is a sentence shows the hint in Geist.",
+        "section": "typography"
+      },
+      {
+        "name": "The Dense Bench Rule",
+        "body": "Rows are 28px and cells start at 120px. Do not add height or padding to make a surface \"breathe\". The density is the product.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Shell Rule",
+        "body": "Nothing in the shell casts a shadow at rest. A shadow means \"this floats over the app\" or \"this is the asset's floor\".",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** put every asset preview on Stage Grey (#767676) with the soft floor shadow, in cards and viewers alike.",
+      "**Do** give each surface one orange primary action, with Burnt Umber Ink text on it.",
+      "**Do** mark asset types only with the colour-checker patch as a small square swatch, and keep the type word in text colour.",
+      "**Do** use the four sizes (11, 12, 13, 16px) and build hierarchy from weight and text colour.",
+      "**Do** set sizes, counts, times, versions and paths in Geist Mono with tabular figures.",
+      "**Do** separate shell regions with 1px hairlines and tonal steps. Keep shadows for floating panels.",
+      "**Do** show focus as a 2px Paper White outline on every interactive element.",
+      "**Do** keep 28px rows and 120px minimum cells.",
+      "**Do** stop all motion under `prefers-reduced-motion`."
+    ],
+    "donts": [
+      "**Don't** use orange for selection, pressed, favourite or \"on\" states. Use Paper White, Raise and Ground.",
+      "**Don't** colour a surface, border or text with a type patch. The patch is a swatch, not a theme.",
+      "**Don't** add a display size, a fifth text size or a remote font.",
+      "**Don't** draw the 3D floor grid into a captured thumbnail.",
+      "**Don't** default a preview to a dark or coloured backdrop. Stage Grey is the default, and a dark backdrop is the user's choice.",
+      "**Don't** use the danger red for a normal choice such as signing out.",
+      "**Don't** add decoration that carries no information: no gradients on the shell, no glow, no neon accent, no large showroom cards."
+    ]
+  }
+}

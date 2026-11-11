@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { StatsSummary } from '@shared/types'
 import { unwrap } from '../remoteSource'
-import { audioStats, decodeAudio, drawWaveform, formatDuration, type DecodedAudio } from '../viewer/audio'
+import { audioStats, decodeAudio, drawWaveform, formatDuration, WAVE_INK, WAVE_PLAYED, type DecodedAudio } from '../viewer/audio'
 import type { LiveContext } from './ModelViewer'
 
 interface Props {
@@ -68,7 +68,7 @@ export function AudioViewer({ live, path, onInfo, onStats, onLoading }: Props) {
       el.width = w
       el.height = h
     }
-    drawWaveform(el, peaks.current, { wave: '#46546a', played: '#ffae1f' }, progress)
+    drawWaveform(el, peaks.current, { wave: WAVE_INK, played: WAVE_PLAYED }, progress)
   }
 
   useEffect(() => {

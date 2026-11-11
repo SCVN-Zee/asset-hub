@@ -2,6 +2,7 @@ import type { FontImport, StatsSummary } from '@shared/types'
 import { parse, type FontData } from '../parse'
 import type { LiveContext } from '../components/ModelViewer'
 import { unwrap } from '../remoteSource'
+import { FLAT_THUMB_VERSION } from './thumbVersions'
 
 /** A font read from the repo, registered with the page so text can be set in it. */
 export interface LoadedFont {
@@ -35,7 +36,7 @@ export function fontStats(font: Pick<LoadedFont, 'info' | 'bytes'>): StatsSummar
   return { triangles: 0, vertices: 0, bones: 0, clips: 0, materials: 0, fileBytes: font.bytes, textureBytes: 0, maxTextureSize: 0, glyphs: font.info.glyphs, source: 'viewer' }
 }
 
-/** Grid thumbnail: "Aa" and the family name, set in the font itself. */
+/** Grid thumbnail: "Aa" and the family name, set in the font itself, on a transparent background. */
 export async function renderFontThumbnail(live: LiveContext, path: string): Promise<{ url: string; stats: StatsSummary }> {
   const font = await loadFont(live, path, true)
   try {
@@ -43,17 +44,16 @@ export async function renderFontThumbnail(live: LiveContext, path: string): Prom
     canvas.width = 320
     canvas.height = 240
     const g = canvas.getContext('2d')!
-    g.fillStyle = '#1a1e26'
-    g.fillRect(0, 0, 320, 240)
-    g.fillStyle = '#e6e9ef'
+    // Transparent: the card's grey stage (#767676) shows through, so the ink is dark.
+    g.fillStyle = '#1f1f20'
     g.textAlign = 'center'
     g.textBaseline = 'middle'
     g.font = `96px "${font.css}"`
     g.fillText(font.info.sample, 160, 104, 296)
-    g.fillStyle = '#8b93a3'
+    g.fillStyle = '#000000'
     g.font = `22px "${font.css}", sans-serif`
     g.fillText(font.info.family || path.slice(path.lastIndexOf('/') + 1), 160, 196, 296)
-    return { url: canvas.toDataURL('image/webp', 0.85), stats: fontStats(font) }
+    return { url: canvas.toDataURL('image/webp', 0.85), stats: { ...fontStats(font), modelThumb: FLAT_THUMB_VERSION } }
   } finally {
     font.release()
   }

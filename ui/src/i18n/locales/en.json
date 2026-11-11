@@ -2,7 +2,8 @@
   "common": {
     "language": "Language",
     "back": "Back",
-    "settings": "Settings"
+    "settings": "Settings",
+    "close": "Close"
   },
   "assetTypes": {
     "all": "All",
@@ -38,23 +39,19 @@
       "verify": "Checking the download…",
       "extract": "Unpacking…"
     },
-    "start": "START",
-    "connecting": "CONNECTING…",
-    "retry": "TRY AGAIN",
-    "roomCode": "Room code",
+    "start": "Sign in with GitHub CLI",
+    "connecting": "Connecting…",
+    "retry": "Try again",
+    "code": "One-time code",
     "stepN": "Step {{n}}",
     "stepShort1": "Open GitHub, paste the code",
     "stepShort2": "Continue, then Authorize",
     "stepShort3": "Come back — the app goes on",
     "tokenLink": "Use a token instead",
     "tokenTitle": "Sign in with a token",
-    "enter": "ENTER",
-    "back": "Back to the lobby",
-    "welcome": "WELCOME, {{login}}",
-    "welcomeAnon": "WELCOME",
-    "sound": "Sound",
-    "soundOn": "Sound on (click to mute)",
-    "soundOff": "Sound off (click to turn on)"
+    "enter": "Sign in",
+    "back": "Back",
+    "tagline": "Find Unity assets in your team's GitHub repos and export them with their dependencies."
   },
   "collections": {
     "title": "Collections",
@@ -92,7 +89,7 @@
     "loading": "Loading branch…",
     "noRepos": "No repositories are visible to this account.",
     "noResults": "No assets match this folder and search.",
-    "types": "Asset types",
+    "types": "Types",
     "branchNoPrefix": "Branches",
     "defaultBranch": "default",
     "loadingBranches": "Loading branches…",
@@ -106,7 +103,19 @@
     "unlistedShow_one": "{{count}} clip without a model hidden — show",
     "unlistedShow_other": "{{count}} clips without a model hidden — show",
     "unlistedHide": "Hide clips without a model",
-    "settingsAccount": "Settings and account (sign out)"
+    "settingsAccount": "Settings and account (sign out)",
+    "searchShortcut": "Press ⌘K to search",
+    "allAssets": "All assets",
+    "cellSize": "Cell size",
+    "cell": {
+      "small": "Small cells",
+      "large": "Large cells"
+    },
+    "inExportList": "In the export list",
+    "picked": "Selected",
+    "overBudget": "Over the playable budget",
+    "noResultsHint": "Try a shorter name, another folder, or turn off a filter.",
+    "noReposHint": "Ask for access to a repository on GitHub, then reload."
   },
   "details": {
     "label": "Asset details",
@@ -126,9 +135,9 @@
     "copies_one": "Identical file in {{count}} place",
     "copies_other": "Identical file in {{count}} places",
     "openGitHub": "Open on GitHub",
-    "issues": "{{count}} over budget",
     "depsSummary": "{{count}} files",
-    "warnings": "{{count}} warnings"
+    "warnings_one": "{{count}} warning",
+    "warnings_other": "{{count}} warnings"
   },
   "settings": {
     "title": "Settings",
@@ -165,9 +174,6 @@
     "sharedIndexAuto": "Kept up to date on its own: taken in when a teammate adds to it, and yours is added when it is more than 2 hours old.",
     "sharedIndexReadOnly": "Your GitHub account can read {{repo}} but not write to it: you get the team's index without adding to it.",
     "sharedIndexNoGit": "Not shared: needs git (Xcode Command Line Tools) or a folder.",
-    "lobby": "Lobby",
-    "skipLobby": "Skip the lobby when already signed in",
-    "skipLobbyNote": "Opens straight into the hub, without the 3D chest. The lobby still shows to sign in.",
     "usage": "Usage statistics",
     "usageStats": "Send usage statistics to the team",
     "usageNote": "Your GitHub name, time spent in the app, and counts of what you do (branches opened, asset types viewed, searches, exports, errors). Never search text or file contents. Helps us decide what to improve.",
@@ -213,7 +219,9 @@
     "noAnimation_one": "{{count}} animation clip — pick to play",
     "noAnimation_other": "{{count}} animation clips — pick to play",
     "hint": "Drag to rotate · scroll to zoom · right-drag to pan",
-    "needsRepo": "Preview needs a GitHub repository (not sample data)."
+    "needsRepo": "Preview needs a GitHub repository (not sample data).",
+    "backdropDark": "Dark backdrop",
+    "backdropHint": "Show the effect on dark instead of the grey stage. Remembered for next time."
   },
   "prefabView": {
     "loading": "Putting the prefab together…",
@@ -224,7 +232,6 @@
     "missing_other": "{{count}} meshes not found"
   },
   "stats": {
-    "title": "Stats",
     "triangles": "Triangles",
     "vertices": "Vertices",
     "meshes": "Meshes",
@@ -299,25 +306,54 @@
     "suggestedUse": "Use",
     "suggestedOn": "Using ✓",
     "checking": "checking…",
-    "script": "custom script"
+    "script": "custom script",
+    "tag": {
+      "mat": "MAT",
+      "shd": "SHD",
+      "tex": "TEX",
+      "fbx": "FBX",
+      "pfb": "PFB",
+      "cs": "CS",
+      "file": "FILE"
+    },
+    "count": {
+      "materials_one": "{{count}} material",
+      "materials_other": "{{count}} materials",
+      "textures_one": "{{count}} texture",
+      "textures_other": "{{count}} textures",
+      "models_one": "{{count}} model",
+      "models_other": "{{count}} models",
+      "prefabs_one": "{{count}} prefab",
+      "prefabs_other": "{{count}} prefabs",
+      "scripts_one": "{{count}} script",
+      "scripts_other": "{{count}} scripts"
+    }
   },
   "export": {
-    "chest": "Chest",
-    "room": "Room for {{size}} more",
+    "label": "Export list",
+    "assetCount_one": "{{count}} asset",
+    "assetCount_other": "{{count}} assets",
+    "depCount_one": "{{count}} dependency",
+    "depCount_other": "{{count}} dependencies",
+    "summaryLine": "{{assets}} + {{deps}}",
+    "of": "of",
+    "meterLabel": "Size against the budget",
+    "budgetName": {
+      "standard": "Standard budget",
+      "tight": "Tight budget",
+      "custom": "Custom budget"
+    },
+    "exportFiles_one": "Export {{count}} file",
+    "exportFiles_other": "Export {{count}} files",
     "tooHeavy": "Too heavy by {{size}}",
     "title": "Export",
     "exportOne": "Export .unitypackage",
-    "addToPack": "Add to chest",
-    "inPack": "In chest ✓",
-    "pack_one": "Chest: {{count}} model",
-    "pack_other": "Chest: {{count}} models",
-    "summary": "{{files}} files · ~{{size}}",
     "resolving": "resolving…",
     "missing_one": "{{count}} missing",
     "missing_other": "{{count}} missing",
     "byName_one": "{{count}} texture by name",
     "byName_other": "{{count}} textures by name",
-    "remove": "Remove {{name}} from the chest",
+    "remove": "Remove {{name}} from the export list",
     "layout": "Paths in Unity",
     "layoutSource": "Same as source project",
     "layoutGrouped": "Under Assets/AssetHub/<repo>/",
@@ -342,9 +378,8 @@
     "skipped_other": "{{count}} files left out (no .meta or duplicate GUID): {{list}}",
     "showInFolder": "Show in Finder",
     "dismiss": "Close",
-    "exportShort": "Export",
-    "unfold": "Show the chest's list and options",
-    "fold": "Fold the chest"
+    "unfold": "Show the export list's items and options",
+    "fold": "Fold the export list"
   },
   "prefab": {
     "title": "Materials from prefabs",
@@ -362,7 +397,11 @@
     "known_one": "Used by {{count}} prefab seen before ({{names}}).",
     "known_other": "Used by {{count}} prefabs seen before ({{names}}).",
     "load": "Load their materials",
-    "loading": "Loading materials…"
+    "loading": "Loading materials…",
+    "summary_one": "Used by {{count}} prefab",
+    "summary_other": "Used by {{count}} prefabs",
+    "noneFound": "No prefab found",
+    "unsearched": "Not searched yet"
   },
   "search": {
     "related": "Also showing related names: {{names}}",
@@ -406,7 +445,8 @@
     "allRepos": "All repos ({{count}})",
     "allBranches": "All branches ({{count}})",
     "foundIn_one": "on {{count}} branch",
-    "foundIn_other": "on {{count}} branches"
+    "foundIn_other": "on {{count}} branches",
+    "emptyYetHint": "Results appear here as each branch is indexed."
   },
   "ranking": {
     "sort": "Sort",
@@ -449,16 +489,15 @@
     "backdrop": {
       "checker": "Checker",
       "dark": "Dark",
-      "light": "Light"
+      "light": "Light",
+      "stage": "Stage"
     },
     "cannotShow": "Cannot show this image: {{message}}",
     "overrides": "Platform overrides: {{list}}",
     "noMeta": "No .meta file: Unity will use default import settings.",
     "warn": {
-      "size": "Imports at {{size}} px — above {{limit}} px for playables.",
       "uncompressed": "Not compressed: large in the build.",
-      "spriteMips": "Mipmaps are on for a sprite — usually wasted memory.",
-      "bytes": "File is {{size}} — above {{limit}} of textures for playables."
+      "spriteMips": "Mipmaps are on for a sprite — usually wasted memory."
     },
     "types": {
       "default": "Default",
@@ -597,7 +636,8 @@
     "saved_other": "Saved {{name}} ({{size}}, {{count}} textures).",
     "blenderTitle": "Open in Blender with its Unity materials rebuilt (colour, normal, metallic, smoothness, occlusion, emission, transparency)",
     "opening": "Opening…",
-    "opened": "Opened in Blender"
+    "opened": "Opened in Blender",
+    "blender": "Open in Blender"
   },
   "download": {
     "button": "Download",
@@ -776,61 +816,18 @@
     "failed": "Update failed: {{message}}",
     "hint": "Version {{version}} is available. The app restarts once it is installed; settings and cache are kept."
   },
-  "ai": {
-    "title": "AI assistant",
-    "unsupported": "Needs a Mac with Apple silicon.",
-    "install": "Download and connect ChatGPT",
-    "downloading": "Downloading the AI component… {{percent}}%",
-    "verifying": "Checking the download…",
-    "extracting": "Installing…",
-    "connect": "Connect ChatGPT",
-    "connecting": "Sign in to ChatGPT in the browser window that opened, then come back here.",
-    "reopen": "Open the sign-in page again",
-    "cancel": "Cancel",
-    "connected": "Connected: {{email}} · {{plan}} plan",
-    "disconnect": "Disconnect ChatGPT",
-    "failed": "Could not connect: {{message}}",
-    "pet": "Show the AI pet in the corner"
-  },
-  "aiPet": {
-    "attach": "Attach an image (or paste / drop one)",
-    "removeImage": "Remove image",
-    "placeholderImage": "Ask about this image…",
-    "title": "Assistant",
-    "newChat": "New chat",
-    "close": "Close",
-    "placeholder": "Ask something…",
-    "send": "Send",
-    "stop": "Stop",
-    "stopped": "Stopped",
-    "thinking": "Thinking",
-    "failed": "No answer: {{message}}",
-    "tool": {
-      "name_words": "Reading the names…",
-      "search_assets": "Searching…",
-      "open_asset": "Opening…",
-      "asset_info": "Looking closer…",
-      "add_to_chest": "Adding to the chest…",
-      "add_to_collection": "Adding to the collection…",
-      "offer_choices": ""
-    },
-    "other": "Other…",
-    "choices": "Choices",
-    "report": "This answer is wrong",
-    "reported": "Reported — thanks",
-    "newAnswer": "New answer"
-  },
   "unity": {
     "import": "Import into Unity",
     "importInto": "Import into {{project}}",
     "pick": "Choose the Unity project",
     "noneOpen": "Open the project in Unity first; it shows up here",
     "done": "Opened {{count}} assets ({{size}}) in Unity · {{project}}: confirm the import there.",
-    "nothingNew": "{{project}} already has all of these assets (same content); nothing to import."
+    "nothingNew": "{{project}} already has all of these assets (same content); nothing to import.",
+    "short": "Unity"
   },
   "multi": {
-    "count": "{{count}} picked",
-    "chest": "Add to chest",
+    "count": "{{count}} selected",
+    "exportList": "Add to export list",
     "collection": "Add to collection",
     "clear": "Clear"
   },
@@ -842,15 +839,14 @@
     "pickAll": "Pick every card",
     "clear": "Clear the picks",
     "favourite": "Add to / remove from Favourites",
-    "chest": "Add to / take out of the chest",
+    "exportList": "Add to / remove from the export list",
     "unity": "Import into Unity (the project used last)",
-    "pet": "Open / close the AI pet",
     "help": "Show this list"
   },
   "recent": {
     "title": "Recent",
-    "viewed": "Viewed lately",
-    "exported": "Exported lately"
+    "viewed": "Recently viewed",
+    "exported": "Recently exported"
   },
   "chips": {
     "label": "Quick filters",
@@ -866,7 +862,8 @@
     "new": "NEW",
     "banner": "{{count}}{{more}} new assets since you last looked",
     "onlyNew": "Only new assets",
-    "seen": "Mark all seen"
+    "seen": "Mark all seen",
+    "newCount": "{{n}} new"
   },
   "filters": {
     "title": "Filters",
@@ -878,8 +875,8 @@
     "copied": "Copied",
     "noUnity": "No Unity editor open",
     "many": "{{count}} assets selected",
-    "addChest": "Add to chest",
-    "removeChest": "Remove from chest",
+    "addToExport": "Add to export list",
+    "removeFromExport": "Remove from export list",
     "collection": "Add to collection",
     "clearPick": "Clear selection",
     "favorite": "Add to favourites",
@@ -894,12 +891,7 @@
   },
   "actions": {
     "export": "Export",
-    "chest": "Chest",
-    "inChest": "In chest",
     "collection": "Collection",
-    "copyPath": "Path",
-    "copied": "Copied",
-    "link": "Link",
     "watch": "Pin branch",
     "watching": "Pinned"
   },
@@ -926,5 +918,25 @@
     "queued": "Saved. It could not be sent right now and will go out automatically next time the app opens.",
     "open": "Open on GitHub",
     "close": "Close"
+  },
+  "sidebar": {
+    "yours": "Yours"
+  },
+  "inspector": {
+    "more": "More actions",
+    "export": "Export…",
+    "addToList": "Add to export list",
+    "inList": "In export list ✓",
+    "addToListHint": "Add it to the export list to export several assets as one package",
+    "inListHint": "In the export list. Click to take it out.",
+    "copyFailed": "Could not copy",
+    "calibration": "Stage 18% grey",
+    "calibrationDark": "Dark backdrop",
+    "fits": "Fits {{preset}} budget",
+    "presets": {
+      "standard": "Standard",
+      "tight": "Tight",
+      "custom": "Custom"
+    }
   }
 }

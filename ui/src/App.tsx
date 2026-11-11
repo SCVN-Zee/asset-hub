@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { displayName } from '@shared/displayName'
 import type { AssetSource } from '@shared/types'
 import type { AuthStatus } from '@shared/ipc'
 import { DEFAULT_EXPORT_LAYOUT, type Settings as AppSettings } from '@shared/settings'
@@ -12,40 +10,18 @@ import i18n from './i18n'
 import { RemoteAssetSource, RemoteError, unwrap } from './remoteSource'
 import { Browse } from './screens/Browse'
 import { Settings } from './screens/Settings'
-import { AiPet } from './components/AiPet'
 import { ErrorNote } from './components/ErrorNote'
 import { SignIn } from './screens/SignIn'
 
-type Screen = 'loading' | 'signin' | 'browse' | 'settings'
-
-/** After the chest opens: the white-out fades into the hub and greets the user. */
-function Welcome({ login, onDone }: { login?: string; onDone(): void }) {
-  const { t } = useTranslation()
-  useEffect(() => {
-    const timer = window.setTimeout(onDone, 3200)
-    return () => window.clearTimeout(timer)
-  }, [onDone])
-  return (
-    <div className="welcome" aria-live="polite">
-      <div className="welcome-flash" aria-hidden="true" />
-      <div className="welcome-toast" role="status">
-        <span aria-hidden="true">★</span>
-        {login ? t('signin.welcome', { login: displayName(login) }) : t('signin.welcomeAnon')}
-      </div>
-    </div>
-  )
-}
+type Screen = 'loading' | 'signin' | 'browse'
 
 export function App() {
   const [settings, setSettings] = useState<AppSettings>()
   const [auth, setAuth] = useState<AuthStatus>()
   const [source, setSource] = useState<AssetSource>()
   const [screen, setScreen] = useState<Screen>('loading')
-  /** Set when the user just came in through the lobby: the greeting over the hub. */
-  const [welcome, setWelcome] = useState<{ login?: string }>()
-  /** Signed in from last time: the lobby opens the chest by itself, then the hub. */
-  const [autoEnter, setAutoEnter] = useState<AuthStatus>()
-  const endWelcome = useCallback(() => setWelcome(undefined), [])
+  /** Settings is a panel over the hub, so the hub (search, selection, picks, export list) stays mounted behind it. */
+  const [settingsOpen, setSettingsOpen] = useState(false)
   /** The asset types, as the Rust side declares them. */
   const [registry, setRegistry] = useState<HandlerRegistry>()
   const [registryError, setRegistryError] = useState<unknown>()
@@ -62,33 +38,14 @@ export function App() {
     setScreen('browse')
   }, [])
 
-  /** The lobby shows at once; its sign-in buttons wait until the previous sign-in is checked. */
-  const [checking, setChecking] = useState(true)
-
   useEffect(() => {
-    const loaded = window.api.getSettings()
-    void loaded.then((s) => {
-      setSettings(s)
-      // With "skip the lobby" on, nothing shows until the previous sign-in is checked, so the lobby
-      // never flashes up on the way to the hub.
-      if (!s.skipLobby) setScreen('signin')
-    })
-    // Restores the previous sign-in; any failure falls back to the sign-in buttons.
-    void Promise.all([loaded, window.api.auth.status()]).then(([s, result]) => {
-      const signedIn = result.ok && result.data.signedIn
-      if (signedIn && s.skipLobby) return enterGitHub(result.data)
-      if (signedIn) setAutoEnter(result.data)
-      setScreen('signin')
-      setChecking(false)
-    })
+    void window.api.getSettings().then(setSettings)
+    // Restores the previous sign-in straight into the hub; any failure falls back to the sign-in screen.
+    window.api.auth.status().then(
+      (result) => (result.ok && result.data.signedIn ? enterGitHub(result.data) : setScreen('signin')),
+      () => setScreen('signin')
+    )
   }, [enterGitHub])
-
-  // While the chest opens, the last branch's file list loads, so the hub fills as soon as it shows.
-  const resumeRepo = autoEnter ? settings?.lastRepo : undefined
-  const resumeBranch = autoEnter ? settings?.lastBranch : undefined
-  useEffect(() => {
-    if (resumeRepo && resumeBranch) void window.api.source.listTree(resumeRepo, resumeBranch)
-  }, [resumeRepo, resumeBranch])
 
   useEffect(() => {
     if (!settings) return
@@ -108,6 +65,7 @@ export function App() {
     await window.api.auth.signOut({ gh })
     setAuth(undefined)
     setSource(undefined)
+    setSettingsOpen(false)
     setScreen('signin')
   }
 
@@ -125,20 +83,14 @@ export function App() {
             // gh is installed but logged out: log it in through the browser right here.
             return unwrap(await window.api.auth.ghWebLogin())
           }}
-          autoEnter={autoEnter}
-          checking={checking}
-          onEnter={(status) => {
-            setAutoEnter(undefined)
-            setWelcome({ login: status.login })
-            enterGitHub(status)
-          }}
+          onEnter={enterGitHub}
         />
       )
-    case 'settings':
-      return <Settings settings={settings} auth={auth} onChange={update} onSignOut={(gh) => void signOut(gh)} onBack={() => setScreen('browse')} />
     case 'browse':
       return source && registry ? (
         <BudgetContext.Provider value={(settings.budgetPreset ?? DEFAULT_BUDGET_PRESET) === 'off' ? undefined : budgetFor(settings.budgetPreset, settings.customBudget)}>
+        {/* While the panel is open the hub stays mounted but cannot take focus or clicks. */}
+        <div className="hub" {...(settingsOpen ? ({ inert: '' } as object) : {})}>
         <Browse
           source={source}
           registry={registry}
@@ -149,11 +101,8 @@ export function App() {
           onOpenBranch={(lastRepo, lastBranch) => {
             if (lastRepo !== settings.lastRepo || lastBranch !== settings.lastBranch) update({ lastRepo, lastBranch })
           }}
-          onSettings={() => {
-            // The greeting belongs to arriving from the lobby: leaving the hub ends it, or coming back would flash it again.
-            setWelcome(undefined)
-            setScreen('settings')
-          }}
+          onSettings={() => setSettingsOpen(true)}
+          paused={settingsOpen}
           budgetPreset={settings.budgetPreset ?? DEFAULT_BUDGET_PRESET}
           onBudgetPreset={(budgetPreset) => update({ budgetPreset })}
           exportLayout={settings.exportLayout ?? DEFAULT_EXPORT_LAYOUT}
@@ -166,8 +115,8 @@ export function App() {
           watched={settings.watched ?? []}
           onWatched={(watched) => update({ watched })}
         />
-        <AiPet language={settings.language} enabled={settings.aiPet !== false} />
-        {welcome && <Welcome login={welcome.login} onDone={endWelcome} />}
+        </div>
+        {settingsOpen && <Settings settings={settings} auth={auth} onChange={update} onSignOut={(gh) => void signOut(gh)} onBack={() => setSettingsOpen(false)} />}
         </BudgetContext.Provider>
       ) : registryError ? (
         <ErrorNote error={registryError} />

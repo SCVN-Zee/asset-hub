@@ -16,9 +16,7 @@ function labelCard(label: string): string {
   canvas.width = 320
   canvas.height = 240
   const g = canvas.getContext('2d')!
-  g.fillStyle = '#1a1e26'
-  g.fillRect(0, 0, 320, 240)
-  g.fillStyle = '#5b6474'
+  g.fillStyle = '#f1f0ec'
   g.font = '600 44px sans-serif'
   g.textAlign = 'center'
   g.textBaseline = 'middle'

@@ -2,7 +2,8 @@
   "common": {
     "language": "언어",
     "back": "뒤로",
-    "settings": "설정"
+    "settings": "설정",
+    "close": "닫기"
   },
   "assetTypes": {
     "all": "전체",
@@ -38,23 +39,19 @@
       "verify": "다운로드 확인 중…",
       "extract": "압축 해제 중…"
     },
-    "start": "시작",
+    "start": "GitHub CLI로 로그인",
     "connecting": "연결 중…",
     "retry": "다시 시도",
-    "roomCode": "입장 코드",
+    "code": "일회용 코드",
     "stepN": "{{n}}단계",
     "stepShort1": "GitHub 열고 코드 붙여넣기",
     "stepShort2": "Continue 후 Authorize",
     "stepShort3": "돌아오면 자동으로 입장",
     "tokenLink": "토큰으로 입장",
     "tokenTitle": "토큰으로 입장",
-    "enter": "입장",
-    "back": "로비로 돌아가기",
-    "welcome": "환영합니다, {{login}}",
-    "welcomeAnon": "환영합니다",
-    "sound": "소리",
-    "soundOn": "소리 켜짐 (클릭하여 끄기)",
-    "soundOff": "소리 꺼짐 (클릭하여 켜기)"
+    "enter": "로그인",
+    "back": "뒤로",
+    "tagline": "팀의 GitHub 저장소에서 Unity 에셋을 찾아 의존성과 함께 내보냅니다."
   },
   "collections": {
     "title": "컬렉션",
@@ -89,7 +86,7 @@
     "loading": "브랜치 불러오는 중…",
     "noRepos": "이 계정으로 볼 수 있는 저장소가 없습니다.",
     "noResults": "이 폴더와 검색어에 맞는 에셋이 없습니다.",
-    "types": "에셋 유형",
+    "types": "유형",
     "branchNoPrefix": "브랜치",
     "defaultBranch": "기본",
     "loadingBranches": "브랜치 불러오는 중…",
@@ -101,7 +98,19 @@
     "loadedHint": "썸네일 준비 완료. 화면에 보이는 카드부터 먼저 로드하고, 나머지는 백그라운드에서 로드합니다.",
     "unlistedShow_other": "모델 없는 클립 {{count}}개 숨김 — 보기",
     "unlistedHide": "모델 없는 클립 숨기기",
-    "settingsAccount": "설정 및 계정 (로그아웃)"
+    "settingsAccount": "설정 및 계정 (로그아웃)",
+    "searchShortcut": "⌘K로 검색",
+    "allAssets": "모든 에셋",
+    "cellSize": "셀 크기",
+    "cell": {
+      "small": "작은 셀",
+      "large": "큰 셀"
+    },
+    "inExportList": "내보내기 목록에 있음",
+    "picked": "선택됨",
+    "overBudget": "플레이어블 예산 초과",
+    "noResultsHint": "더 짧은 이름을 쓰거나, 다른 폴더를 고르거나, 필터를 끄세요.",
+    "noReposHint": "GitHub에서 저장소 접근 권한을 요청한 뒤 새로고침하세요."
   },
   "details": {
     "label": "에셋 세부 정보",
@@ -120,9 +129,8 @@
     "copied": "복사됨",
     "copies_other": "동일한 파일이 {{count}}곳에 있음",
     "openGitHub": "GitHub에서 열기",
-    "issues": "예산 초과 {{count}}개",
     "depsSummary": "파일 {{count}}개",
-    "warnings": "경고 {{count}}개"
+    "warnings_other": "경고 {{count}}개"
   },
   "settings": {
     "title": "설정",
@@ -159,9 +167,6 @@
     "sharedIndexAuto": "자동으로 최신 상태 유지: 팀원이 추가하면 바로 받아오고, 공유본이 2시간보다 오래되면 내 인덱스를 추가합니다.",
     "sharedIndexReadOnly": "GitHub 계정이 {{repo}}를 읽을 수만 있고 쓸 수는 없습니다: 팀 인덱스는 받지만 추가하지는 않습니다.",
     "sharedIndexNoGit": "공유 안 함: git(Xcode Command Line Tools) 또는 폴더가 필요합니다.",
-    "lobby": "로비",
-    "skipLobby": "이미 로그인되어 있으면 로비 건너뛰기",
-    "skipLobbyNote": "3D 상자 없이 바로 허브로 들어갑니다. 로그인이 필요할 때는 로비가 표시됩니다.",
     "usage": "사용 통계",
     "usageStats": "팀에 사용 통계 보내기",
     "usageNote": "GitHub 이름, 앱 사용 시간, 작업 횟수(연 브랜치, 본 에셋 유형, 검색, 내보내기, 오류)를 보냅니다. 검색어나 파일 내용은 절대 보내지 않습니다. 개선 방향을 정하는 데 도움이 됩니다.",
@@ -206,7 +211,9 @@
     "animation": "애니메이션",
     "noAnimation_other": "애니메이션 클립 {{count}}개 — 선택해서 재생",
     "hint": "드래그로 회전 · 스크롤로 확대/축소 · 우클릭 드래그로 이동",
-    "needsRepo": "미리보기는 GitHub 저장소가 필요합니다 (샘플 데이터 불가)."
+    "needsRepo": "미리보기는 GitHub 저장소가 필요합니다 (샘플 데이터 불가).",
+    "backdropDark": "어두운 배경",
+    "backdropHint": "회색 스테이지 대신 어두운 배경에서 이펙트를 봅니다. 다음에도 기억합니다."
   },
   "prefabView": {
     "loading": "프리팹 구성 중…",
@@ -216,7 +223,6 @@
     "missing_other": "메시 {{count}}개를 찾을 수 없음"
   },
   "stats": {
-    "title": "통계",
     "triangles": "삼각형",
     "vertices": "버텍스",
     "meshes": "메시",
@@ -290,22 +296,44 @@
     "suggestedUse": "사용",
     "suggestedOn": "사용 중 ✓",
     "checking": "확인 중…",
-    "script": "커스텀 스크립트"
+    "script": "커스텀 스크립트",
+    "tag": {
+      "mat": "재질",
+      "shd": "셰이더",
+      "tex": "텍스처",
+      "fbx": "FBX",
+      "pfb": "프리팹",
+      "cs": "CS",
+      "file": "파일"
+    },
+    "count": {
+      "materials_other": "재질 {{count}}개",
+      "textures_other": "텍스처 {{count}}개",
+      "models_other": "모델 {{count}}개",
+      "prefabs_other": "프리팹 {{count}}개",
+      "scripts_other": "스크립트 {{count}}개"
+    }
   },
   "export": {
-    "chest": "상자",
-    "room": "{{size}} 더 담을 수 있음",
+    "label": "내보내기 목록",
+    "assetCount_other": "에셋 {{count}}개",
+    "depCount_other": "의존 파일 {{count}}개",
+    "summaryLine": "{{assets}} + {{deps}}",
+    "of": "/",
+    "meterLabel": "예산 대비 크기",
+    "budgetName": {
+      "standard": "표준 예산",
+      "tight": "엄격한 예산",
+      "custom": "사용자 지정 예산"
+    },
+    "exportFiles_other": "파일 {{count}}개 내보내기",
     "tooHeavy": "{{size}} 초과",
     "title": "내보내기",
     "exportOne": ".unitypackage 내보내기",
-    "addToPack": "상자에 추가",
-    "inPack": "상자에 있음 ✓",
-    "pack_other": "상자: 모델 {{count}}개",
-    "summary": "파일 {{files}}개 · ~{{size}}",
     "resolving": "확인 중…",
     "missing_other": "{{count}}개 누락",
     "byName_other": "이름으로 매칭된 텍스처 {{count}}개",
-    "remove": "상자에서 {{name}} 빼기",
+    "remove": "내보내기 목록에서 {{name}} 빼기",
     "layout": "Unity 내 경로",
     "layoutSource": "원본 프로젝트와 동일",
     "layoutGrouped": "Assets/AssetHub/<repo>/ 아래",
@@ -327,9 +355,8 @@
     "skipped_other": "파일 {{count}}개 제외됨 (.meta 없음 또는 GUID 중복): {{list}}",
     "showInFolder": "Finder에서 보기",
     "dismiss": "닫기",
-    "exportShort": "내보내기",
-    "unfold": "상자 목록과 옵션 보기",
-    "fold": "상자 접기"
+    "unfold": "내보내기 목록의 항목과 옵션 보기",
+    "fold": "내보내기 목록 접기"
   },
   "prefab": {
     "title": "프리팹의 머티리얼",
@@ -343,7 +370,10 @@
     "scanAll_other": "프리팹 {{count}}개 더 검사 ({{size}})",
     "known_other": "이전에 확인한 프리팹 {{count}}개에서 사용됨 ({{names}}).",
     "load": "머티리얼 불러오기",
-    "loading": "머티리얼 불러오는 중…"
+    "loading": "머티리얼 불러오는 중…",
+    "summary_other": "프리팹 {{count}}개가 사용",
+    "noneFound": "찾은 프리팹 없음",
+    "unsearched": "아직 검색하지 않음"
   },
   "search": {
     "related": "관련 이름도 표시: {{names}}",
@@ -383,7 +413,8 @@
     "filterBranch": "브랜치로 필터",
     "allRepos": "모든 저장소 ({{count}})",
     "allBranches": "모든 브랜치 ({{count}})",
-    "foundIn_other": "브랜치 {{count}}개에 있음"
+    "foundIn_other": "브랜치 {{count}}개에 있음",
+    "emptyYetHint": "브랜치 인덱싱이 끝나는 대로 결과가 여기에 나타납니다."
   },
   "ranking": {
     "sort": "정렬",
@@ -423,16 +454,15 @@
     "backdrop": {
       "checker": "체커",
       "dark": "어둡게",
-      "light": "밝게"
+      "light": "밝게",
+      "stage": "스테이지"
     },
     "cannotShow": "이 이미지를 표시할 수 없습니다: {{message}}",
     "overrides": "플랫폼 오버라이드: {{list}}",
     "noMeta": ".meta 파일 없음: Unity가 기본 임포트 설정을 사용합니다.",
     "warn": {
-      "size": "{{size}} px로 임포트됨 — 플레이어블 기준 {{limit}} px 초과.",
       "uncompressed": "압축되지 않음: 빌드 크기가 큽니다.",
-      "spriteMips": "스프라이트에 밉맵이 켜져 있습니다 — 보통 메모리 낭비입니다.",
-      "bytes": "파일이 {{size}} — 플레이어블 텍스처 기준 {{limit}} 초과."
+      "spriteMips": "스프라이트에 밉맵이 켜져 있습니다 — 보통 메모리 낭비입니다."
     },
     "types": {
       "default": "기본",
@@ -569,7 +599,8 @@
     "saved_other": "{{name}} 저장됨 ({{size}}, 텍스처 {{count}}개).",
     "blenderTitle": "Unity 머티리얼(색상, 노멀, 메탈릭, 스무스니스, AO, 이미션, 투명)을 다시 만든 상태로 Blender에서 열기",
     "opening": "여는 중…",
-    "opened": "Blender에서 열림"
+    "opened": "Blender에서 열림",
+    "blender": "Blender에서 열기"
   },
   "download": {
     "button": "다운로드",
@@ -729,61 +760,18 @@
     "failed": "업데이트 실패: {{message}}",
     "hint": "{{version}} 버전을 사용할 수 있습니다. 설치 후 앱이 다시 시작되며 설정과 캐시는 유지됩니다."
   },
-  "ai": {
-    "title": "AI 어시스턴트",
-    "unsupported": "Apple 실리콘 Mac이 필요합니다.",
-    "install": "다운로드 후 ChatGPT 연결",
-    "downloading": "AI 구성 요소 다운로드 중… {{percent}}%",
-    "verifying": "다운로드 확인 중…",
-    "extracting": "설치 중…",
-    "connect": "ChatGPT 연결",
-    "connecting": "열린 브라우저 창에서 ChatGPT에 로그인한 뒤 여기로 돌아오세요.",
-    "reopen": "로그인 페이지 다시 열기",
-    "cancel": "취소",
-    "connected": "연결됨: {{email}} · {{plan}} 플랜",
-    "disconnect": "ChatGPT 연결 해제",
-    "failed": "연결할 수 없음: {{message}}",
-    "pet": "화면 구석에 AI 펫 표시"
-  },
-  "aiPet": {
-    "attach": "이미지 첨부 (붙여넣기 / 끌어놓기도 가능)",
-    "removeImage": "이미지 제거",
-    "placeholderImage": "이 이미지에 대해 물어보세요…",
-    "title": "어시스턴트",
-    "newChat": "새 대화",
-    "close": "닫기",
-    "placeholder": "무엇이든 물어보세요…",
-    "send": "보내기",
-    "stop": "중지",
-    "stopped": "중지됨",
-    "thinking": "생각 중",
-    "failed": "답변할 수 없음: {{message}}",
-    "tool": {
-      "name_words": "이름 확인 중…",
-      "search_assets": "찾는 중…",
-      "open_asset": "여는 중…",
-      "asset_info": "자세히 보는 중…",
-      "add_to_chest": "상자에 추가하는 중…",
-      "add_to_collection": "컬렉션에 추가하는 중…",
-      "offer_choices": ""
-    },
-    "other": "기타…",
-    "choices": "선택지",
-    "report": "이 답변이 틀렸어요",
-    "reported": "기록했어요, 감사합니다",
-    "newAnswer": "새 답변"
-  },
   "unity": {
     "import": "Unity로 가져오기",
     "importInto": "{{project}}(으)로 가져오기",
     "pick": "Unity 프로젝트 선택",
     "noneOpen": "먼저 Unity에서 프로젝트를 여세요. 여기에 표시됩니다",
     "done": "Unity · {{project}}에서 에셋 {{count}}개({{size}})를 열었습니다. Unity에서 Import를 눌러 확인하세요.",
-    "nothingNew": "{{project}}에 이 에셋이 모두 있습니다(같은 내용). 가져올 것이 없습니다."
+    "nothingNew": "{{project}}에 이 에셋이 모두 있습니다(같은 내용). 가져올 것이 없습니다.",
+    "short": "Unity"
   },
   "multi": {
     "count": "{{count}}개 선택됨",
-    "chest": "상자에 추가",
+    "exportList": "내보내기 목록에 추가",
     "collection": "컬렉션에 추가",
     "clear": "선택 해제"
   },
@@ -795,9 +783,8 @@
     "pickAll": "모든 카드 선택",
     "clear": "선택 해제",
     "favourite": "즐겨찾기 추가/제거",
-    "chest": "상자에 추가/빼기",
+    "exportList": "내보내기 목록에 추가/빼기",
     "unity": "Unity로 가져오기 (마지막 프로젝트)",
-    "pet": "AI 펫 열기/닫기",
     "help": "이 목록 보기"
   },
   "recent": {
@@ -819,7 +806,8 @@
     "new": "NEW",
     "banner": "지난번 이후 새 에셋 {{count}}{{more}}개",
     "onlyNew": "새 에셋만",
-    "seen": "모두 확인함"
+    "seen": "모두 확인함",
+    "newCount": "새 항목 {{n}}"
   },
   "filters": {
     "title": "필터",
@@ -831,8 +819,8 @@
     "copied": "복사됨",
     "noUnity": "열린 Unity 에디터 없음",
     "many": "에셋 {{count}}개 선택됨",
-    "addChest": "상자에 담기",
-    "removeChest": "상자에서 빼기",
+    "addToExport": "내보내기 목록에 추가",
+    "removeFromExport": "내보내기 목록에서 빼기",
     "collection": "컬렉션에 추가",
     "clearPick": "선택 해제",
     "favorite": "즐겨찾기에 추가",
@@ -847,12 +835,7 @@
   },
   "actions": {
     "export": "내보내기",
-    "chest": "상자",
-    "inChest": "상자에 있음",
     "collection": "컬렉션",
-    "copyPath": "경로",
-    "copied": "복사됨",
-    "link": "링크",
     "watch": "브랜치 고정",
     "watching": "고정됨"
   },
@@ -879,5 +862,25 @@
     "queued": "저장되었습니다. 지금은 보낼 수 없어 다음에 앱을 열 때 자동으로 전송됩니다.",
     "open": "GitHub에서 열기",
     "close": "닫기"
+  },
+  "sidebar": {
+    "yours": "내 항목"
+  },
+  "inspector": {
+    "more": "더 보기",
+    "export": "내보내기…",
+    "addToList": "내보내기 목록에 추가",
+    "inList": "내보내기 목록에 있음 ✓",
+    "addToListHint": "내보내기 목록에 담으면 여러 에셋을 한 패키지로 내보낼 수 있습니다",
+    "inListHint": "내보내기 목록에 있습니다. 누르면 뺍니다.",
+    "copyFailed": "복사하지 못했습니다",
+    "calibration": "스테이지 18% 회색",
+    "calibrationDark": "어두운 배경",
+    "fits": "{{preset}} 예산 이내",
+    "presets": {
+      "standard": "표준",
+      "tight": "엄격",
+      "custom": "사용자 지정"
+    }
   }
 }

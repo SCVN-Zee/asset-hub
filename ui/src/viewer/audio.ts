@@ -2,6 +2,7 @@ import type { AudioImport, AudioImportSettings, StatsSummary } from '@shared/typ
 import { parse } from '../parse'
 import type { LiveContext } from '../components/ModelViewer'
 import { unwrap } from '../remoteSource'
+import { FLAT_THUMB_VERSION } from './thumbVersions'
 
 /** A decoded clip with what the audio panel reports about it. */
 export interface DecodedAudio {
@@ -77,6 +78,10 @@ export async function decodeAudio(live: LiveContext, path: string, bytes: Uint8A
   }
 }
 
+/** Waveform ink and playhead colour: readable on the grey stage (#767676) the viewer and the cards sit on. */
+export const WAVE_INK = '#1f1f20'
+export const WAVE_PLAYED = '#ffffff'
+
 /** Draws the waveform; columns left of `progress` (0–1) in the played colour. */
 export function drawWaveform(canvas: HTMLCanvasElement, peaks: Float32Array, colors: { wave: string; played?: string; background?: string }, progress = 0): void {
   const g = canvas.getContext('2d')!
@@ -119,8 +124,9 @@ export async function renderAudioThumbnail(live: LiveContext, path: string): Pro
   const canvas = document.createElement('canvas')
   canvas.width = 320
   canvas.height = 240
-  drawWaveform(canvas, audio.peaks, { wave: '#6c9cff', background: '#1a1e26' })
-  return { url: canvas.toDataURL('image/webp', 0.85), stats: audioStats(audio) }
+  // No background: the card's stage shows through.
+  drawWaveform(canvas, audio.peaks, { wave: WAVE_INK })
+  return { url: canvas.toDataURL('image/webp', 0.85), stats: { ...audioStats(audio), modelThumb: FLAT_THUMB_VERSION } }
 }
 
 /** 75.4 → "1:15". */

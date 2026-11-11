@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronRightIcon } from './Icons'
+import { CheckIcon, ChevronRightIcon } from './Icons'
 
 /** One line of a right-click menu: an action, a submenu, or a separator ('-'). */
 export type MenuItem =
@@ -130,7 +130,7 @@ export function ContextMenu({ x, y, items, onClose, sub, backX, onBack }: MenuSt
             }}
           >
             <span className="context-check" aria-hidden="true">
-              {item.checked ? '✓' : item.icon}
+              {item.checked ? <CheckIcon size={14} /> : item.icon}
             </span>
             <span className="context-label">{item.label}</span>
             {item.hint && <span className="context-hint">{item.hint}</span>}

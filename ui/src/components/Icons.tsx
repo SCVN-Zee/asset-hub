@@ -20,6 +20,20 @@ export const CubeIcon = ({ size = 24 }: IconProps) => (
   </svg>
 )
 
+export const CloseIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </svg>
+)
+
+/** A script a font covers only in part: a circle with its left half filled. */
+export const HalfCircleIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" />
+  </svg>
+)
+
 export const SearchIcon = ({ size = 16 }: IconProps) => (
   <svg {...base(size)}>
     <circle cx="11" cy="11" r="7" />
@@ -114,12 +128,11 @@ export const DownloadIcon = ({ size = 16 }: IconProps) => (
   </svg>
 )
 
-/** The chest (the app's export list), as in the logo: a domed lid over a box with a clasp. */
-export const ChestIcon = ({ size = 16, filled }: ToggleIconProps) => (
+/** The export list: a list with a plus, or (when `filled`) a tick once the asset is on it. */
+export const ExportListIcon = ({ size = 16, filled }: ToggleIconProps) => (
   <svg {...base(size)}>
-    <path d="M4 10.5a8 4.5 0 0 1 16 0" fill={filled ? 'currentColor' : 'none'} fillOpacity={filled ? 0.25 : 0} />
-    <path d="M4 10.5h16V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" />
-    <path d="M10.5 10.5v3h3v-3M4 14h6.5M13.5 14H20" />
+    <path d="M4 6h10M4 12h6M4 18h10" />
+    {filled ? <path d="m13.5 15.5 3 3 5-6" /> : <path d="M18 8.5v8M14 12.5h8" />}
   </svg>
 )
 
@@ -215,5 +228,22 @@ export const UnityIcon = ({ size = 16 }: IconProps) => (
   <svg {...base(size)}>
     <path d="M12 2.6 20.4 7.4v5.1M20.4 15v1.6L12 21.4l-4.6-2.6M5.3 17.6l-1.7-1V7.4L8.2 4.8" />
     <path d="M12 12v5.4M12 12l4.7-2.7M12 12 7.3 9.3" />
+  </svg>
+)
+
+/** A budget issue: a triangle with a bar, so the state never rests on colour alone. */
+export const WarnIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M12 3.5 21.5 19.5h-19z" />
+    <path d="M12 10v4.5M12 17.2v.1" />
+  </svg>
+)
+
+/** More actions: three dots. */
+export const MoreIcon = ({ size = 16 }: IconProps) => (
+  <svg {...base(size)} fill="currentColor" stroke="none">
+    <circle cx="5.5" cy="12" r="1.7" />
+    <circle cx="12" cy="12" r="1.7" />
+    <circle cx="18.5" cy="12" r="1.7" />
   </svg>
 )

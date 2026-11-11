@@ -30,7 +30,7 @@ interface Props {
   onLoading?(loading: boolean): void
 }
 
-type Backdrop = 'checker' | 'dark' | 'light'
+type Backdrop = 'stage' | 'checker' | 'dark' | 'light'
 
 /** Something worth outlining: sheet rects or a 9-slice border. */
 const hasOverlay = (s: SpriteImport | undefined) => !!s && (s.sprites.length > 0 || !!s.border)
@@ -78,7 +78,7 @@ function drawSprites(g: CanvasRenderingContext2D, sprite: SpriteImport, width: n
   })
 }
 
-/** A texture at full quality: fitted or at 1:1, over a checkerboard to show transparency, with sprite outlines. */
+/** A texture at full quality: fitted or at 1:1, on the stage grey (a checkerboard shows transparency), with sprite outlines. */
 export function ImageViewer({ live, path, onInfo, onStats, onLoading }: Props) {
   const { t } = useTranslation()
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -87,7 +87,7 @@ export function ImageViewer({ live, path, onInfo, onStats, onLoading }: Props) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState('')
   const [actual, setActual] = useState(false)
-  const [backdrop, setBackdrop] = useState<Backdrop>('checker')
+  const [backdrop, setBackdrop] = useState<Backdrop>('stage')
   const [outlines, setOutlines] = useState(true)
   const callbacks = useRef({ onInfo, onStats, onLoading })
   callbacks.current = { onInfo, onStats, onLoading }
@@ -179,7 +179,7 @@ export function ImageViewer({ live, path, onInfo, onStats, onLoading }: Props) {
           <button type="button" className="viewer-btn" aria-pressed={actual} onClick={() => setActual((a) => !a)}>
             {actual ? t('texture.fit') : t('texture.actual')}
           </button>
-          {(['checker', 'dark', 'light'] as const).map((b) => (
+          {(['stage', 'checker', 'dark', 'light'] as const).map((b) => (
             <button key={b} type="button" className="viewer-btn" aria-pressed={backdrop === b} onClick={() => setBackdrop(b)}>
               {t(`texture.backdrop.${b}`)}
             </button>

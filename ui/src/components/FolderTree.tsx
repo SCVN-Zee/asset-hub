@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FolderNode } from '@shared/types'
-import { ChevronRightIcon, FolderIcon } from './Icons'
+import { ChevronRightIcon } from './Icons'
 
 interface Props {
   root: FolderNode
@@ -53,7 +53,6 @@ export function FolderTree({ root, selected, onSelect, onMenu }: Props) {
           <span className="tree-caret" data-open={isOpen}>
             {hasChildren && <ChevronRightIcon />}
           </span>
-          <FolderIcon />
           <span className="tree-name">{node.name}</span>
           <span className="count">{node.assetCount}</span>
         </button>
@@ -67,7 +66,6 @@ export function FolderTree({ root, selected, onSelect, onMenu }: Props) {
       <li>
         <button type="button" className="tree-item" aria-current={selected === ''} onClick={() => onSelect('')}>
           <span className="tree-caret" />
-          <FolderIcon />
           <span className="tree-name">{t('browse.allFolders')}</span>
           <span className="count">{root.assetCount}</span>
         </button>

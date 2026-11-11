@@ -4,11 +4,11 @@ import type { BundleMaterial, DependencyReport, MaterialRef } from '@shared/type
 import { formatBytes } from '../format'
 import { parse } from '../parse'
 import { unwrap } from '../remoteSource'
-import { DownloadIcon, ExternalIcon } from './Icons'
+import { WarnIcon } from './Icons'
 import type { LiveContext } from './ModelViewer'
 
 type Mode = 'zip' | 'blender'
-type State = { status: 'idle' } | { status: 'busy'; mode: Mode } | { status: 'done'; mode: Mode; path: string; bytes?: number; textures: number } | { status: 'error'; mode: Mode; message: string }
+export type BundleState = { status: 'idle' } | { status: 'busy'; mode: Mode } | { status: 'done'; mode: Mode; path: string; bytes?: number; textures: number } | { status: 'error'; mode: Mode; message: string }
 
 /** An FBX: its materials and the textures it names itself, found as the preview finds them. */
 async function fbxMaterials(live: LiveContext, path: string, report?: DependencyReport, prefabMaterial?: MaterialRef): Promise<BundleMaterial[]> {
@@ -35,20 +35,30 @@ async function prefabGlb(live: LiveContext, path: string, report: DependencyRepo
   }
 }
 
+/** One action of the bundle, ready to be a menu row. */
+export interface BundleAction {
+  label: string
+  /** Why it waits, when it does. */
+  hint?: string
+  disabled: boolean
+  onSelect(): void
+}
+
 /**
  * A model out of Unity's world: one .zip with its textures and a script that
  * rebuilds its materials in Blender, or straight into Blender (when it is
  * installed). A prefab is put together and exported only when asked.
  */
-export function ModelBundleButtons({ kind, live, path, report, prefabMaterial }: { kind: 'fbx' | 'prefab'; live: LiveContext; path: string; report?: DependencyReport; prefabMaterial?: MaterialRef }) {
+export function useModelBundle(source: { kind: 'fbx' | 'prefab'; live: LiveContext; path: string; report?: DependencyReport; prefabMaterial?: MaterialRef } | undefined): { zip: BundleAction; blender?: BundleAction; state: BundleState } | undefined {
   const { t } = useTranslation()
-  const [state, setState] = useState<State>({ status: 'idle' })
+  const [state, setState] = useState<BundleState>({ status: 'idle' })
   const [blender, setBlender] = useState(false)
-  useEffect(() => setState({ status: 'idle' }), [live.repo, live.branch, path])
+  const enabled = !!source
+  useEffect(() => setState({ status: 'idle' }), [source?.live.repo, source?.live.branch, source?.path])
   useEffect(() => {
-    void window.api.assets.blenderInstalled().then(setBlender, () => setBlender(false))
-  }, [])
-  // "Opened in Blender" says so for a moment, then the button is ready again.
+    if (enabled) void window.api.assets.blenderInstalled().then(setBlender, () => setBlender(false))
+  }, [enabled])
+  // "Opened in Blender" says so for a moment, then the action is ready again.
   useEffect(() => {
     if (state.status !== 'done' || state.mode !== 'blender') return
     const id = setTimeout(() => setState({ status: 'idle' }), 4000)
@@ -56,8 +66,10 @@ export function ModelBundleButtons({ kind, live, path, report, prefabMaterial }:
   }, [state])
 
   // A prefab needs its dependencies (where its models and materials are) before it can be put together.
-  const waiting = kind === 'prefab' && (!report?.guidPaths || !!report.partial)
+  const waiting = source?.kind === 'prefab' && (!source.report?.guidPaths || !!source.report.partial)
   const run = async (mode: Mode) => {
+    if (!source) return
+    const { kind, live, path, report, prefabMaterial } = source
     setState({ status: 'busy', mode })
     try {
       // A prefab's particle materials are on no mesh: their textures stay out.
@@ -76,30 +88,40 @@ export function ModelBundleButtons({ kind, live, path, report, prefabMaterial }:
   const zip = stateOf('zip')
   const bl = stateOf('blender')
   const hint = waiting ? t('bundle.waiting') : undefined
+  if (!source) return undefined
+  return {
+    state,
+    zip: {
+      label: zip?.status === 'busy' ? t('download.saving') : zipSaved ? t('export.showInFolder') : t('bundle.zip'),
+      hint,
+      // Once saved, the row shows the file in its folder: that needs no waiting.
+      disabled: zipSaved ? false : busy,
+      onSelect: () => (zipSaved ? void window.api.exporter.showInFolder(zipSaved.path) : void run('zip'))
+    },
+    ...(blender ? { blender: { label: bl?.status === 'busy' ? t('bundle.opening') : bl?.status === 'done' ? t('bundle.opened') : t('bundle.blender'), hint, disabled: busy, onSelect: () => void run('blender') } } : {})
+  }
+}
+
+/** What the last bundle did, in words: working, saved (and where), or why it failed. */
+export function BundleNotice({ state }: { state: BundleState }) {
+  const { t } = useTranslation()
+  if (state.status === 'idle') return null
+  if (state.status === 'error')
+    return (
+      <p className="inspector-note" data-state="warn" role="alert">
+        <WarnIcon size={14} />
+        <span>{state.message}</span>
+      </p>
+    )
+  const text =
+    state.status === 'busy'
+      ? t(state.mode === 'zip' ? 'download.saving' : 'bundle.opening')
+      : state.mode === 'zip'
+        ? t('bundle.saved', { name: state.path.split('/').pop(), size: formatBytes(state.bytes), count: state.textures })
+        : t('bundle.opened')
   return (
-    <>
-      <button
-        type="button"
-        className={`btn icon-btn labeled${zip?.status === 'error' ? ' warn-text' : ''}`}
-        title={hint ?? (zip?.status === 'error' ? zip.message : zipSaved ? t('bundle.saved', { name: zipSaved.path.split('/').pop(), size: formatBytes(zipSaved.bytes), count: zipSaved.textures }) : t(kind === 'prefab' ? 'bundle.zipTitlePrefab' : 'bundle.zipTitle'))}
-        disabled={busy}
-        onClick={() => (zipSaved ? void window.api.exporter.showInFolder(zipSaved.path) : void run('zip'))}
-      >
-        <DownloadIcon />
-        <span>{zip?.status === 'busy' ? t('download.saving') : zipSaved ? t('export.showInFolder') : t('bundle.zip')}</span>
-      </button>
-      {blender && (
-        <button
-          type="button"
-          className={`btn icon-btn labeled${bl?.status === 'error' ? ' warn-text' : ''}`}
-          title={hint ?? (bl?.status === 'error' ? bl.message : t('bundle.blenderTitle'))}
-          disabled={busy}
-          onClick={() => void run('blender')}
-        >
-          <ExternalIcon size={16} />
-          <span>{bl?.status === 'busy' ? t('bundle.opening') : bl?.status === 'done' ? t('bundle.opened') : 'Blender'}</span>
-        </button>
-      )}
-    </>
+    <p className="inspector-note" role="status">
+      {text}
+    </p>
   )
 }

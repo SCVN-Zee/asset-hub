@@ -1,6 +1,7 @@
 import type { StatsSummary } from '@shared/types'
 import { parse, type TmpFontData } from '../parse'
 import type { LiveContext } from '../components/ModelViewer'
+import { FLAT_THUMB_VERSION } from './thumbVersions'
 
 /** A TextMeshPro font asset read from the repo, with its atlas drawn as an image. */
 export interface LoadedTmpFont {
@@ -53,15 +54,13 @@ export function tmpFontStats(font: LoadedTmpFont): StatsSummary {
   }
 }
 
-/** Grid thumbnail: the atlas on a dark card. */
+/** Grid thumbnail: the atlas (white glyphs) on a transparent background, so the card's grey stage shows through. */
 export async function renderTmpFontThumbnail(live: LiveContext, path: string): Promise<{ url: string; stats: StatsSummary }> {
   const font = await loadTmpFont(live, path, true)
   const canvas = document.createElement('canvas')
   canvas.width = 320
   canvas.height = 240
   const g = canvas.getContext('2d')!
-  g.fillStyle = '#1a1e26'
-  g.fillRect(0, 0, 320, 240)
   if (font.atlas) {
     const img = new Image()
     // Set before `src`: the atlas is drawn to a canvas that is read back, which a tainted image would forbid.
@@ -71,11 +70,11 @@ export async function renderTmpFontThumbnail(live: LiveContext, path: string): P
     const k = Math.min(300 / img.width, 220 / img.height)
     g.drawImage(img, 160 - (img.width * k) / 2, 120 - (img.height * k) / 2, img.width * k, img.height * k)
   } else {
-    g.fillStyle = '#5b6474'
+    g.fillStyle = '#1f1f20'
     g.font = '600 44px sans-serif'
     g.textAlign = 'center'
     g.textBaseline = 'middle'
     g.fillText('TMP', 160, 120)
   }
-  return { url: canvas.toDataURL('image/webp', 0.85), stats: tmpFontStats(font) }
+  return { url: canvas.toDataURL('image/webp', 0.85), stats: { ...tmpFontStats(font), modelThumb: FLAT_THUMB_VERSION } }
 }

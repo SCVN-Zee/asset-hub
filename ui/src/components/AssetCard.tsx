@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next'
 import type { Asset, StatsSummary } from '@shared/types'
 import { formatBytes } from '../format'
 import type { AssetTypeHandler } from '../handlers'
-import { StatsLine } from './CatalogPanel'
+import { useBudget } from '../budget'
+import { summaryIssues } from '../playable'
+import { formatDuration } from '../viewer/audio'
+import { budgetIssuesTitle, compactCount } from './CatalogPanel'
 import { AnimIcon, AudioIcon, CubeIcon, FontIcon, ImageIcon, SphereIcon, StarIcon } from './Icons'
 import { WeightBar } from './WeightBar'
 import { motionKey } from '../viewer/particleThumb'
@@ -28,6 +31,8 @@ interface Props {
   note?: string
   /** Measurements, when known: triangle count and playable-budget verdict. */
   stats?: StatsSummary
+  /** Already in the export list. */
+  inList?: boolean
   /** In Favourites. */
   starred?: boolean
   /** Added to a watched branch since it was last marked seen. */
@@ -36,7 +41,7 @@ interface Props {
   onContextMenu?(e: React.MouseEvent): void
 }
 
-export function AssetCard({ asset, handler, thumb, generating, copies, selected, onSelect, picked, onVisible, note, stats, starred, fresh, onContextMenu }: Props) {
+export function AssetCard({ asset, handler, thumb, generating, copies, selected, onSelect, picked, onVisible, note, stats, starred, fresh, inList, onContextMenu }: Props) {
   const { t } = useTranslation()
   const ref = useRef<HTMLButtonElement>(null)
   const visibleRef = useRef(onVisible)
@@ -63,6 +68,14 @@ export function AssetCard({ asset, handler, thumb, generating, copies, selected,
     // Re-observed when the callback appears, so a card already on screen reports itself.
   }, [!!onVisible])
 
+  const budget = useBudget()
+  const issues = budget && stats ? summaryIssues(stats, budget) : []
+  const kind = handler?.preview.kind
+  const fact = keyFact(kind, stats, t)
+  const weight = asset.size !== undefined ? formatBytes(asset.size) : stats ? formatBytes(stats.fileBytes + stats.textureBytes) : undefined
+  const icon = 40
+  const playing = hover && !!motion
+
   return (
     <button
       ref={ref}
@@ -71,6 +84,7 @@ export function AssetCard({ asset, handler, thumb, generating, copies, selected,
       data-asset-id={asset.id}
       aria-pressed={selected}
       data-picked={picked || undefined}
+      data-in-list={inList || undefined}
       onClick={(e) => onSelect({ toggle: e.metaKey || e.ctrlKey, range: e.shiftKey })}
       onContextMenu={onContextMenu}
       onMouseEnter={startMotion}
@@ -79,41 +93,83 @@ export function AssetCard({ asset, handler, thumb, generating, copies, selected,
       onBlur={() => setHover(false)}
       title={asset.path}
     >
-      <span className="asset-thumb">
-        {thumb ? <img className="asset-img" src={thumb} alt="" loading="lazy" /> : handler?.preview.kind === 'image' ? <ImageIcon size={52} /> : handler?.preview.kind === 'material' ? <SphereIcon size={52} /> : handler?.preview.kind === 'audio' ? <AudioIcon size={52} /> : handler?.preview.kind === 'animation' ? <AnimIcon size={52} /> : handler?.preview.kind === 'font' || handler?.preview.kind === 'tmpfont' ? <FontIcon size={52} /> : <CubeIcon size={56} />}
+      <span className="asset-thumb" data-kind={kind} data-playing={playing || undefined}>
+        {thumb ? <img className="asset-img" src={thumb} alt="" loading="lazy" /> : kind === 'image' ? <ImageIcon size={icon} /> : kind === 'material' ? <SphereIcon size={icon} /> : kind === 'audio' ? <AudioIcon size={icon} /> : kind === 'animation' ? <AnimIcon size={icon} /> : kind === 'font' || kind === 'tmpfont' ? <FontIcon size={icon} /> : <CubeIcon size={icon} />}
+        {hover && motion && <span className="asset-motion" style={{ backgroundImage: `url("${motion}")` }} aria-hidden="true" />}
         {handler && (
-          <span className="type-badge" style={{ '--type': `var(--type-${handler.id})` } as CSSProperties}>
-            {handler.badge}
+          <span className="type-badge" style={{ '--type': `var(--type-${handler.id}, var(--mute))` } as CSSProperties}>
+            <span className="type-badge-label">{t(handler.labelKey)}</span>
           </span>
         )}
-        {/* A model holding animation clips. */}
-        {handler?.preview.kind === 'three' && stats && stats.clips > 0 ? (
-          <span className="clips-badge" title={stats.clipNames?.join(', ')}>
-            ▶ {stats.clips}
-          </span>
-        ) : null}
+        <span className="cell-marks">
+          {issues.length > 0 && (
+            <span className="cell-mark cell-mark-warn" title={budgetIssuesTitle(issues, t)} aria-label={t('browse.overBudget')}>
+              !
+            </span>
+          )}
+          {copies && copies > 1 ? (
+            <span className="cell-mark" title={t('browse.copiesTitle', { count: copies })}>
+              ×{copies}
+            </span>
+          ) : null}
+          {picked && (
+            <span className="cell-mark cell-mark-pick" title={t('browse.picked')} aria-label={t('browse.picked')}>
+              ✓
+            </span>
+          )}
+          {inList && (
+            <span className="cell-mark cell-mark-list" title={t('browse.inExportList')} aria-label={t('browse.inExportList')}>
+              ✓
+            </span>
+          )}
+        </span>
+        <span className="cell-tags">
+          {fresh && <span className="cell-tag cell-tag-new">{t('watch.new')}</span>}
+          {/* A model holding animation clips. */}
+          {kind === 'three' && stats && stats.clips > 0 ? (
+            <span className="cell-tag" title={stats.clipNames?.join(', ')}>
+              ▶ {stats.clips}
+            </span>
+          ) : null}
+        </span>
         {starred && (
           <span className="star-badge" aria-label={t('collections.favorites')}>
-            <StarIcon size={13} filled />
+            <StarIcon size={12} filled />
           </span>
         )}
-        {fresh && <span className="new-badge">{t('watch.new')}</span>}
-        {copies && copies > 1 ? <span className="copies-badge" title={t('browse.copiesTitle', { count: copies })}>×{copies}</span> : null}
-        {hover && motion && <span className="asset-motion" style={{ backgroundImage: `url("${motion}")` }} aria-hidden="true" />}
         {generating && !thumb && <span className="thumb-spinner" aria-label={t('browse.generatingThumb')} />}
-      </span>
-      <span className="asset-meta">
-        <span className="asset-name">{asset.name}</span>
         {stats && <WeightBar stats={stats} />}
-        <span className="asset-sub">
-          <span>{formatBytes(asset.size)}</span>
-          {asset.lfs && <span className="badge">LFS</span>}
-        </span>
-        {stats && <StatsLine stats={stats} short />}
-        {note && <span className="asset-note">{note}</span>}
       </span>
+      <span className="asset-name">{asset.name}</span>
+      <span className="asset-fact">
+        {weight && <span className="num">{weight}</span>}
+        {fact && <span className="num">{fact}</span>}
+        {asset.lfs && <span className="num asset-lfs">LFS</span>}
+      </span>
+      {note && <span className="asset-note">{note}</span>}
     </button>
   )
+}
+
+/** The one fact that decides for each kind of asset, besides its weight; nothing when it is not known (yet) or the type has none. */
+function keyFact(kind: string | undefined, stats: StatsSummary | undefined, t: (key: string, o?: Record<string, unknown>) => string): string | undefined {
+  if (!stats) return undefined
+  switch (kind) {
+    case 'three':
+    case 'prefab':
+      if (stats.triangles > 0) return t('ranking.tris', { n: compactCount(stats.triangles) })
+      return stats.particles !== undefined ? t('ranking.particles', { n: compactCount(stats.particles) }) : undefined
+    case 'image':
+      return stats.width ? `${stats.width}×${stats.height}` : undefined
+    case 'animation':
+      return stats.clipLength !== undefined ? formatDuration(stats.clipLength) : undefined
+    case 'audio':
+      return stats.duration !== undefined ? formatDuration(stats.duration) : undefined
+    case 'material':
+      return stats.textureCount ? t('ranking.textures', { count: stats.textureCount }) : undefined
+    default:
+      return undefined
+  }
 }
 
 /** Placeholder card shown while a branch is loading. */
@@ -121,10 +177,8 @@ export function SkeletonCard() {
   return (
     <span className="asset-card skeleton" aria-hidden="true">
       <span className="asset-thumb" />
-      <span className="asset-meta">
-        <span className="skeleton-line" />
-        <span className="skeleton-line short" />
-      </span>
+      <span className="skeleton-line" />
+      <span className="skeleton-line short" />
     </span>
   )
 }

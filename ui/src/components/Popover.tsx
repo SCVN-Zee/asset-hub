@@ -17,7 +17,7 @@ export function Popover({ trigger, label, className, children }: { trigger: Reac
   }, [open])
   return (
     <div className={`popover ${className ?? ''}`} ref={box}>
-      <button type="button" className="btn btn-small popover-trigger" aria-haspopup="dialog" aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>
+      <button type="button" className="btn popover-trigger" aria-haspopup="dialog" aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>
         {trigger}
       </button>
       {open && (

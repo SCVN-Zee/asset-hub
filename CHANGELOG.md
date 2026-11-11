@@ -2,6 +2,17 @@
 
 What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
 
+## Unreleased
+
+### Changed
+- **New interface:** the whole app is redesigned for daily use. A graphite shell with one top bar and a sidebar of types, your lists, pinned branches and folders. A dense grid of assets on a neutral 18% grey stage. An inspector on the right with the preview, the key facts (size, triangles, budget fit) and one row of actions.
+- **Export list:** the chest is now a plain export list docked under the grid. It shows the asset and dependency counts, the total size against your playable budget, and the Import into Unity and Export buttons. It opens upward to list the items and the export options.
+- **Settings** opens as a side panel over Browse, so your search, selection and export list stay as they were.
+- **Sign-in** is a single calm screen: GitHub CLI first, a token as the other option.
+
+### Removed
+- The treasure-chest lobby and its sounds, the white flash and welcome message, the AI pet and the AI assistant panel. The app no longer installs or runs the Codex assistant; Codex files already downloaded are not deleted.
+
 ## [2.0.0] — 2026-11-11
 
 Asset Hub 2 is a new app, rebuilt on Tauri with a Rust backend. It keeps the features of 1.0.5. It is a **fresh install**: run the new installer, which moves Asset Hub 1.x to the Trash.

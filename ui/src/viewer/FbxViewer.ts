@@ -43,6 +43,10 @@ const EMISSION_PROPS = new Set(['_emissionmap'])
 
 const baseLower = (url: string) => decodeURIComponent(url).split(/[\\/]/).pop()!.toLowerCase()
 
+/** Neutral greys a little darker than the 18% grey stage: a faint spatial reference in the live viewer. */
+const GRID_CENTER = 0x666666
+const GRID_LINE = 0x6f6f6f
+
 /** Imperative three.js viewer: orbit/zoom/pan, view presets, wireframe, animations, thumbnails. */
 export class FbxViewer {
   private renderer!: THREE.WebGLRenderer
@@ -64,8 +68,8 @@ export class FbxViewer {
 
   constructor(private readonly host: HTMLElement) {
     this.attachRenderer()
-    this.scene.background = new THREE.Color(0x121821)
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x3a3f4b, 2.2))
+    // No background colour: the page draws the grey stage behind the canvas, and previews keep their transparency.
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 2.2))
     const sun = new THREE.DirectionalLight(0xffffff, 2.2)
     sun.position.set(3, 5, 4)
     this.scene.add(sun)
@@ -85,7 +89,7 @@ export class FbxViewer {
 
   /** Makes the renderer and its canvas, and the orbit controls on that canvas (keeping what the previous ones had). */
   private attachRenderer(): void {
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     this.host.appendChild(renderer.domElement)
@@ -416,9 +420,14 @@ export class FbxViewer {
     return canvas.toDataURL('image/webp', 0.85)
   }
 
-  /** Renders the current view into a cell of another canvas, cropped to fill it (frames of a moving thumbnail). */
+  /** Renders the current view into a cell of another canvas, cropped to fill it (frames of a moving thumbnail), without the grid. */
   drawFrame(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+    // Captured frames are thumbnails: a flat stage with the soft floor shadow, no grid.
+    const grid = this.grid
+    const gridWasVisible = grid?.visible
+    if (grid) grid.visible = false
     this.renderer.render(this.scene, this.camera)
+    if (grid && gridWasVisible !== undefined) grid.visible = gridWasVisible
     const src = this.renderer.domElement
     const scale = Math.max(width / src.width, height / src.height)
     const w = src.width * scale
@@ -471,7 +480,7 @@ export class FbxViewer {
     this.controls.maxDistance = radius * 20
     this.home = { position: target.clone().add(new THREE.Vector3(radius * 1.6, radius * 0.9, radius * 1.9)), target, radius }
     if (this.grid) this.scene.remove(this.grid)
-    this.grid = new THREE.GridHelper(radius * 6, 24, 0x3a4150, 0x2a2f3a)
+    this.grid = new THREE.GridHelper(radius * 6, 24, GRID_CENTER, GRID_LINE)
     this.scene.add(this.grid)
     this.setView('reset')
   }

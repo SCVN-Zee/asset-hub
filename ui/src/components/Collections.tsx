@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SideGroup } from './Section'
-import { ChevronDownIcon, ClockIcon, CollectionIcon, ShippedIcon, StarIcon } from './Icons'
+import { ClockIcon, CollectionIcon, ShippedIcon, StarIcon } from './Icons'
+import { MenuItem } from './InspectorParts'
 import type { StatsSummary } from '@shared/types'
 import type { HandlerRegistry } from '../handlers'
 import { FAVORITES, inCollection, RECENT_EXPORTED, RECENT_VIEWED, type Collection, type CollectionItem } from '@shared/collections'
@@ -35,57 +36,61 @@ function NameInput({ initial = '', placeholder, onDone }: { initial?: string; pl
   )
 }
 
-/** Sidebar: recently viewed and exported assets, opened in the grid like a collection. */
-export function RecentNav({ lists, open, onOpen }: { lists: Collection[]; open?: string; onOpen(id: string | undefined): void }) {
-  const { t } = useTranslation()
-  const nameOf = useCollectionName()
-  if (!lists.some((l) => l.items.length)) return null
-  return (
-    <SideGroup id="recent" title={t('recent.title')} className="collections-nav" folded={lists.reduce((n, l) => n + l.items.length, 0)}>
-      <div className="tabs" role="group" aria-label={t('recent.title')}>
-        {lists.map((c) => (
-          <button key={c.id} type="button" className="tab" aria-pressed={open === c.id} disabled={!c.items.length} onClick={() => onOpen(open === c.id ? undefined : c.id)}>
-            <span className="nav-icon">{c.id === RECENT_VIEWED ? <ClockIcon size={14} /> : <ShippedIcon size={14} />}</span>
-            <span className="collection-label">{nameOf(c)}</span> <span className="muted">{c.items.length}</span>
-          </button>
-        ))}
-      </div>
-    </SideGroup>
-  )
-}
-
-/** Sidebar list: Favourites, then the named collections; one opens in the grid. */
-export function CollectionsNav({ collections, open, onOpen, onCreate }: { collections: Collection[]; open?: string; onOpen(id: string | undefined): void; onCreate(id: string, name: string): void }) {
+/** Sidebar group "Yours": Favourites, then the named collections, a way to make one, and the recent lists; each opens in the grid. */
+export function CollectionsNav({
+  collections,
+  recent,
+  open,
+  onOpen,
+  onCreate
+}: {
+  collections: Collection[]
+  /** Recently viewed and exported assets, opened in the grid like a collection. */
+  recent: Collection[]
+  open?: string
+  onOpen(id: string | undefined): void
+  onCreate(id: string, name: string): void
+}) {
   const { t } = useTranslation()
   const nameOf = useCollectionName()
   const [adding, setAdding] = useState(false)
   return (
-    <SideGroup id="collections" title={t('collections.title')} className="collections-nav" folded={collections.length}>
-      <div className="tabs" role="group" aria-label={t('collections.title')}>
+    <SideGroup id="collections" title={t('sidebar.yours')} className="collections-nav" folded={collections.length}>
+      <div className="tabs" role="group" aria-label={t('sidebar.yours')}>
         {collections.map((c) => (
           <button key={c.id} type="button" className="tab" aria-pressed={open === c.id} onClick={() => onOpen(open === c.id ? undefined : c.id)}>
             <span className="nav-icon">{c.id === FAVORITES ? <StarIcon size={14} /> : <CollectionIcon size={14} />}</span>
-            <span className="collection-label">{nameOf(c)}</span> <span className="muted">{c.items.length}</span>
+            <span className="collection-label">{nameOf(c)}</span>
+            <span className="num">{c.items.length}</span>
+          </button>
+        ))}
+        {adding ? (
+          <NameInput
+            placeholder={t('collections.namePlaceholder')}
+            onDone={(name) => {
+              setAdding(false)
+              if (!name) return
+              const id = newId()
+              onCreate(id, name)
+              onOpen(id)
+            }}
+          />
+        ) : (
+          <button type="button" className="collection-new" onClick={() => setAdding(true)}>
+            <span className="collection-new-plus" aria-hidden="true">
+              +
+            </span>
+            {t('collections.new')}
+          </button>
+        )}
+        {recent.map((c) => (
+          <button key={c.id} type="button" className="tab" aria-pressed={open === c.id} disabled={!c.items.length} onClick={() => onOpen(open === c.id ? undefined : c.id)}>
+            <span className="nav-icon">{c.id === RECENT_VIEWED ? <ClockIcon size={14} /> : <ShippedIcon size={14} />}</span>
+            <span className="collection-label">{nameOf(c)}</span>
+            <span className="num">{c.items.length}</span>
           </button>
         ))}
       </div>
-      {adding ? (
-        <NameInput
-          placeholder={t('collections.namePlaceholder')}
-          onDone={(name) => {
-            setAdding(false)
-            if (!name) return
-            const id = newId()
-            onCreate(id, name)
-            onOpen(id)
-          }}
-        />
-      ) : (
-        <button type="button" className="collection-new" onClick={() => setAdding(true)}>
-          <span className="collection-new-plus" aria-hidden="true">+</span>
-          {t('collections.new')}
-        </button>
-      )}
     </SideGroup>
   )
 }
@@ -182,61 +187,48 @@ export function CollectionView({ collection, registry, thumbs, stats, current, o
   )
 }
 
-/** Details panel: the star (Favourites) and a menu ticking the asset in or out of each collection; `onCreate` makes one holding the asset. */
-export function CollectionButtons({ collections, item, onToggle, onCreate }: { collections: Collection[]; item: CollectionItem; onToggle(id: string): void; onCreate(id: string, name: string): void }) {
+/** The star: in or out of Favourites. */
+export function FavoriteButton({ collections, item, onToggle }: { collections: Collection[]; item: CollectionItem; onToggle(id: string): void }) {
+  const { t } = useTranslation()
+  const starred = inCollection(collections.find((c) => c.id === FAVORITES), item)
+  const label = starred ? t('collections.unstar') : t('collections.star')
+  return (
+    <button type="button" className="btn icon-btn star-btn" aria-pressed={starred} title={label} aria-label={label} onClick={() => onToggle(FAVORITES)}>
+      <StarIcon filled={starred} />
+    </button>
+  )
+}
+
+/**
+ * Rows for a menu: every collection, ticked when the asset is in it (a tick keeps the menu open, to tick several),
+ * and a way to make one holding the asset. `onCreate` gets the new id and its name.
+ */
+export function CollectionMenuItems({ collections, item, onToggle, onCreate }: { collections: Collection[]; item: CollectionItem; onToggle(id: string): void; onCreate(id: string, name: string): void }) {
   const { t } = useTranslation()
   const nameOf = useCollectionName()
-  const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
-  const root = useRef<HTMLDivElement>(null)
-  const starred = inCollection(collections.find((c) => c.id === FAVORITES), item)
   const named = collections.filter((c) => c.id !== FAVORITES)
-  const inNamed = named.filter((c) => inCollection(c, item)).length
-
-  useEffect(() => {
-    if (!open) return
-    const close = (e: MouseEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [open])
-
   return (
-    <div className="collection-buttons" ref={root}>
-      <button type="button" className="btn icon-btn star-btn" aria-pressed={starred} title={starred ? t('collections.unstar') : t('collections.star')} aria-label={starred ? t('collections.unstar') : t('collections.star')} onClick={() => onToggle(FAVORITES)}>
-        <StarIcon filled={starred} />
-      </button>
-      <button type="button" className="btn icon-btn icon-btn-more labeled" aria-expanded={open} aria-haspopup="true" title={t('collections.addTo')} aria-label={t('collections.addTo')} onClick={() => setOpen((o) => !o)}>
-        <CollectionIcon />
-        <span>{t('actions.collection')}</span>
-        {inNamed > 0 && <span className="icon-count">{inNamed}</span>}
-        <ChevronDownIcon size={10} />
-      </button>
-      {open && (
-        <div className="collection-pop" role="menu">
-          {named.length === 0 && !adding && <p className="muted small">{t('collections.none')}</p>}
-          {named.map((c) => (
-            <label key={c.id} className="check" role="menuitemcheckbox" aria-checked={inCollection(c, item)}>
-              <input type="checkbox" checked={inCollection(c, item)} onChange={() => onToggle(c.id)} />
-              {nameOf(c)}
-            </label>
-          ))}
-          {adding ? (
-            <NameInput
-              placeholder={t('collections.namePlaceholder')}
-              onDone={(name) => {
-                setAdding(false)
-                if (!name) return
-                // Made with the asset already in it (one settings update, not two racing).
-                onCreate(newId(), name)
-              }}
-            />
-          ) : (
-            <button type="button" className="inline-link small" onClick={() => setAdding(true)}>
-              + {t('collections.new')}
-            </button>
-          )}
+    <>
+      {named.map((c) => (
+        <MenuItem key={c.id} label={nameOf(c)} checked={inCollection(c, item)} keepOpen onSelect={() => onToggle(c.id)} />
+      ))}
+      {named.length === 0 && !adding && <p className="menu-empty muted small">{t('collections.none')}</p>}
+      {adding ? (
+        <div className="menu-field">
+          <NameInput
+            placeholder={t('collections.namePlaceholder')}
+            onDone={(name) => {
+              setAdding(false)
+              if (!name) return
+              // Made with the asset already in it (one settings update, not two racing).
+              onCreate(newId(), name)
+            }}
+          />
         </div>
+      ) : (
+        <MenuItem icon={<CollectionIcon size={14} />} label={t('collections.new')} keepOpen onSelect={() => setAdding(true)} />
       )}
-    </div>
+    </>
   )
 }

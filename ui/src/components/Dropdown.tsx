@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { ChevronRightIcon } from './Icons'
+import { CheckIcon, ChevronRightIcon } from './Icons'
 
 export interface DropdownOption<T extends string> {
   value: T
@@ -115,6 +115,7 @@ export function Dropdown<T extends string>({ value, options, onChange, label, ti
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => choose(o.value)}
             >
+              <span className="picker-check">{o.value === value && <CheckIcon size={12} />}</span>
               <span className="picker-option-text">{o.label}</span>
               {o.hint && <span className="muted small">{o.hint}</span>}
             </li>

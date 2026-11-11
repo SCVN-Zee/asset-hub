@@ -5,7 +5,7 @@ import type { Asset, AssetFacts, AssetSource, CatalogAsset, CatalogFacets, Depen
 import { formatBytes } from '../format'
 import type { HandlerRegistry } from '../handlers'
 import { parse } from '../parse'
-import { useSearch, nameWords } from '../useSearch'
+import { useSearch } from '../useSearch'
 import { AssetCard, SkeletonCard } from '../components/AssetCard'
 import { AssetDetails } from '../components/AssetDetails'
 import { ExportBar, packCapacity, type ExportOptions, type ExportState, type PackItem } from '../components/ExportBar'
@@ -15,17 +15,15 @@ import { Dropdown } from '../components/Dropdown'
 import { Picker } from '../components/Picker'
 import { ErrorNote } from '../components/ErrorNote'
 import { FolderTree } from '../components/FolderTree'
-import { PinIcon, ChestIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, GearIcon, LinkIcon, MessageIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
+import { CloseIcon, PinIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, LinkIcon, MessageIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
 import { useContextMenu, type MenuItem } from '../components/ContextMenu'
 import { preferredEditor, rememberEditor, useUnityEditors } from '../components/UnityButton'
 import { assetLink } from '@shared/deeplink'
 import { FeedbackDialog } from '../components/FeedbackDialog'
-import { LogoMark } from '../components/Logo'
 import { VersionBadge } from '../components/VersionBadge'
-import { flyToPack } from '../motion'
 import { SearchBox } from '../components/SearchBox'
 import { DRAWABLE } from '../viewer/formats'
-import { CatalogDetails, CatalogStatusLine, githubUrl, locationNote, ScopeTabs } from '../components/CatalogPanel'
+import { CatalogDetails, CatalogStatusLine, githubUrl, locationNote } from '../components/CatalogPanel'
 import { useCatalog, type SearchScope } from '../useCatalog'
 import type { BudgetPreset } from '@shared/types'
 import { BUDGET_PRESETS, rankForPlayable, summaryIssues, type SortMode } from '../playable'
@@ -33,14 +31,11 @@ import { useBudget } from '../budget'
 import { parseAssetLink } from '@shared/deeplink'
 import type { ExportRequest, RunningUnity } from '@shared/ipc'
 import { FX_THUMB_VERSION, motionKey } from '../viewer/particleThumb'
-import { ANIM_THUMB_VERSION, MODEL_THUMB_VERSION } from '../viewer/thumbVersions'
+import { ANIM_THUMB_VERSION, FLAT_THUMB_VERSION, MODEL_THUMB_VERSION } from '../viewer/thumbVersions'
 import { useSharedImports } from '../useSharedIndex'
 import { Splitter, useStoredSize } from '../components/Splitter'
-import { CollectionButtons, CollectionsNav, CollectionView, RecentNav } from '../components/Collections'
+import { CollectionsNav, CollectionView } from '../components/Collections'
 import { addCollection, deleteCollection, FAVORITES, inCollection, pushRecent, RECENT_EXPORTED, RECENT_VIEWED, renameCollection, toggleItem, withFavorites, type Collection, type CollectionItem, type RecentLists } from '@shared/collections'
-import { assetRef, matchRepos, parseAssetRef } from '@shared/aiTools'
-import { useAiTools, waitFor } from '../useAiTools'
-import { offerChoices } from '../aiChat'
 import { MultiBar } from '../components/MultiBar'
 import { ShortcutHelp } from '../components/ShortcutHelp'
 import { Popover } from '../components/Popover'
@@ -48,6 +43,60 @@ import { SideGroup } from '../components/Section'
 import { WatchNav } from '../components/WatchNav'
 import type { WatchedBranch } from '@shared/settings'
 import { useStoredFlag } from '../useStoredState'
+
+/** Grid cell size: small (about 126 px) or large (about 180 px), kept between launches. */
+type CellSize = 'small' | 'large'
+const CELL_SIZE_KEY = 'assethub.gridSize'
+const CELL_MIN: Record<CellSize, string> = { small: '120px', large: '180px' }
+
+function useCellSize(): [CellSize, (size: CellSize) => void] {
+  const [size, setSize] = useState<CellSize>(() => {
+    try {
+      return localStorage.getItem(CELL_SIZE_KEY) === 'large' ? 'large' : 'small'
+    } catch {
+      return 'small'
+    }
+  })
+  const set = useCallback((next: CellSize) => {
+    setSize(next)
+    try {
+      localStorage.setItem(CELL_SIZE_KEY, next)
+    } catch {
+      // kept for this session
+    }
+  }, [])
+  return [size, set]
+}
+
+/** Two buttons at the right of the toolbar: more small cells, or fewer large ones. */
+function CellSizeToggle({ value, onChange }: { value: CellSize; onChange(size: CellSize): void }) {
+  const { t } = useTranslation()
+  const paths: Record<CellSize, string> = {
+    small: 'M1 1h3v3H1zM5.5 1h3v3h-3zM10 1h3v3h-3zM1 5.5h3v3H1zM5.5 5.5h3v3h-3zM10 5.5h3v3h-3zM1 10h3v3H1zM5.5 10h3v3h-3zM10 10h3v3h-3z',
+    large: 'M1 1h5v5H1zM8 1h5v5H8zM1 8h5v5H1zM8 8h5v5H8z'
+  }
+  return (
+    <div className="size-toggle" role="group" aria-label={t('browse.cellSize')}>
+      {(['small', 'large'] as const).map((size) => (
+        <button key={size} type="button" aria-pressed={value === size} aria-label={t(`browse.cell.${size}`)} title={t(`browse.cell.${size}`)} onClick={() => onChange(size)}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+            <path d={paths[size]} />
+          </svg>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** An empty list: what is missing, and what to try. */
+function EmptyState({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="empty" role="status">
+      <strong>{title}</strong>
+      {hint && <span>{hint}</span>}
+    </div>
+  )
+}
 
 interface Props {
   source: AssetSource
@@ -60,6 +109,8 @@ interface Props {
   initialBranch?: string
   onOpenBranch(repo: string, branch: string): void
   onSettings(): void
+  /** A panel (Settings) is open over the hub: its shortcuts stand down until it closes. */
+  paused?: boolean
   /** Playable budget preset: switchable next to the ranking, like in Settings. */
   budgetPreset: BudgetPreset
   onBudgetPreset(preset: BudgetPreset): void
@@ -138,6 +189,7 @@ export function Browse({
   initialBranch,
   onOpenBranch,
   onSettings,
+  paused = false,
   budgetPreset,
   onBudgetPreset,
   exportLayout,
@@ -177,6 +229,7 @@ export function Browse({
   const favorites = new Set(collections[0].items.map((i) => `${i.repo}\n${i.path}`))
   // Detail panel width and preview height, as each person drags them (kept on this machine).
   const [detailsWidth, setDetailsWidth] = useStoredSize('assethub.detailsWidth')
+  const [cellSize, setCellSize] = useCellSize()
   const [viewerHeight, setViewerHeight] = useStoredSize('assethub.viewerHeight')
   const budget = useBudget()
   const [repos, setRepos] = useState<Load<RepoRef[]>>({ status: 'loading' })
@@ -207,7 +260,7 @@ export function Browse({
   /** Model measurements by blob SHA, for ranking. */
   const [modelStats, setModelStats] = useState<Record<string, StatsSummary>>({})
   const [sortMode, setSortMode] = useState<SortMode>('relevance')
-  // Ticks kept between launches (Filters and chest options).
+  // Ticks kept between launches (Filters and export-list options).
   const [onlyFits, setOnlyFits] = useStoredFlag('assethub.filter.onlyFits', false)
   /** Saved thumbnails are known; only then is it worth rendering missing ones. */
   const [thumbsLoaded, setThumbsLoaded] = useState(false)
@@ -495,6 +548,12 @@ export function Browse({
     [catalogShown, sortMode, onlyFits, modelStats, catalogFound, budget, passesChips]
   )
   const gridItems: readonly Asset[] = inCatalog ? rankedCatalog : rankedShown
+  /** The inspector column only exists while an asset is selected; otherwise the grid takes the width. */
+  const hasSelection = inCatalog ? !!catalogSelected : !!selected
+  const packIds = useMemo(() => new Set(pack.map((i) => i.asset.id)), [pack])
+  const typeLabel = typeFilter === ALL ? t('browse.allAssets') : t(registry.get(typeFilter)?.labelKey ?? 'browse.allAssets')
+  const gridTitle = inCatalog ? t(`catalog.title.${scope}`, { repo: repo.split('/').pop() }) : folder && typeFilter !== ALL ? `${folder} · ${typeLabel}` : folder || typeLabel
+  const gridCount = inCatalog ? rankedCatalog.length : rankedShown.length
   const measuredCount = (inCatalog ? catalogShown : shown).filter((a) => modelStats[a.sha]).length
   const unmeasured = (inCatalog ? catalogShown : shown).filter((a) => !modelStats[a.sha])
   const gridSelected = inCatalog ? catalogSel : selectedId
@@ -555,15 +614,17 @@ export function Browse({
   const staleEffect = (a: Asset) => kindOf(a) === 'prefab' && !!modelStats[a.sha]?.particles && modelStats[a.sha]?.fxThumb !== FX_THUMB_VERSION && !unmeasuredPrefabs.current.has(a.sha)
   /** A clip card drawn before the rig search last improved (shown as curves when no rig was found then). */
   const staleClip = (a: Asset) => kindOf(a) === 'animation' && modelStats[a.sha]?.animThumb !== ANIM_THUMB_VERSION && !unmeasuredPrefabs.current.has(a.sha)
-  /** A model or prefab card drawn before the last fix to how they are drawn (some came out empty). */
-  const staleModel = (a: Asset) => (kindOf(a) === 'three' || kindOf(a) === 'prefab') && !!modelStats[a.sha] && modelStats[a.sha].modelThumb !== MODEL_THUMB_VERSION && !unmeasuredPrefabs.current.has(a.sha)
+  /** A model, prefab, material or texture card drawn before the last change to how they are drawn (some came out empty, others on a dark background). */
+  const staleModel = (a: Asset) => ['three', 'prefab', 'material', 'image'].includes(kindOf(a)) && !!modelStats[a.sha] && modelStats[a.sha].modelThumb !== MODEL_THUMB_VERSION && !unmeasuredPrefabs.current.has(a.sha)
+  /** An audio, font or TMP font card still drawn on its old dark fill, not transparent on the grid's stage. */
+  const staleFlat = (a: Asset) => ['audio', 'font', 'tmpfont'].includes(kindOf(a)) && !!modelStats[a.sha] && modelStats[a.sha].modelThumb !== FLAT_THUMB_VERSION && !unmeasuredPrefabs.current.has(a.sha)
   const remeasure = (a: Asset) => {
     const s = modelStats[a.sha]
     if (!s) return kindOf(a) === 'prefab' && !!thumbs[a.sha] && !unmeasuredPrefabs.current.has(a.sha)
     // Results of other branches / repos are drawn with what is known (no index per branch): not again
     // here, or every one would build its branch's index; in full once their branch is opened.
     // A clip card has no clip names to wait for: its measurement is complete once drawn.
-    return (s.clips > 0 && !s.clipNames && kindOf(a) !== 'animation') || (kindOf(a) === 'three' && s.source === 'thumb' && !s.matTextures && !inCatalog) || staleEffect(a) || staleClip(a) || staleModel(a)
+    return (s.clips > 0 && !s.clipNames && kindOf(a) !== 'animation') || (kindOf(a) === 'three' && s.source === 'thumb' && !s.matTextures && !inCatalog) || staleEffect(a) || staleClip(a) || staleModel(a) || staleFlat(a)
   }
 
   /** Queues a card's thumbnail, read from the open branch or (for results elsewhere) its main location. */
@@ -656,7 +717,7 @@ export function Browse({
   // Arrow keys move the selection through the grid (Up/Down jump a row).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!ARROWS.has(e.key) || e.altKey || e.metaKey || e.ctrlKey || !gridItems.length) return
+      if (paused || !ARROWS.has(e.key) || e.altKey || e.metaKey || e.ctrlKey || !gridItems.length) return
       const target = e.target as HTMLElement
       if (target.closest('input, select, textarea, .picker-pop, .viewer')) return
       const grid = document.querySelector('.grid')
@@ -670,7 +731,7 @@ export function Browse({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [gridItems, gridSelected, limit, inCatalog])
+  }, [gridItems, gridSelected, limit, inCatalog, paused])
 
   /** Selection still to be scrolled into view; scrolling happens only when the selection changes. */
   const scrollTo = useRef<string>()
@@ -793,9 +854,7 @@ export function Browse({
 
   const packItem = (asset: Asset): PackItem => ({ asset, path: root + asset.path, report: reports.current.get(root + asset.path) })
   const togglePack = (asset: Asset) => {
-    const adding = !pack.some((i) => i.asset.id === asset.id)
     setPack((items) => (items.some((i) => i.asset.id === asset.id) ? items.filter((i) => i.asset.id !== asset.id) : [...items, packItem(asset)]))
-    if (adding) flyToPack(asset.id)
   }
   /** Cards picked with Cmd/Ctrl- or Shift-click in the branch view, to act on several at once. */
   const [picked, setPicked] = useState<string[]>([])
@@ -833,7 +892,8 @@ export function Browse({
   const copy = (text: string) =>
     void navigator.clipboard.writeText(text).then(
       () => setNotice(t('menu.copied')),
-      () => setNotice(undefined)
+      // A refused copy says so: silence would look like it worked.
+      () => setNotice(t('inspector.copyFailed'))
     )
   /** "Import into Unity": straight into the one open editor (or the one used last), others in a submenu. */
   const unityItems = (run: (editor: (typeof unityEditors)[number]) => void, disabled: boolean): MenuItem[] => {
@@ -865,6 +925,13 @@ export function Browse({
       }
     })
   const busy = exportState.status === 'running'
+  /** The grid goes to the folder that holds an asset (leaving a collection, clearing the search). */
+  const showFolder = (dir: string) => {
+    setOpenCollection(undefined)
+    setFolder(dir)
+    onQuery('')
+  }
+  const selectedDir = selected ? selected.path.split('/').slice(0, -1).join('/') : ''
   const cardMenu = (a: Asset, e: React.MouseEvent) => {
     const many = picked.length > 1 && picked.includes(a.id)
     if (many) {
@@ -875,12 +942,11 @@ export function Browse({
         { label: t('actions.export'), icon: <ExportIcon size={14} />, disabled: busy, onSelect: () => void runExport(list.map(packItem)) },
         ...unityItems((editor) => void runExport(list.map(packItem), editor), busy),
         {
-          label: t('menu.addChest'),
-          icon: <ChestIcon size={14} />,
+          label: t('menu.addToExport'),
+          icon: <ExportListIcon size={14} />,
           onSelect: () => {
             const add = list.filter((x) => !pack.some((i) => i.asset.id === x.id))
             setPack((items) => [...items, ...add.map(packItem)])
-            add.forEach((x) => flyToPack(x.id))
           }
         },
         { label: t('menu.collection'), icon: <CollectionIcon size={14} />, submenu: collectionSubmenu(list.map(itemOf)) },
@@ -902,7 +968,7 @@ export function Browse({
         : ([
             { label: t('actions.export'), icon: <ExportIcon size={14} />, disabled: busy, onSelect: () => void runExport([packItem(a)]) },
             ...unityItems((editor) => void runExport([packItem(a)], editor), busy),
-            { label: inPack ? t('menu.removeChest') : t('menu.addChest'), icon: <ChestIcon size={14} filled={inPack} />, onSelect: () => togglePack(a) },
+            { label: inPack ? t('menu.removeFromExport') : t('menu.addToExport'), icon: <ExportListIcon size={14} filled={inPack} />, onSelect: () => togglePack(a) },
             '-'
           ] as MenuItem[])),
       { label: starred ? t('menu.unfavorite') : t('menu.favorite'), icon: <StarIcon size={14} filled={starred} />, onSelect: () => onCollections(toggleItem(collections, FAVORITES, item)) },
@@ -917,11 +983,7 @@ export function Browse({
               label: t('menu.showFolder'),
               icon: <FolderIcon size={14} />,
               hint: dir.split('/').pop(),
-              onSelect: () => {
-                setOpenCollection(undefined)
-                setFolder(dir)
-                onQuery('')
-              }
+              onSelect: () => showFolder(dir)
             }
           ] as MenuItem[])
         : [])
@@ -992,6 +1054,7 @@ export function Browse({
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const keyActions = useRef<(e: KeyboardEvent) => void>()
   keyActions.current = (e: KeyboardEvent) => {
+    if (paused) return
     const typing = e.target instanceof Element && !!e.target.closest('input, textarea, select, [contenteditable]')
     const cmd = e.metaKey || e.ctrlKey
     const key = e.key.toLowerCase()
@@ -1036,174 +1099,6 @@ export function Browse({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
-
-  // The AI pet acts in this hub: these read what is on screen now, not when the handler was made.
-  const aiState = { inTab, excludedFolders, query, scope, typeFilter, gridItems, inCatalog, catalogAssets: catalog.assets, treeReady: tree.status === 'ready', repo, branch, root, assets, modelStats, budget, collections, repos: repos.status === 'ready' ? repos.data : [] }
-  const latest = useRef(aiState)
-  latest.current = aiState
-  /** An asset as the pet sees it: a ref to name it by, and what helps choose. */
-  const describeForAi = (a: Asset) => {
-    const l = latest.current
-    const at = (a as CatalogAsset).locations?.[0]
-    const stats = l.modelStats[a.sha]
-    return {
-      ref: at ? assetRef(at.repo, at.branches[0], at.path) : assetRef(l.repo, l.branch, l.root + a.path),
-      name: a.name,
-      type: a.type,
-      ...(a.size !== undefined ? { kb: Math.round(a.size / 1024) } : {}),
-      ...(at ? { inBranches: (a as CatalogAsset).branchCount } : {}),
-      ...(stats && l.budget ? { fitsBudget: !summaryIssues(stats, l.budget).length } : {})
-    }
-  }
-  /** The asset a ref names: in the open branch, or among the indexed ones. */
-  const assetOfRef = (ref: unknown) => {
-    const at = parseAssetRef(ref)
-    if (!at) throw new Error('Not an asset ref; use one returned by search_assets')
-    const l = latest.current
-    const here = at.repo === l.repo && at.branch === l.branch ? l.assets.find((a) => l.root + a.path === at.path) : undefined
-    const indexed = here ? undefined : l.catalogAssets?.find((c) => c.locations.some((x) => x.repo === at.repo && x.path === at.path))
-    return { ...at, asset: here ?? indexed, here: !!here }
-  }
-  /** Indexed assets of a repo (null: every repo), read without changing the view; kept for the session. */
-  const aiCatalogs = useRef(new Map<string, Promise<CatalogAsset[]>>())
-  const catalogFor = (repoName: string | null) => {
-    const key = repoName ?? '*'
-    let list = aiCatalogs.current.get(key)
-    if (!list) {
-      list = window.api.catalog
-        .list(repoName, latest.current.excludedFolders)
-        .then(unwrap)
-        .then((r) => r.assets)
-      list.catch(() => aiCatalogs.current.delete(key))
-      aiCatalogs.current.set(key, list)
-    }
-    return list
-  }
-  /** The repo a name the user gave means: one full name, or why not. */
-  const repoNamed = (named: unknown): { repo?: string; answer?: object } => {
-    if (typeof named !== 'string' || !named.trim()) return {}
-    const all = latest.current.repos.map((r) => r.fullName)
-    const matches = matchRepos(all, named)
-    if (!matches.length) return { answer: { error: `No repo matches "${named}"`, repos: all.slice(0, 30) } }
-    if (matches.length > 1) return { answer: { ambiguous: `Several repos match "${named}"; offer them as choices`, repos: matches.slice(0, 6) } }
-    return { repo: matches[0] }
-  }
-
-  useAiTools({
-    name_words: async ({ type, where, repo: named }) => {
-      const { repo: only, answer } = repoNamed(named)
-      if (answer) return answer
-      const l = latest.current
-      const scopeRepo = only ?? (where === 'repo' ? l.repo : where === 'all' ? null : undefined)
-      const pool: readonly Asset[] = scopeRepo === undefined ? l.assets : await catalogFor(scopeRepo)
-      const tab = typeof type === 'string' && registry.get(type) ? type : ALL
-      const words = await nameWords(tab === ALL ? pool : pool.filter((a) => l.inTab(a, tab)))
-      return {
-        scope: scopeRepo === undefined ? `${l.repo}@${l.branch}` : scopeRepo ?? 'every repo',
-        assets: pool.length,
-        // Most used first; capped so a huge repo stays readable.
-        words: words.slice(0, 4000).map((w) => w.word).join(' ')
-      }
-    },
-    search_assets: async ({ query: q, type, where, repo: named }) => {
-      const words = String(q ?? '').trim()
-      if (!words) throw new Error('Empty query')
-      const tab = typeof type === 'string' && registry.get(type) && !registry.get(type)?.hidden ? type : ALL
-      // A repo the user named: the hub opens it and searches every branch of it (one repo's index loads ~8× faster than all).
-      const { repo: namedRepo, answer } = repoNamed(named)
-      if (answer) return answer
-      const only = namedRepo ?? ''
-      if (only && only !== latest.current.repo) {
-        setRepo(only)
-        await waitFor(() => latest.current.repo === only, 5000)
-      }
-      const to: SearchScope = only ? 'repo' : where === 'repo' || where === 'all' ? where : 'branch'
-      const wide = to !== 'branch'
-      setOpenCollection(undefined)
-      setFolder('')
-      setScope(to)
-      setTypeFilter(tab)
-      setQuery(words)
-      const loaded = await waitFor(() => {
-        const l = latest.current
-        // The repo view's index must be the open repo's, not the one shown before switching.
-        const current = to !== 'repo' || !l.catalogAssets?.length || l.catalogAssets[0].locations.some((x) => x.repo === l.repo)
-        return l.query === words && l.typeFilter === tab && (wide ? l.inCatalog && !!l.catalogAssets && current : !l.inCatalog && l.treeReady)
-      })
-      const items = latest.current.gridItems
-      return {
-        shownInHub: true,
-        searched: to === 'all' ? 'every indexed repo and branch' : to === 'repo' ? `every branch of ${latest.current.repo}` : `${latest.current.repo}@${latest.current.branch}`,
-        total: items.length,
-        results: items.slice(0, 8).map(describeForAi),
-        ...(loaded ? {} : { note: 'Still loading; results may be incomplete' })
-      }
-    },
-    open_asset: async ({ ref }) => {
-      const at = assetOfRef(ref)
-      openLocation(at.repo, at.branch, at.path)
-      return { opened: at.path.split('/').pop(), repo: at.repo, branch: at.branch }
-    },
-    asset_info: async ({ ref }) => {
-      const at = assetOfRef(ref)
-      const l = latest.current
-      const stats = at.asset ? l.modelStats[at.asset.sha] : undefined
-      const report = unwrap(await window.api.assets.resolve(at.repo, at.branch, at.path, projectRootOf(at.path), 'quick'))
-      return {
-        name: at.path.split('/').pop(),
-        ...(at.asset ? { type: at.asset.type, ...(at.asset.size !== undefined ? { kb: Math.round(at.asset.size / 1024) } : {}) } : {}),
-        measured: stats
-          ? { triangles: stats.triangles, vertices: stats.vertices, materials: stats.materials, textureKB: Math.round(stats.textureBytes / 1024), maxTextureSize: stats.maxTextureSize, ...(stats.duration ? { seconds: stats.duration } : {}), ...(stats.clipLength ? { clipSeconds: stats.clipLength } : {}) }
-          : 'not measured yet (opening it in the hub measures it)',
-        ...(stats && l.budget ? { overBudget: summaryIssues(stats, l.budget).map((i) => `${i.key} ${i.value} > ${i.limit}`) } : {}),
-        dependencies: {
-          files: report.files.filter((f) => !f.endsWith('.meta')).length,
-          materials: report.materials.length,
-          ...(report.parts ? { parts: report.parts.slice(0, 10).map((p) => `${p.kind} ${p.name}${p.missing ? ' (missing)' : ''}`) } : {}),
-          ...(report.particles ? { emitters: report.particles.length } : {}),
-          warnings: report.warnings
-        }
-      }
-    },
-    add_to_chest: async ({ refs }) => {
-      const added: string[] = []
-      const skipped: string[] = []
-      for (const ref of Array.isArray(refs) ? refs : []) {
-        const at = assetOfRef(ref)
-        if (!at.here || !at.asset) {
-          skipped.push(`${at.path.split('/').pop()}: not in the open branch (open_asset it first)`)
-          continue
-        }
-        const asset = at.asset
-        setPack((items) => (items.some((i) => i.asset.id === asset.id) ? items : [...items, packItem(asset)]))
-        flyToPack(asset.id)
-        added.push(asset.name)
-      }
-      return { added, ...(skipped.length ? { skipped } : {}) }
-    },
-    add_to_collection: async ({ refs, collection }) => {
-      const name = String(collection ?? '').trim()
-      if (!name) throw new Error('No collection name')
-      let list = withFavorites(latest.current.collections)
-      const favourite = /^(favou?rites?|yêu thích|즐겨찾기)$/i.test(name)
-      let id = favourite ? FAVORITES : list.find((c) => c.name.toLowerCase() === name.toLowerCase())?.id
-      if (!id) {
-        id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
-        list = addCollection(list, id, name)
-      }
-      const added: string[] = []
-      for (const ref of Array.isArray(refs) ? refs : []) {
-        const at = assetOfRef(ref)
-        if (!at.asset) continue
-        const item: CollectionItem = { repo: at.repo, branch: at.branch, path: at.path, sha: at.asset.sha, name: at.asset.name, type: at.asset.type, ...(at.asset.size !== undefined ? { size: at.asset.size } : {}) }
-        if (!inCollection(list.find((c) => c.id === id), item)) list = toggleItem(list, id, item)
-        added.push(at.asset.name)
-      }
-      onCollections(list)
-      return { collection: name, added }
-    },
-    offer_choices: async ({ options, other }) => offerChoices(options, other)
-  })
 
   const rememberReport = (path: string, report: DependencyReport) => {
     reports.current.set(path, report)
@@ -1258,94 +1153,111 @@ export function Browse({
   return (
     <div className="browse">
       <header className="topbar">
-        <div className="brand" style={{ marginRight: 8 }}>
-          <LogoMark size={34} />
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true" />
           <span className="brand-name">Asset Hub</span>
           <VersionBadge />
         </div>
-        <Picker
-          label={t('browse.repo')}
-          value={repo}
-          options={repoNames}
-          groupOf={ownerPrefix}
-          ungroupedLabel=""
-          placeholder={repos.status === 'loading' ? t('browse.loadingRepos') : t('browse.noRepos')}
-          width={320}
-          onChange={setRepo}
-        />
-        <Picker
-          label={t('browse.branch')}
-          value={branch}
-          options={branches}
-          groupOf={branchPrefix}
-          ungroupedLabel={t('browse.branchNoPrefix')}
-          tagOf={(b) => (b === defaultBranch ? t('browse.defaultBranch') : undefined)}
-          placeholder={repo ? t('browse.loadingBranches') : '—'}
-          width={220}
-          onChange={setBranch}
-        />
-        {roots.length > 1 && (
-          <div className="picker">
-            <span className="muted small">{t('browse.project')}</span>
-            <Dropdown value={root} options={roots.map((r) => ({ value: r, label: r || '/' }))} onChange={setRoot} label={t('browse.project')} />
-          </div>
-        )}
-        <button
-          type="button"
-          className="btn icon-btn labeled watch-btn"
-          aria-pressed={watchingHere}
-          aria-label={watchingHere ? t('watch.stop') : t('watch.start')}
-          title={watchingHere ? t('watch.stop') : t('watch.start')}
-          disabled={!branch || branchRepo !== repo}
-          onClick={() => void toggleWatch()}
-        >
-          <PinIcon filled={watchingHere} />
-          <span>{watchingHere ? t('actions.watching') : t('actions.watch')}</span>
-        </button>
-        <button
-          type="button"
-          className="btn icon-btn"
-          aria-label={t('browse.refresh')}
-          title={t('browse.refresh')}
-          disabled={!branch || tree.status === 'loading'}
-          onClick={() => setReloadKey((k) => k + 1)}
-        >
-          <RefreshIcon />
-        </button>
-        {/* Search and Settings move together: when the bar wraps, Settings stays at the right end. */}
-        <div className="topbar-end">
-          <SearchBox value={query} suggest={inCatalog ? suggestCatalog : suggestHere} onChange={onQuery} />
+        <div className="crumb">
+          <Picker
+            label={t('browse.repo')}
+            value={repo}
+            options={repoNames}
+            groupOf={ownerPrefix}
+            ungroupedLabel=""
+            placeholder={repos.status === 'loading' ? t('browse.loadingRepos') : t('browse.noRepos')}
+            dimPrefix
+            onChange={setRepo}
+          />
+          <Picker
+            label={t('browse.branch')}
+            value={branch}
+            options={branches}
+            groupOf={branchPrefix}
+            ungroupedLabel={t('browse.branchNoPrefix')}
+            tagOf={(b) => (b === defaultBranch ? t('browse.defaultBranch') : undefined)}
+            placeholder={repo ? t('browse.loadingBranches') : '—'}
+            onChange={setBranch}
+          />
+          {roots.length > 1 && (
+            <div className="crumb-seg">
+              <Dropdown value={root} options={roots.map((r) => ({ value: r, label: r || '/' }))} onChange={setRoot} label={t('browse.project')} />
+            </div>
+          )}
+        </div>
+        <SearchBox value={query} suggest={inCatalog ? suggestCatalog : suggestHere} onChange={onQuery} scope={scope} onScope={setScope} />
+        <div className="topbar-actions">
+          <button
+            type="button"
+            className="btn icon-btn watch-btn"
+            aria-pressed={watchingHere}
+            aria-label={watchingHere ? t('watch.stop') : t('watch.start')}
+            title={watchingHere ? t('watch.stop') : t('watch.start')}
+            disabled={!branch || branchRepo !== repo}
+            onClick={() => void toggleWatch()}
+          >
+            <PinIcon filled={watchingHere} />
+          </button>
+          <button
+            type="button"
+            className="btn icon-btn"
+            aria-label={t('browse.refresh')}
+            title={t('browse.refresh')}
+            disabled={!branch || tree.status === 'loading'}
+            onClick={() => setReloadKey((k) => k + 1)}
+          >
+            <RefreshIcon />
+          </button>
           <button type="button" className="btn icon-btn" aria-label={t('feedback.title')} title={t('feedback.title')} onClick={() => setFeedbackOpen(true)}>
             <MessageIcon />
           </button>
-          <button type="button" className="btn topbar-settings" aria-label={t('common.settings')} title={t('browse.settingsAccount')} onClick={onSettings}>
-            <GearIcon />
-            {login && <span className="small" title={login}>{displayName(login)}</span>}
-          </button>
         </div>
+        <button
+          type="button"
+          className="btn acct"
+          aria-label={login ? `${displayName(login)} · ${t('common.settings')}` : t('common.settings')}
+          title={t('browse.settingsAccount')}
+          onClick={onSettings}
+        >
+          <span className="acct-avatar" aria-hidden="true">
+            {login ? displayName(login).charAt(0).toUpperCase() : '?'}
+          </span>
+          <span className="acct-name">{login ? displayName(login) : t('common.settings')}</span>
+        </button>
       </header>
 
 
       <div
         className="browse-body"
+        data-details={hasSelection ? 'on' : 'off'}
         style={{ ...(detailsWidth ? { '--details-w': `${detailsWidth}px` } : {}), ...(viewerHeight ? { '--viewer-h': `${viewerHeight}px` } : {}) } as CSSProperties}
       >
         <aside className="sidebar">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span className="label-caps">{t('browse.types')}</span>
+          <div className="side-group">
+            <span className="label-caps side-title">{t('browse.types')}</span>
             <div className="tabs" role="group" aria-label={t('browse.types')}>
               <button type="button" className="tab" aria-pressed={typeFilter === ALL} onClick={() => { setTypeFilter(ALL); setOpenCollection(undefined) }}>
-                <span className="type-gem" style={{ background: 'var(--text-2)' }} />
-                {t('assetTypes.all')} <span className="muted">{typeSource.filter((a) => !registry.get(a.type)?.hidden).length}</span>
+                <span className="type-dot" style={{ background: 'var(--text)' }} />
+                <span className="tab-label">{t('assetTypes.all')}</span>
+                <span className="num">{typeSource.filter((a) => !registry.get(a.type)?.hidden).length}</span>
               </button>
-              {registry.all().filter((h) => !h.hidden).map((h) => (
+              {/* A type with nothing in this view is left out, unless it is the one being filtered on. */}
+              {registry.all().filter((h) => !h.hidden && ((typeCounts.get(h.id) ?? 0) > 0 || typeFilter === h.id)).map((h) => (
                 <button key={h.id} type="button" className="tab" aria-pressed={typeFilter === h.id} onClick={() => { setTypeFilter(h.id); setOpenCollection(undefined) }}>
-                  <span className="type-gem" style={{ background: `var(--type-${h.id})` }} />
-                  {t(h.labelKey)} <span className="muted">{typeCounts.get(h.id) ?? 0}</span>
+                  <span className="type-dot" style={{ background: `var(--type-${h.id}, var(--mute))` }} />
+                  <span className="tab-label">{t(h.labelKey)}</span>
+                  <span className="num">{typeCounts.get(h.id) ?? 0}</span>
                 </button>
               ))}
             </div>
           </div>
+          <CollectionsNav
+            collections={collections}
+            recent={recentLists}
+            open={openCollection}
+            onOpen={setOpenCollection}
+            onCreate={(id, name) => onCollections(addCollection(collections, id, name))}
+          />
           <WatchNav
             watched={watched}
             news={news}
@@ -1361,13 +1273,6 @@ export function Browse({
               ])
             }
           />
-          <RecentNav lists={recentLists} open={openCollection} onOpen={setOpenCollection} />
-          <CollectionsNav
-            collections={collections}
-            open={openCollection}
-            onOpen={setOpenCollection}
-            onCreate={(id, name) => onCollections(addCollection(collections, id, name))}
-          />
           <SideGroup id="folders" title={t('browse.folders')} className="folders-nav">
             {/* Mount only once the branch is loaded so the initial expansion sees real folders. */}
             {!inCatalog && tree.status === 'ready' && (
@@ -1381,7 +1286,7 @@ export function Browse({
           )}
         </aside>
 
-        <main className="content">
+        <main className="content" style={{ '--cell': CELL_MIN[cellSize] } as CSSProperties}>
           {shownCollection ? (
             <CollectionView
               collection={shownCollection}
@@ -1399,94 +1304,108 @@ export function Browse({
             />
           ) : (
           <>
-          <ScopeTabs scope={scope} onScope={setScope} />
-          <div className="content-head">
-            <h1>{inCatalog ? t(`catalog.title.${scope}`, { repo: repo.split('/').pop() }) : folder || t('browse.allFolders')}</h1>
-            <span className="muted small">
-              {t('browse.assetCount', { count: inCatalog ? rankedCatalog.length : rankedShown.length })}
-              {/* Thumbnails still loading: a thin bar, the numbers on hover. */}
-              {renderable.length > 0 && loadedCount < renderable.length && (
-                <progress className="loaded-bar" max={renderable.length} value={loadedCount} title={`${t('browse.loaded', { done: loadedCount.toLocaleString(), total: renderable.length.toLocaleString() })} · ${t('browse.loadedHint')}`} />
-              )}
+          <div className="toolbar">
+            <h1 title={gridTitle}>{gridTitle}</h1>
+            <span className="num toolbar-count" title={t('browse.assetCount', { count: gridCount })}>
+              {gridCount.toLocaleString()}
             </span>
-          </div>
-          {(inCatalog ? catalogShown.length : shown.length) > 0 && (
-            <div className="ranking-bar">
-              <Dropdown<SortMode>
-                size="sm"
-                value={sortMode}
-                options={(['relevance', ...(budget ? (['playable'] as const) : []), 'smallest', 'triangles', ...(inCatalog ? (['used'] as const) : [])] as const).map((m) => ({ value: m, label: t(`ranking.sorts.${m}`) }))}
-                onChange={setSortMode}
-                label={t('ranking.sort')}
+            {/* Thumbnails still loading: a thin bar, the numbers on hover. */}
+            {renderable.length > 0 && loadedCount < renderable.length && (
+              <progress
+                className="loaded-bar"
+                max={renderable.length}
+                value={loadedCount}
+                aria-label={t('browse.loaded', { done: loadedCount.toLocaleString(), total: renderable.length.toLocaleString() })}
+                title={`${t('browse.loaded', { done: loadedCount.toLocaleString(), total: renderable.length.toLocaleString() })} · ${t('browse.loadedHint')}`}
               />
-              <Popover
-                label={t('filters.title')}
-                trigger={
-                  <>
-                    <FilterIcon />
-                    {t('filters.title')}
-                    {activeFilters > 0 && <span className="count-dot">{activeFilters}</span>}
-                  </>
-                }
-              >
-                <span className="label-caps">{t('chips.label')}</span>
-                <div className="chips" role="group" aria-label={t('chips.label')}>
-                  {QUICK_CHIPS.map((c) => (
-                    <button key={c} type="button" className="chip" aria-pressed={chips.includes(c)} onClick={() => toggleChip(c)}>
-                      {t(`chips.${c}`)}
-                    </button>
-                  ))}
-                </div>
-                <span className="label-caps">{t('budget.preset')}</span>
-                <Dropdown size="sm" value={budgetPreset} options={BUDGET_PRESETS.map((p) => ({ value: p, label: t(`budget.presets.${p}`) }))} onChange={onBudgetPreset} label={t('budget.preset')} title={t('budget.presetHint')} />
-                {budget && (
-                  <label className="check small">
-                    <input type="checkbox" checked={onlyFits} onChange={(e) => setOnlyFits(e.target.checked)} />
-                    {t('ranking.onlyFits')}
-                  </label>
-                )}
-                {!inCatalog && (
-                  <>
-                    <span className="label-caps">{t('filters.view')}</span>
+            )}
+            {(inCatalog ? catalogShown.length : shown.length) > 0 && (
+              <>
+                <Dropdown<SortMode>
+                  size="sm"
+                  value={sortMode}
+                  options={(['relevance', ...(budget ? (['playable'] as const) : []), 'smallest', 'triangles', ...(inCatalog ? (['used'] as const) : [])] as const).map((m) => ({ value: m, label: t(`ranking.sorts.${m}`) }))}
+                  onChange={setSortMode}
+                  label={t('ranking.sort')}
+                />
+                <Popover
+                  label={t('filters.title')}
+                  trigger={
+                    <>
+                      <FilterIcon />
+                      {t('filters.title')}
+                      {activeFilters > 0 && <span className="count-dot">{activeFilters}</span>}
+                    </>
+                  }
+                >
+                  <span className="label-caps">{t('chips.label')}</span>
+                  <div className="chips" role="group" aria-label={t('chips.label')}>
+                    {QUICK_CHIPS.map((c) => (
+                      <button key={c} type="button" className="chip" aria-pressed={chips.includes(c)} onClick={() => toggleChip(c)}>
+                        {t(`chips.${c}`)}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="label-caps">{t('budget.preset')}</span>
+                  <Dropdown size="sm" value={budgetPreset} options={BUDGET_PRESETS.map((p) => ({ value: p, label: t(`budget.presets.${p}`) }))} onChange={onBudgetPreset} label={t('budget.preset')} title={t('budget.presetHint')} />
+                  {budget && (
                     <label className="check small">
-                      <input type="checkbox" checked={mergeCopies} onChange={(e) => setMergeCopies(e.target.checked)} />
-                      {t('browse.mergeCopies')}
-                      {merged > 0 && <span className="muted"> ({merged})</span>}
+                      <input type="checkbox" checked={onlyFits} onChange={(e) => setOnlyFits(e.target.checked)} />
+                      {t('ranking.onlyFits')}
                     </label>
-                    {(unlistedCount > 0 || (showUnlisted && unlistedKey)) && (
+                  )}
+                  {!inCatalog && (
+                    <>
+                      <span className="label-caps">{t('filters.view')}</span>
                       <label className="check small">
-                        <input type="checkbox" checked={showUnlisted} onChange={(e) => setShowUnlisted(e.target.checked)} />
-                        {t('filters.unlisted')}
-                        {unlistedCount > 0 && <span className="muted"> ({unlistedCount})</span>}
+                        <input type="checkbox" checked={mergeCopies} onChange={(e) => setMergeCopies(e.target.checked)} />
+                        {t('browse.mergeCopies')}
+                        {merged > 0 && <span className="num"> ({merged})</span>}
                       </label>
+                      {(unlistedCount > 0 || (showUnlisted && unlistedKey)) && (
+                        <label className="check small">
+                          <input type="checkbox" checked={showUnlisted} onChange={(e) => setShowUnlisted(e.target.checked)} />
+                          {t('filters.unlisted')}
+                          {unlistedCount > 0 && <span className="num"> ({unlistedCount})</span>}
+                        </label>
+                      )}
+                    </>
+                  )}
+                </Popover>
+                {/* What is on, each with its own off switch. */}
+                {chips.map((c) => (
+                  <button key={c} type="button" className="pill" aria-label={t('filters.remove', { name: t(`chips.${c}`) })} onClick={() => toggleChip(c)}>
+                    {t(`chips.${c}`)}{' '}
+                    <span className="pill-x" aria-hidden="true">
+                      <CloseIcon size={10} />
+                    </span>
+                  </button>
+                ))}
+                {budget && (
+                  <button type="button" className="pill" onClick={() => onBudgetPreset('off')} aria-label={t('filters.remove', { name: t(`budget.presets.${budgetPreset}`) })}>
+                    {t(`budget.presets.${budgetPreset}`)}{' '}
+                    <span className="pill-x" aria-hidden="true">
+                      <CloseIcon size={10} />
+                    </span>
+                  </button>
+                )}
+                {chips.length > 0 && !gridItems.length && <span className="muted small">{t('chips.none')}</span>}
+                {(sortMode !== 'relevance' || (onlyFits && budget) || chips.some((c) => c !== 'small')) && (
+                  <>
+                    <span className="num" title={t('ranking.measured', { done: measuredCount, total: inCatalog ? catalogShown.length : shown.length })}>
+                      {t('ranking.measured', { done: measuredCount, total: inCatalog ? catalogShown.length : shown.length })}
+                    </span>
+                    {unmeasured.some(canRender) && (
+                      <button type="button" className="btn btn-small" onClick={measureAll}>
+                        {t('ranking.measure', { count: unmeasured.filter(canRender).length })}
+                      </button>
                     )}
                   </>
                 )}
-              </Popover>
-              {/* What is on, each with its own off switch. */}
-              {chips.map((c) => (
-                <button key={c} type="button" className="chip active-pill" aria-label={t('filters.remove', { name: t(`chips.${c}`) })} onClick={() => toggleChip(c)}>
-                  {t(`chips.${c}`)} <span aria-hidden="true">×</span>
-                </button>
-              ))}
-              {budget && (
-                <button type="button" className="chip active-pill" onClick={() => onBudgetPreset('off')} aria-label={t('filters.remove', { name: t(`budget.presets.${budgetPreset}`) })}>
-                  {t(`budget.presets.${budgetPreset}`)} <span aria-hidden="true">×</span>
-                </button>
-              )}
-              {chips.length > 0 && !gridItems.length && <span className="muted small">{t('chips.none')}</span>}
-              {(sortMode !== 'relevance' || (onlyFits && budget) || chips.some((c) => c !== 'small')) && (
-                <>
-                  <span className="muted small">{t('ranking.measured', { done: measuredCount, total: inCatalog ? catalogShown.length : shown.length })}</span>
-                  {unmeasured.some(canRender) && (
-                    <button type="button" className="btn btn-small" onClick={measureAll}>
-                      {t('ranking.measure', { count: unmeasured.filter(canRender).length })}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+              </>
+            )}
+            <CellSizeToggle value={cellSize} onChange={setCellSize} />
+          </div>
           {inCatalog && catalog.assets && (
             <div className="catalog-filters">
               {scope === 'all' && (
@@ -1517,7 +1436,7 @@ export function Browse({
           )}
           {inCatalog && <CatalogStatusLine status={catalog.status} error={catalog.error} onPause={catalog.pause} onResume={catalog.resume} />}
           {(searchFound.related.length > 0 || searchFound.typos.length > 0) && (
-            <p className="muted small" style={{ margin: '-8px 0 0' }}>
+            <p className="related-line">
               {searchFound.related.length > 0 && t('search.related', { names: searchFound.related.slice(0, 8).join(', ') })}
               {searchFound.related.length > 0 && searchFound.typos.length > 0 && ' · '}
               {searchFound.typos.length > 0 && t('search.typos', { names: searchFound.typos.slice(0, 5).join(', ') })}
@@ -1531,7 +1450,7 @@ export function Browse({
             </div>
           )}
           {inCatalog && catalog.assets && catalogShown.length === 0 && (
-            <p className="empty">{catalog.status.state === 'running' ? t('catalog.emptyYet') : t('browse.noResults')}</p>
+            catalog.status.state === 'running' ? <EmptyState title={t('catalog.emptyYet')} hint={t('catalog.emptyYetHint')} /> : <EmptyState title={t('browse.noResults')} hint={t('browse.noResultsHint')} />
           )}
           {inCatalog && catalogShown.length > 0 && (
             <>
@@ -1552,7 +1471,7 @@ export function Browse({
                       thumbsLoaded && canRender(a)
                         ? (on) => {
                             if (!on) return thumbQueue.cancel(a.sha)
-                            if (thumbs[a.sha] && modelStats[a.sha] && !staleEffect(a) && !staleClip(a) && !staleModel(a)) return
+                            if (thumbs[a.sha] && modelStats[a.sha] && !staleEffect(a) && !staleClip(a) && !staleModel(a) && !staleFlat(a)) return
                             const src = catalogSource(a)
                             thumbQueue.request(a.sha, src.path, i, src.ctx, kindOf(a))
                           }
@@ -1564,11 +1483,11 @@ export function Browse({
               {limit < rankedCatalog.length && <div ref={sentinel} className="grid-sentinel" />}
             </>
           )}
-          {repos.status === 'error' && <ErrorNote error={repos.error} />}
-          {repos.status === 'ready' && repoList.length === 0 && <p className="empty">{t('browse.noRepos')}</p>}
+          {repos.status === 'error' && <ErrorNote error={repos.error} className="content-note" />}
+          {repos.status === 'ready' && repoList.length === 0 && <EmptyState title={t('browse.noRepos')} hint={t('browse.noReposHint')} />}
           {!inCatalog && tree.status === 'loading' && repo && (
             <>
-              <p className="muted small" role="status" style={{ margin: 0 }}>
+              <p className="state-line" role="status">
                 {t('browse.loading')}
               </p>
               <div className="grid">
@@ -1578,9 +1497,9 @@ export function Browse({
               </div>
             </>
           )}
-          {!inCatalog && tree.status === 'error' && <ErrorNote error={tree.error} />}
+          {!inCatalog && tree.status === 'error' && <ErrorNote error={tree.error} className="content-note" />}
           {scan && registry.get(typeFilter)?.facts === scan.kind && (
-            <p className="muted small" role="status">
+            <p className="state-line" data-state={scan.status} role="status">
               {scan.status === 'error'
                 ? t('scan.failed', { what: t(`scan.what.${scan.kind}`) })
                 : scan.total
@@ -1588,13 +1507,15 @@ export function Browse({
                   : t('scan.starting', { what: t(`scan.what.${scan.kind}`) })}
             </p>
           )}
-          {!inCatalog && tree.status === 'ready' && visible.length === 0 && <p className="empty">{t('browse.noResults')}</p>}
+          {!inCatalog && tree.status === 'ready' && visible.length === 0 && <EmptyState title={t('browse.noResults')} hint={t('browse.noResultsHint')} />}
           </>
           )}
           {(pack.length > 0 || exportState.status !== 'idle') && (
             <ExportBar
               items={pack}
-              capacity={packCapacity(budgetPreset)}
+              capacity={packCapacity(budgetPreset, budget)}
+              budgetPreset={budgetPreset}
+              thumbs={thumbs}
               options={exportOptions}
               state={exportState}
               onOptions={(o) => {
@@ -1627,25 +1548,6 @@ export function Browse({
                   </button>
                 </div>
               )}
-              {picked.length > 1 && (
-                <MultiBar
-                  count={picked.length}
-                  collections={collections}
-                  busy={exportState.status === 'running'}
-                  onChest={() => {
-                    const add = pickedAssets.filter((a) => !pack.some((i) => i.asset.id === a.id))
-                    setPack((items) => [...items, ...add.map(packItem)])
-                    add.forEach((a) => flyToPack(a.id))
-                  }}
-                  onCollection={(id) => {
-                    let list = withFavorites(collections)
-                    for (const a of pickedAssets) if (!inCollection(list.find((c) => c.id === id), itemOf(a))) list = toggleItem(list, id, itemOf(a))
-                    onCollections(list)
-                  }}
-                  onImportToUnity={(editor) => void runExport(pickedAssets.map(packItem), editor)}
-                  onClear={() => setPicked([])}
-                />
-              )}
               <div className="grid">
                 {rankedShown.slice(0, limit).map((a, i) => (
                   <AssetCard
@@ -1659,6 +1561,7 @@ export function Browse({
                     onSelect={(how) => pickCard(a, how)}
                     onContextMenu={(e) => cardMenu(a, e)}
                     picked={picked.length > 1 && picked.includes(a.id)}
+                    inList={packIds.has(a.id)}
                     fresh={newHere.has(root + a.path)}
                     starred={favorites.has(`${repo}\n${root + a.path}`)}
                     stats={modelStats[a.sha]}
@@ -1666,7 +1569,7 @@ export function Browse({
                       live && thumbsLoaded && canRender(a)
                         ? (on) => {
                             if (!on) return thumbQueue.cancel(a.sha)
-                            if (thumbs[a.sha] && modelStats[a.sha] && !staleEffect(a) && !staleClip(a) && !staleModel(a)) return
+                            if (thumbs[a.sha] && modelStats[a.sha] && !staleEffect(a) && !staleClip(a) && !staleModel(a) && !staleFlat(a)) return
                             thumbQueue.request(a.sha, root + a.path, i, undefined, kindOf(a))
                           }
                         : undefined
@@ -1675,13 +1578,33 @@ export function Browse({
                 ))}
               </div>
               {limit < rankedShown.length && <div ref={sentinel} className="grid-sentinel" />}
+              {picked.length > 1 && (
+                <MultiBar
+                  count={picked.length}
+                  collections={collections}
+                  busy={exportState.status === 'running'}
+                  onAddToList={() => {
+                    const add = pickedAssets.filter((a) => !pack.some((i) => i.asset.id === a.id))
+                    setPack((items) => [...items, ...add.map(packItem)])
+                  }}
+                  onCollection={(id) => {
+                    let list = withFavorites(collections)
+                    for (const a of pickedAssets) if (!inCollection(list.find((c) => c.id === id), itemOf(a))) list = toggleItem(list, id, itemOf(a))
+                    onCollections(list)
+                  }}
+                  onImportToUnity={(editor) => void runExport(pickedAssets.map(packItem), editor)}
+                  onClear={() => setPicked([])}
+                />
+              )}
             </>
           )}
           </>
           )}
         </main>
 
-        {/* The grid keeps at least 360 px; the sidebar is 220–260 px. */}
+        {/* The grid keeps at least 360 px; the sidebar is 220–260 px. No asset selected: no inspector column. */}
+        {hasSelection && (
+        <>
         <Splitter axis="x" target="next" min={300} max={() => window.innerWidth - 260 - 360} onResize={setDetailsWidth} label={t('details.resizePanel')} />
         {inCatalog ? (
           <CatalogDetails
@@ -1706,6 +1629,7 @@ export function Browse({
           live={live}
           onThumb={saveThumb}
           onReport={rememberReport}
+          primary={pack.length === 0}
           inPack={!!selected && pack.some((i) => i.asset.id === selected.id)}
           exporting={exportState.status === 'running'}
           onTogglePack={() => selected && togglePack(selected)}
@@ -1715,18 +1639,21 @@ export function Browse({
           onSelectCopy={setSelectedId}
           excludedFolders={excludedFolders}
           onPrefabFiles={(path, files) => prefabFiles.current.set(path, files)}
-          collectionActions={
-            live && selected ? (
-              <CollectionButtons
-                collections={collections}
-                item={itemOf(selected)}
-                onToggle={(id) => onCollections(toggleItem(collections, id, itemOf(selected)))}
-                onCreate={(id, name) => onCollections(toggleItem(addCollection(collections, id, name), id, itemOf(selected)))}
-              />
-            ) : undefined
+          collections={
+            live && selected
+              ? {
+                  list: collections,
+                  item: itemOf(selected),
+                  onToggle: (id) => onCollections(toggleItem(collections, id, itemOf(selected))),
+                  onCreate: (id, name) => onCollections(toggleItem(addCollection(collections, id, name), id, itemOf(selected)))
+                }
+              : undefined
           }
+          onShowFolder={selected && selectedDir && selectedDir !== folder ? () => showFolder(selectedDir) : undefined}
           viewerResizer={<Splitter axis="y" target="prev" min={160} max={() => window.innerHeight - 220} onResize={setViewerHeight} label={t('details.resizeViewer')} />}
         />
+        )}
+        </>
         )}
       </div>
       {contextMenu.element}

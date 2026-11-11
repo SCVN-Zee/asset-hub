@@ -12,8 +12,8 @@ const stored = (id: string): boolean | undefined => {
 }
 
 /**
- * A details-panel section whose title opens and folds it; folded, a one-line
- * summary stands in for the content. Each person's choice is kept per section.
+ * A details-panel section whose head opens and folds it: chevron, title and, folded, a
+ * one-line summary under the title. Each person's choice is kept per section.
  */
 export function Section({ id, title, summary, defaultOpen = true, children }: { id: string; title: ReactNode; summary?: ReactNode; defaultOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(() => stored(id) ?? defaultOpen)
@@ -26,15 +26,15 @@ export function Section({ id, title, summary, defaultOpen = true, children }: { 
     }
   }
   return (
-    <section className="section" data-open={open || undefined}>
-      <button type="button" className="section-head" aria-expanded={open} onClick={toggle}>
-        <span className="section-chevron">
+    <section className="fold" data-open={open || undefined}>
+      <button type="button" className="fold-head" aria-expanded={open} onClick={toggle}>
+        <span className="section-chevron" data-open={open || undefined}>
           <ChevronRightIcon size={12} />
         </span>
-        <span className="label-caps">{title}</span>
-        {!open && summary && <span className="section-summary">{summary}</span>}
+        <span className="fold-title">{title}</span>
+        {!open && summary && <span className="fold-summary">{summary}</span>}
       </button>
-      {open && children}
+      {open && <div className="fold-body">{children}</div>}
     </section>
   )
 }

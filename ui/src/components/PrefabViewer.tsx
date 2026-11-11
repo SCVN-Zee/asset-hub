@@ -16,6 +16,29 @@ interface Props {
   onStats(stats: ModelStats): void
   onThumb(dataUrl: string): void
   onLoading?(loading: boolean): void
+  /** What the viewer sits on now, so the calibration strip can say so. */
+  onBackdrop?(backdrop: FxBackdrop): void
+}
+
+/** An effect is judged on the stage grey or on dark, where glow and additive particles read as in a game. */
+export type FxBackdrop = 'stage' | 'dark'
+const BACKDROP_KEY = 'assethub.fxBackdrop'
+
+/** Remembered per machine; effects start on dark, and storage can be unavailable (then it is dark too). */
+function readBackdrop(): FxBackdrop {
+  try {
+    return localStorage.getItem(BACKDROP_KEY) === 'stage' ? 'stage' : 'dark'
+  } catch {
+    return 'dark'
+  }
+}
+
+function writeBackdrop(value: FxBackdrop): void {
+  try {
+    localStorage.setItem(BACKDROP_KEY, value)
+  } catch {
+    // Not remembered: still applies until the app closes.
+  }
 }
 
 type Status = 'waiting' | 'loading' | 'ready' | 'empty' | 'error'
@@ -24,7 +47,7 @@ type Status = 'waiting' | 'loading' | 'ready' | 'empty' | 'error'
 const buildKey = (r: DependencyReport) => [...Object.keys(r.guidPaths ?? {}).sort(), ...r.materials.flatMap((m) => m.textures.map((t) => t.path ?? ''))].join('|')
 
 /** A prefab put together from its models and materials, with the model viewer's controls. */
-export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading }: Props) {
+export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, onBackdrop }: Props) {
   const { t } = useTranslation()
   const host = useRef<HTMLDivElement>(null)
   const viewer = useRef<FbxViewer>()
@@ -38,8 +61,16 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading }
   const [fx, setFx] = useState<{ paused: boolean; loop: boolean; speed: number }>()
   /** Where the effect is on its timeline, in seconds, and how long that runs. */
   const [clock, setClock] = useState({ time: 0, length: 1 })
-  const callbacks = useRef({ onStats, onThumb, onLoading })
-  callbacks.current = { onStats, onThumb, onLoading }
+  const [backdrop, setBackdrop] = useState(readBackdrop)
+  // Only effects have the choice; a model always sits on the stage.
+  const shownBackdrop: FxBackdrop = fx ? backdrop : 'stage'
+  const callbacks = useRef({ onStats, onThumb, onLoading, onBackdrop })
+  callbacks.current = { onStats, onThumb, onLoading, onBackdrop }
+
+  useEffect(() => {
+    callbacks.current.onBackdrop?.(shownBackdrop)
+  }, [shownBackdrop])
+  useEffect(() => () => callbacks.current.onBackdrop?.('stage'), [])
 
   useEffect(() => {
     callbacks.current.onLoading?.(status === 'loading' || status === 'waiting')
@@ -176,6 +207,7 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading }
   return (
     <div
       className="viewer"
+      data-backdrop={shownBackdrop}
       // Focused (clicked) viewer: Space fires the effect again.
       tabIndex={fx ? 0 : undefined}
       onKeyDown={(e) => {
@@ -226,6 +258,21 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading }
             >
               {t('viewer.wireframe')}
             </button>
+            {fx && (
+              <button
+                type="button"
+                className="viewer-btn"
+                aria-pressed={backdrop === 'dark'}
+                title={t('viewer.backdropHint')}
+                onClick={() => {
+                  const next = backdrop === 'dark' ? 'stage' : 'dark'
+                  writeBackdrop(next)
+                  setBackdrop(next)
+                }}
+              >
+                {t('viewer.backdropDark')}
+              </button>
+            )}
           </div>
           {fx && (
             // Timeline above the play controls, stacked from the bottom: a narrow viewer wraps the controls without covering it.

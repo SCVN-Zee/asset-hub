@@ -2,7 +2,8 @@
   "common": {
     "language": "Ngôn ngữ",
     "back": "Quay lại",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "close": "Đóng"
   },
   "assetTypes": {
     "all": "Tất cả",
@@ -38,23 +39,19 @@
       "verify": "Đang kiểm tra file tải về…",
       "extract": "Đang giải nén…"
     },
-    "start": "BẮT ĐẦU",
-    "connecting": "ĐANG KẾT NỐI…",
-    "retry": "THỬ LẠI",
-    "roomCode": "Mã vào phòng",
+    "start": "Đăng nhập bằng GitHub CLI",
+    "connecting": "Đang kết nối…",
+    "retry": "Thử lại",
+    "code": "Mã dùng một lần",
     "stepN": "Bước {{n}}",
     "stepShort1": "Bấm Mở GitHub, dán mã",
     "stepShort2": "Continue rồi Authorize",
     "stepShort3": "Quay lại đây, app tự vào",
     "tokenLink": "Vào bằng token",
     "tokenTitle": "Vào bằng token",
-    "enter": "VÀO",
-    "back": "Quay lại sảnh",
-    "welcome": "CHÀO MỪNG, {{login}}",
-    "welcomeAnon": "CHÀO MỪNG",
-    "sound": "Âm thanh",
-    "soundOn": "Đang bật âm thanh (bấm để tắt)",
-    "soundOff": "Đang tắt âm thanh (bấm để bật)"
+    "enter": "Đăng nhập",
+    "back": "Quay lại",
+    "tagline": "Tìm asset Unity trong các repo GitHub của nhóm và xuất kèm các phụ thuộc."
   },
   "collections": {
     "title": "Bộ sưu tập",
@@ -89,7 +86,7 @@
     "loading": "Đang tải branch…",
     "noRepos": "Tài khoản này không thấy repo nào.",
     "noResults": "Không có asset nào khớp thư mục và từ khoá.",
-    "types": "Loại asset",
+    "types": "Loại",
     "branchNoPrefix": "Branch",
     "defaultBranch": "mặc định",
     "loadingBranches": "Đang tải branch…",
@@ -101,7 +98,19 @@
     "loadedHint": "Số thumbnail đã sẵn sàng. Card trên màn hình tải trước, phần còn lại tải nền sau đó.",
     "unlistedShow_other": "Đã ẩn {{count}} clip không tìm thấy model — hiện",
     "unlistedHide": "Ẩn clip không có model",
-    "settingsAccount": "Cài đặt và tài khoản (đăng xuất)"
+    "settingsAccount": "Cài đặt và tài khoản (đăng xuất)",
+    "searchShortcut": "Nhấn ⌘K để tìm kiếm",
+    "allAssets": "Tất cả asset",
+    "cellSize": "Cỡ ô",
+    "cell": {
+      "small": "Ô nhỏ",
+      "large": "Ô lớn"
+    },
+    "inExportList": "Đã trong danh sách xuất",
+    "picked": "Đã chọn",
+    "overBudget": "Vượt ngân sách playable",
+    "noResultsHint": "Thử tên ngắn hơn, thư mục khác, hoặc tắt một bộ lọc.",
+    "noReposHint": "Xin quyền truy cập repo trên GitHub, rồi tải lại."
   },
   "details": {
     "label": "Chi tiết asset",
@@ -120,9 +129,8 @@
     "copied": "Đã copy",
     "copies_other": "File giống hệt ở {{count}} vị trí",
     "openGitHub": "Mở trên GitHub",
-    "issues": "{{count}} mục vượt ngân sách",
     "depsSummary": "{{count}} file",
-    "warnings": "{{count}} cảnh báo"
+    "warnings_other": "{{count}} cảnh báo"
   },
   "settings": {
     "title": "Cài đặt",
@@ -159,9 +167,6 @@
     "sharedIndexAuto": "Tự cập nhật: nhận ngay khi đồng đội thêm vào, và tự đóng góp phần của bạn khi bản chung cũ hơn 2 giờ.",
     "sharedIndexReadOnly": "Tài khoản GitHub của bạn chỉ đọc được {{repo}}, không ghi được: bạn vẫn nhận chỉ mục của team nhưng không đóng góp.",
     "sharedIndexNoGit": "Chưa dùng chung: cần git (Xcode Command Line Tools) hoặc chọn một thư mục.",
-    "lobby": "Lobby",
-    "skipLobby": "Bỏ qua lobby khi đã đăng nhập",
-    "skipLobbyNote": "Vào thẳng hub, không qua rương 3D. Khi cần đăng nhập thì lobby vẫn hiện.",
     "usage": "Thống kê sử dụng",
     "usageStats": "Gửi thống kê sử dụng cho team",
     "usageNote": "Tên GitHub, thời gian dùng app và số lần thao tác (branch đã mở, loại asset đã xem, tìm kiếm, xuất, lỗi). Không bao giờ gửi nội dung tìm kiếm hay file. Giúp team biết cần cải thiện gì.",
@@ -206,7 +211,9 @@
     "animation": "Animation",
     "noAnimation_other": "{{count}} animation clip — chọn để phát",
     "hint": "Kéo để xoay · cuộn để zoom · kéo chuột phải để di chuyển",
-    "needsRepo": "Preview cần repo GitHub (không dùng được với dữ liệu mẫu)."
+    "needsRepo": "Preview cần repo GitHub (không dùng được với dữ liệu mẫu).",
+    "backdropDark": "Nền tối",
+    "backdropHint": "Xem hiệu ứng trên nền tối thay cho nền xám. Lần sau vẫn nhớ."
   },
   "prefabView": {
     "loading": "Đang dựng prefab…",
@@ -217,7 +224,6 @@
     "missing_other": "{{count}} mesh không tìm thấy"
   },
   "stats": {
-    "title": "Thông số",
     "triangles": "Tam giác",
     "vertices": "Đỉnh",
     "meshes": "Mesh",
@@ -291,22 +297,44 @@
     "suggestedUse": "Dùng",
     "suggestedOn": "Đang dùng ✓",
     "checking": "đang kiểm tra…",
-    "script": "script riêng"
+    "script": "script riêng",
+    "tag": {
+      "mat": "VL",
+      "shd": "SHD",
+      "tex": "TEX",
+      "fbx": "FBX",
+      "pfb": "PFB",
+      "cs": "CS",
+      "file": "TỆP"
+    },
+    "count": {
+      "materials_other": "{{count}} vật liệu",
+      "textures_other": "{{count}} texture",
+      "models_other": "{{count}} model",
+      "prefabs_other": "{{count}} prefab",
+      "scripts_other": "{{count}} script"
+    }
   },
   "export": {
-    "chest": "Rương",
-    "room": "Còn chứa được {{size}}",
+    "label": "Danh sách xuất",
+    "assetCount_other": "{{count}} asset",
+    "depCount_other": "{{count}} dependency",
+    "summaryLine": "{{assets}} + {{deps}}",
+    "of": "trên",
+    "meterLabel": "Dung lượng so với ngân sách",
+    "budgetName": {
+      "standard": "Ngân sách chuẩn",
+      "tight": "Ngân sách chặt",
+      "custom": "Ngân sách tuỳ chỉnh"
+    },
+    "exportFiles_other": "Xuất {{count}} file",
     "tooHeavy": "Quá nặng {{size}}",
     "title": "Xuất",
     "exportOne": "Xuất .unitypackage",
-    "addToPack": "Thêm vào rương",
-    "inPack": "Đã trong rương ✓",
-    "pack_other": "Rương: {{count}} model",
-    "summary": "{{files}} file · ~{{size}}",
     "resolving": "đang tìm dependency…",
     "missing_other": "thiếu {{count}}",
     "byName_other": "{{count}} texture theo tên",
-    "remove": "Bỏ {{name}} khỏi rương",
+    "remove": "Bỏ {{name}} khỏi danh sách xuất",
     "layout": "Đường dẫn trong Unity",
     "layoutSource": "Giữ như project nguồn",
     "layoutGrouped": "Gom dưới Assets/AssetHub/<repo>/",
@@ -328,9 +356,8 @@
     "skipped_other": "Bỏ qua {{count}} file (thiếu .meta hoặc trùng GUID): {{list}}",
     "showInFolder": "Mở trong Finder",
     "dismiss": "Đóng",
-    "exportShort": "Xuất",
-    "unfold": "Mở danh sách và tuỳ chọn của rương",
-    "fold": "Thu gọn rương"
+    "unfold": "Mở danh sách và tuỳ chọn xuất",
+    "fold": "Thu gọn danh sách xuất"
   },
   "prefab": {
     "title": "Material từ prefab",
@@ -345,7 +372,10 @@
     "known_one": "Dùng trong {{count}} prefab đã biết ({{names}}).",
     "known_other": "Dùng trong {{count}} prefab đã biết ({{names}}).",
     "load": "Tải material của prefab",
-    "loading": "Đang tải material…"
+    "loading": "Đang tải material…",
+    "summary_other": "{{count}} prefab đang dùng",
+    "noneFound": "Không thấy prefab nào",
+    "unsearched": "Chưa tìm"
   },
   "search": {
     "related": "Hiện cả tên liên quan: {{names}}",
@@ -389,7 +419,8 @@
     "allRepos": "Mọi repo ({{count}})",
     "allBranches": "Mọi branch ({{count}})",
     "foundIn_one": "có ở {{count}} branch",
-    "foundIn_other": "có ở {{count}} branch"
+    "foundIn_other": "có ở {{count}} branch",
+    "emptyYetHint": "Kết quả sẽ hiện ở đây khi từng branch được lập chỉ mục."
   },
   "ranking": {
     "sort": "Sắp xếp",
@@ -431,16 +462,15 @@
     "backdrop": {
       "checker": "Ô caro",
       "dark": "Tối",
-      "light": "Sáng"
+      "light": "Sáng",
+      "stage": "Nền xám"
     },
     "cannotShow": "Không hiển thị được ảnh: {{message}}",
     "overrides": "Override theo nền tảng: {{list}}",
     "noMeta": "Không có file .meta: Unity sẽ dùng import settings mặc định.",
     "warn": {
-      "size": "Import ở {{size}} px — vượt {{limit}} px cho playable.",
       "uncompressed": "Không nén: nặng khi build.",
-      "spriteMips": "Sprite đang bật mipmaps — thường tốn bộ nhớ vô ích.",
-      "bytes": "File {{size}} — vượt {{limit}} texture cho playable."
+      "spriteMips": "Sprite đang bật mipmaps — thường tốn bộ nhớ vô ích."
     },
     "types": {
       "default": "Default",
@@ -578,7 +608,8 @@
     "saved_other": "Đã lưu {{name}} ({{size}}, {{count}} texture).",
     "blenderTitle": "Mở trong Blender, dựng lại material Unity (màu, normal, metallic, smoothness, AO, emission, trong suốt)",
     "opening": "Đang mở…",
-    "opened": "Đã mở Blender"
+    "opened": "Đã mở Blender",
+    "blender": "Mở trong Blender"
   },
   "download": {
     "button": "Tải về",
@@ -738,61 +769,18 @@
     "failed": "Cập nhật lỗi: {{message}}",
     "hint": "Đã có bản {{version}}. Cài xong app tự khởi động lại; cài đặt và cache được giữ nguyên."
   },
-  "ai": {
-    "title": "Trợ lý AI",
-    "unsupported": "Cần Mac chip Apple.",
-    "install": "Tải và kết nối ChatGPT",
-    "downloading": "Đang tải thành phần AI… {{percent}}%",
-    "verifying": "Đang kiểm tra file tải về…",
-    "extracting": "Đang cài…",
-    "connect": "Kết nối ChatGPT",
-    "connecting": "Đăng nhập ChatGPT trong cửa sổ trình duyệt vừa mở, xong quay lại đây.",
-    "reopen": "Mở lại trang đăng nhập",
-    "cancel": "Huỷ",
-    "connected": "Đã kết nối: {{email}} · gói {{plan}}",
-    "disconnect": "Ngắt kết nối ChatGPT",
-    "failed": "Không kết nối được: {{message}}",
-    "pet": "Hiện pet AI ở góc màn hình"
-  },
-  "aiPet": {
-    "attach": "Đính kèm ảnh (hoặc dán / kéo thả vào)",
-    "removeImage": "Bỏ ảnh",
-    "placeholderImage": "Hỏi về ảnh này…",
-    "title": "Trợ lý",
-    "newChat": "Cuộc trò chuyện mới",
-    "close": "Đóng",
-    "placeholder": "Hỏi nhanh…",
-    "send": "Gửi",
-    "stop": "Dừng",
-    "stopped": "Đã dừng",
-    "thinking": "Đang nghĩ",
-    "failed": "Không trả lời được: {{message}}",
-    "tool": {
-      "name_words": "Đang xem tên file…",
-      "search_assets": "Đang tìm…",
-      "open_asset": "Đang mở…",
-      "asset_info": "Đang xem kỹ…",
-      "add_to_chest": "Đang thêm vào rương…",
-      "add_to_collection": "Đang thêm vào bộ sưu tập…",
-      "offer_choices": ""
-    },
-    "other": "Khác…",
-    "choices": "Lựa chọn",
-    "report": "Câu trả lời này sai",
-    "reported": "Đã ghi lại, cảm ơn bạn",
-    "newAnswer": "Có câu trả lời mới"
-  },
   "unity": {
     "import": "Nhập vào Unity",
     "importInto": "Nhập vào {{project}}",
     "pick": "Chọn project Unity",
     "noneOpen": "Mở project trong Unity trước; nó sẽ hiện ở đây",
     "done": "Đã mở {{count}} asset ({{size}}) trong Unity · {{project}}: bấm Import bên Unity để xác nhận.",
-    "nothingNew": "{{project}} đã có đủ các asset này (cùng nội dung), không cần nhập thêm."
+    "nothingNew": "{{project}} đã có đủ các asset này (cùng nội dung), không cần nhập thêm.",
+    "short": "Unity"
   },
   "multi": {
     "count": "Đã chọn {{count}}",
-    "chest": "Thêm vào rương",
+    "exportList": "Thêm vào danh sách xuất",
     "collection": "Thêm vào bộ sưu tập",
     "clear": "Bỏ chọn"
   },
@@ -804,9 +792,8 @@
     "pickAll": "Chọn tất cả thẻ",
     "clear": "Bỏ chọn",
     "favourite": "Thêm/bỏ Yêu thích",
-    "chest": "Thêm vào/bỏ khỏi rương",
+    "exportList": "Thêm vào/bỏ khỏi danh sách xuất",
     "unity": "Nhập vào Unity (project dùng lần trước)",
-    "pet": "Mở/đóng pet AI",
     "help": "Hiện bảng này"
   },
   "recent": {
@@ -828,7 +815,8 @@
     "new": "MỚI",
     "banner": "{{count}}{{more}} asset mới từ lần xem trước",
     "onlyNew": "Chỉ hiện asset mới",
-    "seen": "Đã xem hết"
+    "seen": "Đã xem hết",
+    "newCount": "{{n}} mới"
   },
   "filters": {
     "title": "Bộ lọc",
@@ -840,8 +828,8 @@
     "copied": "Đã chép",
     "noUnity": "Chưa mở Unity editor nào",
     "many": "Đã chọn {{count}} asset",
-    "addChest": "Thêm vào rương",
-    "removeChest": "Bỏ khỏi rương",
+    "addToExport": "Thêm vào danh sách xuất",
+    "removeFromExport": "Bỏ khỏi danh sách xuất",
     "collection": "Thêm vào sưu tập",
     "clearPick": "Bỏ chọn",
     "favorite": "Thêm vào yêu thích",
@@ -856,12 +844,7 @@
   },
   "actions": {
     "export": "Xuất",
-    "chest": "Rương",
-    "inChest": "Trong rương",
     "collection": "Sưu tập",
-    "copyPath": "Đường dẫn",
-    "copied": "Đã chép",
-    "link": "Link",
     "watch": "Ghim branch",
     "watching": "Đã ghim"
   },
@@ -888,5 +871,25 @@
     "queued": "Đã lưu. Hiện chưa gửi được, app sẽ tự gửi lần mở sau.",
     "open": "Mở trên GitHub",
     "close": "Đóng"
+  },
+  "sidebar": {
+    "yours": "Của bạn"
+  },
+  "inspector": {
+    "more": "Thêm thao tác",
+    "export": "Xuất…",
+    "addToList": "Thêm vào danh sách xuất",
+    "inList": "Đã trong danh sách xuất ✓",
+    "addToListHint": "Thêm vào danh sách xuất để xuất nhiều asset trong một gói",
+    "inListHint": "Đã trong danh sách xuất. Bấm để bỏ ra.",
+    "copyFailed": "Không thể sao chép",
+    "calibration": "Nền xám 18%",
+    "calibrationDark": "Nền tối",
+    "fits": "Đạt ngân sách {{preset}}",
+    "presets": {
+      "standard": "Chuẩn",
+      "tight": "Chặt",
+      "custom": "Tùy chỉnh"
+    }
   }
 }

@@ -1,14 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Asset, BudgetPreset, DependencyReport } from '@shared/types'
+import type { Asset, BudgetPreset, DependencyReport, PlayableBudget } from '@shared/types'
 import { formatBytes } from '../format'
 import type { ExportProgress, ExportResult, RunningUnity, TargetReport } from '@shared/ipc'
 import { Dropdown } from './Dropdown'
 import { ErrorNote } from './ErrorNote'
-import { LogoMark } from './Logo'
-import { leaveSlot } from '../motion'
 import { UnityButton } from './UnityButton'
-import { ChevronRightIcon, ExportIcon } from './Icons'
+import { ChevronDownIcon, CloseIcon, ExportIcon } from './Icons'
+import { PLAYABLE_BUDGET } from '../playable'
 
 export interface PackItem {
   asset: Asset
@@ -36,18 +35,35 @@ export type ExportState =
 
 const MB = 1024 * 1024
 
-/** What the whole playable may weigh on the networks a preset stands for: the chest's capacity. */
-export const packCapacity = (preset: BudgetPreset) => (preset === 'tight' ? 2 * MB : 5 * MB)
+/** What the whole playable may weigh on the 2 MB networks (the tight preset's per-file limits are lower). */
+const TIGHT_PLAYABLE_BYTES = 2 * MB
+
+/**
+ * What the export list may weigh before it counts as too heavy, from the active
+ * budget: 2 MB for the tight preset, the budget's file limit otherwise (5 MB
+ * standard, or the custom limit). `undefined` when playable checks are off.
+ */
+export function packCapacity(preset: BudgetPreset, budget: PlayableBudget | undefined): number | undefined {
+  if (preset === 'off' || !budget) return undefined
+  return preset === 'tight' ? TIGHT_PLAYABLE_BYTES : (budget.fileBytes ?? PLAYABLE_BUDGET.fileBytes)
+}
+
+/** The meter turns to a warning at this share of the limit. */
+const NEAR_LIMIT = 0.85
 
 interface Props {
   items: PackItem[]
-  /** Bytes the chest holds before it counts as too heavy. */
-  capacity: number
+  /** Bytes the list may weigh before it counts as too heavy; undefined without a budget. */
+  capacity: number | undefined
+  /** The active preset, named next to the meter. */
+  budgetPreset: BudgetPreset
+  /** Saved thumbnails by content hash. */
+  thumbs: Record<string, string>
   options: ExportOptions
   state: ExportState
   onOptions(options: ExportOptions): void
   onExport(): void
-  /** Opens the chest's package in this Unity editor instead of saving it. */
+  /** Opens the list's package in this Unity editor instead of saving it. */
   onImportToUnity(editor: RunningUnity): void
   onRemove(path: string): void
   onClear(): void
@@ -141,13 +157,22 @@ function TargetSummary({ report }: { report: TargetReport }) {
   )
 }
 
-export function ExportBar({ items, capacity, options, state, onOptions, onExport, onImportToUnity, onRemove, onClear, onDismiss }: Props) {
+export function ExportBar({ items, capacity, budgetPreset, thumbs, options, state, onOptions, onExport, onImportToUnity, onRemove, onClear, onDismiss }: Props) {
   const { t } = useTranslation()
   const sum = summarize(items, options.skipByName)
   const running = state.status === 'running'
   const progress = state.status === 'running' ? state.progress : undefined
-  const over = sum.bytes > capacity
-  // Folded, the chest is one line: what is in it, and Export. Open, its list and options too.
+  const over = capacity !== undefined && sum.bytes > capacity
+  const near = capacity !== undefined && !over && sum.bytes > capacity * NEAR_LIMIT
+  const tone = over ? 'danger' : near ? 'warn' : 'ok'
+  const deps = Math.max(0, sum.files - items.length)
+  // The count lights up for a moment when the list grew (an asset was added).
+  const seen = useRef(0)
+  const grew = items.length > seen.current
+  useEffect(() => {
+    seen.current = items.length
+  }, [items.length])
+  // Folded, the list is one row. Open, its items and options show above that row.
   const [open, setOpen] = useState(() => {
     try {
       return localStorage.getItem('assethub.chestOpen') === '1'
@@ -163,57 +188,44 @@ export function ExportBar({ items, capacity, options, state, onOptions, onExport
       // kept for this session
     }
   }
+  const showList = open && items.length > 0
+
+  // The strip tells its container how tall it is, so the multi-select bar can sit above it.
+  const strip = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = strip.current
+    const container = el?.parentElement
+    if (!el || !container) return
+    const publish = () => container.style.setProperty('--export-h', `${el.offsetHeight}px`)
+    publish()
+    const watch = new ResizeObserver(publish)
+    watch.observe(el)
+    return () => {
+      watch.disconnect()
+      container.style.removeProperty('--export-h')
+    }
+  }, [])
 
   return (
-    <section className="export-bar" aria-label={t('export.title')}>
-      {items.length > 0 && (
-        <>
-          <div className="export-head">
-            <button type="button" className="pack-toggle" aria-expanded={open} title={open ? t('export.fold') : t('export.unfold')} onClick={toggle}>
-              <span className="pack-chest">
-                <LogoMark size={28} />
-              </span>
-              <strong className="pack-title">{t('export.chest')}</strong>
-              <span className="pack-count">{items.length}</span>
-              <span className="section-chevron" data-open={open || undefined}>
-                <ChevronRightIcon size={12} />
-              </span>
-            </button>
-            <span className="pack-room" data-over={over}>
-              {over ? t('export.tooHeavy', { size: formatBytes(sum.bytes - capacity) }) : t('export.room', { size: formatBytes(capacity - sum.bytes) })}
-            </span>
-            <span className="muted small">
-              {formatBytes(sum.bytes)}
-              {sum.pending && ` · ${t('export.resolving')}`}
-            </span>
-            {sum.missing > 0 && <span className="badge badge-warn">{t('export.missing', { count: sum.missing })}</span>}
-            <span style={{ flex: 1 }} />
-            <UnityButton compact disabled={running} onImport={onImportToUnity} />
-            <button type="button" className="btn btn-primary icon-btn pack-export" title={t('export.export', { count: items.length })} aria-label={t('export.export', { count: items.length })} onClick={onExport} disabled={running}>
-              <ExportIcon />
-              <span>{running ? t('export.exporting') : t('export.exportShort')}</span>
-            </button>
-          </div>
-          <div className="pack-meter" data-over={over} title={`${formatBytes(sum.bytes)} / ${formatBytes(capacity)}`}>
-            <span className="pack-meter-fill" style={{ width: `${Math.min(sum.bytes / capacity, 1) * 100}%` }} />
-          </div>
-          {open && (
-          <>
+    <section className="export-bar" ref={strip} aria-label={t('export.label')} data-over={over || undefined}>
+      {showList && (
+        <div className="export-panel">
           <ul className="export-items">
-            {items.map((i) => (
-              <li key={i.path} data-pack-id={i.asset.id}>
-                <span className="dep-name">{i.asset.name}</span>
-                <button
-                  type="button"
-                  className="link-btn"
-                  aria-label={t('export.remove', { name: i.asset.name })}
-                  onClick={(e) => leaveSlot(e.currentTarget.closest('li'), () => onRemove(i.path))}
-                  disabled={running}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
+            {items.map((i) => {
+              const thumb = thumbs[i.asset.sha]
+              return (
+                <li key={i.path}>
+                  <span className="export-thumb">{thumb && <img src={thumb} alt="" />}</span>
+                  <span className="export-item-name" title={i.path}>
+                    {i.asset.name}
+                  </span>
+                  <span className="num export-item-size">{formatBytes(i.asset.size ?? 0)}</span>
+                  <button type="button" className="link-btn" title={t('export.remove', { name: i.asset.name })} aria-label={t('export.remove', { name: i.asset.name })} onClick={() => onRemove(i.path)} disabled={running}>
+                    <CloseIcon size={12} />
+                  </button>
+                </li>
+              )
+            })}
           </ul>
           <div className="export-actions">
             <div className="picker">
@@ -250,9 +262,7 @@ export function ExportBar({ items, capacity, options, state, onOptions, onExport
               {t('export.clear')}
             </button>
           </div>
-          </>
-          )}
-        </>
+        </div>
       )}
 
       {running && (
@@ -298,6 +308,50 @@ export function ExportBar({ items, capacity, options, state, onOptions, onExport
               {t('export.dismiss')}
             </button>
           </div>
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <div className="export-row">
+          <button type="button" className="pack-toggle" aria-expanded={open} title={open ? t('export.fold') : t('export.unfold')} onClick={toggle}>
+            <strong>{t('export.label')}</strong>
+            <span className="pack-chev">
+              <ChevronDownIcon size={12} />
+            </span>
+          </button>
+          <span key={items.length} className="pack-summary" data-fresh={grew || undefined}>
+            {t('export.summaryLine', { assets: t('export.assetCount', { count: items.length }), deps: t('export.depCount', { count: deps }) })}
+          </span>
+          <span className="pack-meter-wrap">
+            {capacity !== undefined && (
+              <span className="pack-meter" data-tone={tone} role="meter" aria-valuemin={0} aria-valuemax={capacity} aria-valuenow={Math.min(sum.bytes, capacity)} aria-label={t('export.meterLabel')}>
+                <span className="pack-meter-fill" style={{ width: `${Math.min(sum.bytes / capacity, 1) * 100}%` }} />
+              </span>
+            )}
+            <span className="pack-meter-text small muted" data-tone={capacity === undefined ? undefined : tone}>
+              <span className="num">{formatBytes(sum.bytes)}</span>
+              {capacity !== undefined && (
+                <>
+                  {' '}
+                  {t('export.of')} <span className="num">{formatBytes(capacity)}</span>
+                  <span className="pack-budget-name"> · {t(`export.budgetName.${budgetPreset}`)}</span>
+                </>
+              )}
+              {capacity !== undefined && over && (
+                <>
+                  {' · '}
+                  <strong className="pack-over">{t('export.tooHeavy', { size: formatBytes(sum.bytes - capacity) })}</strong>
+                </>
+              )}
+              {sum.pending && ` · ${t('export.resolving')}`}
+            </span>
+          </span>
+          {sum.missing > 0 && <span className="badge badge-warn">{t('export.missing', { count: sum.missing })}</span>}
+          <UnityButton split disabled={running} onImport={onImportToUnity} />
+          <button type="button" className="btn btn-primary" title={t('export.export', { count: items.length })} onClick={onExport} disabled={running}>
+            <ExportIcon />
+            <span>{running ? t('export.exporting') : t('export.exportFiles', { count: sum.files })}</span>
+          </button>
         </div>
       )}
     </section>

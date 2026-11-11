@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RunningUnity } from '@shared/ipc'
-import { UnityButton } from './UnityButton'
-import type { CatalogAsset, CatalogLocation, StatsSummary } from '@shared/types'
+import { UnityControl, useUnityEditors } from './UnityButton'
+import { Section } from './Section'
+import type { BudgetIssue, CatalogAsset, CatalogLocation, StatsSummary } from '@shared/types'
 import { formatBytes, shortPath } from '../format'
 import type { CatalogStatus } from '@shared/ipc'
 import type { SearchScope } from '../useCatalog'
 import { summaryIssues } from '../playable'
-import { formatDuration } from '../viewer/audio'
 import { useBudget } from '../budget'
 import { DownloadButton } from './DownloadButton'
 import { ErrorNote } from './ErrorNote'
-import { CubeIcon, ExportIcon } from './Icons'
-import { CopyLinkButton } from './CopyLinkButton'
+import { CopyIcon, CubeIcon, ExportIcon, ExternalIcon, LinkIcon } from './Icons'
+import { BudgetLine, CopyStatus, FactsGrid, summaryFacts, useCopy } from './InspectorParts'
+import { assetLink } from '@shared/deeplink'
 
 /** Branch chips shown before "+N more". */
 const BRANCHES_SHOWN = 6
@@ -36,6 +37,7 @@ interface ScopeProps {
   onScope(scope: SearchScope): void
 }
 
+/** Where the search looks: this branch, every branch of the repo, or every repo. Sits fused to the search field. */
 export function ScopeTabs({ scope, onScope }: ScopeProps) {
   const { t } = useTranslation()
   return (
@@ -62,7 +64,7 @@ export function CatalogStatusLine({ status, error, onPause, onResume }: StatusPr
   if (error) return <ErrorNote error={error} />
   if (status.state === 'idle') return null
   return (
-    <div className="catalog-status muted small" role="status">
+    <div className="catalog-status" data-state={status.state} role="status">
       {status.state === 'running' && (
         <>
           <span>
@@ -163,9 +165,12 @@ interface DetailsProps {
   onImportToUnity(asset: CatalogAsset, editor: RunningUnity): void
 }
 
-/** Right panel for a result found in other branches / repos. */
+/** Right panel for a result found in other branches / repos: the same anatomy as an opened asset. */
 export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpen, onExport, onImportToUnity }: DetailsProps) {
   const { t } = useTranslation()
+  const budget = useBudget()
+  const editors = useUnityEditors()
+  const { state: copyState, copy } = useCopy()
   /** Every branch of every location: listings carry only the first few of each. */
   const [full, setFull] = useState<{ sha: string; locations: CatalogLocation[] }>()
   const sha = asset?.sha
@@ -192,70 +197,82 @@ export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpe
     )
   }
   const first = asset.locations[0]
+  const branch = first.branches[0]
+  const noUnityId = 'catalog-unity-note'
+  const issues = budget && stats ? summaryIssues(stats, budget) : []
+  const facts = stats ? summaryFacts(stats, t) : [{ label: t('details.size'), value: formatBytes(asset.size) }]
+  const openGitHub = () => void window.api.openExternal(githubUrl(first.repo, branch, first.path))
+  const link = assetLink({ repo: first.repo, branch, path: first.path })
   return (
     <aside className="details" aria-label={t('details.label')}>
-      <div className="preview-box">{thumb ? <img className="catalog-thumb" src={thumb} alt="" /> : <CubeIcon size={72} />}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h2>{asset.name}</h2>
-        <p className="muted small" style={{ margin: 0 }}>
-          {formatBytes(asset.size)} · {t('catalog.foundIn', { count: asset.branchCount })}
-          {asset.repoCount > 1 && ` · ${t('catalog.repoCount', { count: asset.repoCount })}`}
-        </p>
-        <div className="field-row">
-          <button type="button" className="btn btn-primary" onClick={() => onOpen(first.repo, first.branches[0], first.path)}>
-            {t('catalog.open', { branch: first.branches[0] })}
-          </button>
-          {delivery !== 'file' && (
-            <button type="button" className="btn icon-btn labeled" title={t('export.exportOne')} aria-label={t('export.exportOne')} disabled={exporting} onClick={() => onExport(asset)}>
-              <ExportIcon />
-              <span>{t('actions.export')}</span>
-            </button>
-          )}
-          {delivery !== 'file' && <UnityButton compact disabled={exporting} onImport={(editor) => onImportToUnity(asset, editor)} />}
-          <button type="button" className="btn" onClick={() => void window.api.openExternal(githubUrl(first.repo, first.branches[0], first.path))}>
-            {t('details.openGitHub')}
-          </button>
-          <CopyLinkButton link={{ repo: first.repo, branch: first.branches[0], path: first.path }} />
+      <div className="insp-preview">{thumb ? <img className="catalog-thumb" src={thumb} alt="" /> : <CubeIcon size={72} />}</div>
+      <div className="insp-body">
+        <div>
+          <h2 className="insp-title">{asset.name}</h2>
+          <div className="insp-path">
+            <span className="mono" title={`${first.repo}/${first.path}`}>
+              {first.path}
+            </span>
+            <div className="insp-path-tools">
+              <CopyStatus state={copyState} />
+              <button type="button" className="btn icon-btn" title={t('details.copyPath')} aria-label={t('details.copyPath')} onClick={() => void copy(first.path)}>
+                <CopyIcon />
+              </button>
+              <button type="button" className="btn icon-btn" title={t('details.openGitHub')} aria-label={t('details.openGitHub')} onClick={openGitHub}>
+                <ExternalIcon />
+              </button>
+              <button type="button" className="btn icon-btn" title={`${t('link.copy')} · ${t('link.hint')}`} aria-label={t('link.copy')} onClick={() => void copy(link)}>
+                <LinkIcon />
+              </button>
+            </div>
+          </div>
+          <p className="acts-note" style={{ marginTop: 4 }}>
+            {t('catalog.foundIn', { count: asset.branchCount })}
+            {asset.repoCount > 1 && ` · ${t('catalog.repoCount', { count: asset.repoCount })}`}
+          </p>
         </div>
-        {delivery === 'file' && <DownloadButton repo={first.repo} branch={first.branches[0]} path={first.path} />}
-        {stats && <StatsLine stats={stats} />}
-        <p className="muted small" style={{ margin: 0 }}>
-          {t('catalog.openHint')}
-        </p>
+        <FactsGrid facts={facts} />
+        {budget && stats && <BudgetLine issues={issues} budget={budget} />}
+        {delivery === 'file' ? (
+          <DownloadButton repo={first.repo} branch={branch} path={first.path}>
+            <button type="button" className="btn" onClick={() => onOpen(first.repo, branch, first.path)}>
+              {t('catalog.open', { branch })}
+            </button>
+          </DownloadButton>
+        ) : (
+          <>
+            <div className="acts">
+              <button type="button" className="btn btn-primary" title={t('catalog.openHint')} onClick={() => onOpen(first.repo, branch, first.path)}>
+                {t('catalog.open', { branch })}
+              </button>
+              <button type="button" className="btn" title={t('export.exportOne')} disabled={exporting} onClick={() => onExport(asset)}>
+                <ExportIcon />
+                {t('inspector.export')}
+              </button>
+              <UnityControl editors={editors} split disabled={exporting} onImport={(editor) => onImportToUnity(asset, editor)} describedBy={noUnityId} />
+            </div>
+            {!editors.length && (
+              <p className="acts-note" id={noUnityId}>
+                {t('unity.noneOpen')}
+              </p>
+            )}
+          </>
+        )}
+        <p className="acts-note">{t('catalog.openHint')}</p>
       </div>
-      <section className="section">
-        <span className="label-caps">{t('catalog.locations')}</span>
-        <LocationList locations={full?.sha === asset.sha ? full.locations : asset.locations} showRepo={asset.repoCount > 1} onOpen={onOpen} />
-      </section>
+      <div className="folds">
+        <Section id="catalogLocations" title={t('catalog.locations')}>
+          <LocationList locations={full?.sha === asset.sha ? full.locations : asset.locations} showRepo={asset.repoCount > 1} onOpen={onOpen} />
+        </Section>
+      </div>
     </aside>
   )
 }
 
-const compact = (n: number) => (n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
+/** 1200 as "1.2k", 24000 as "24k". */
+export const compactCount = (n: number) => (n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
 
-/** One line of measurements with a playable-budget verdict, for cards and panels. */
-export function StatsLine({ stats, short = false }: { stats: StatsSummary; short?: boolean }) {
-  const { t } = useTranslation()
-  const budget = useBudget()
-  const issues = budget ? summaryIssues(stats, budget) : []
-  return (
-    <span className="stats-line" title={!budget ? undefined : issues.map((i) => t(`budget.${i.key}`, { value: i.key.endsWith('Bytes') ? formatBytes(i.value) : i.value.toLocaleString(), limit: i.key.endsWith('Bytes') ? formatBytes(i.limit) : i.limit.toLocaleString() })).join('\n') || t('ranking.fits')}>
-      {budget && <span className={issues.length ? 'fit fit-no' : 'fit fit-ok'}>{issues.length ? `⚠ ${issues.length}` : '✓'}</span>}
-      {stats.width ? (
-        <span>{`${stats.width}×${stats.height}`}</span>
-      ) : stats.duration !== undefined || stats.clipLength !== undefined ? (
-        <span>{formatDuration(stats.duration ?? stats.clipLength ?? 0)}</span>
-      ) : stats.particles !== undefined && stats.triangles === 0 ? (
-        <span>{t('ranking.particles', { n: compact(stats.particles) })}</span>
-      ) : stats.glyphs !== undefined ? (
-        <span>{t('ranking.glyphs', { count: stats.glyphs })}</span>
-      ) : stats.textureCount !== undefined ? (
-        <span>{t('ranking.textures', { count: stats.textureCount })}</span>
-      ) : (
-        <span>{t('ranking.tris', { n: compact(stats.triangles) })}</span>
-      )}
-      {(!short || stats.width || stats.textureCount !== undefined || stats.glyphs !== undefined || stats.duration !== undefined) && <span>{stats.duration !== undefined && '≈ '}{formatBytes(stats.fileBytes + stats.textureBytes)}</span>}
-      {!short && stats.bones > 0 && <span>{t('ranking.bones', { count: stats.bones })}</span>}
-    </span>
-  )
+/** What a budget verdict says, one line per issue (a tooltip). */
+export function budgetIssuesTitle(issues: BudgetIssue[], t: (key: string, o?: Record<string, unknown>) => string): string {
+  return issues.map((i) => t(`budget.${i.key}`, { value: i.key.endsWith('Bytes') ? formatBytes(i.value) : i.value.toLocaleString(), limit: i.key.endsWith('Bytes') ? formatBytes(i.limit) : i.limit.toLocaleString() })).join('\n')
 }

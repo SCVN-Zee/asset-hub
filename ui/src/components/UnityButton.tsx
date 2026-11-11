@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import type { RunningUnity } from '@shared/ipc'
 import { ChevronDownIcon, UnityIcon } from './Icons'
+import { useFloatingMenu, useMenuDismiss } from './InspectorParts'
 
 const LAST_KEY = 'assethub.lastUnityProject'
 const lastProject = () => {
@@ -41,59 +42,58 @@ export function rememberEditor(editor: RunningUnity): void {
   }
 }
 
+interface ControlProps {
+  editors: readonly RunningUnity[]
+  disabled?: boolean
+  onImport(editor: RunningUnity): void
+  /** Icon and a short word, for a row with little room. */
+  compact?: boolean
+  /** Joined to its arrow as one control that fills the room it is given (the inspector's action row). */
+  split?: boolean
+  /** Where the list opens when there is room both ways. */
+  prefer?: 'above' | 'below'
+  /** The element that says why the button is off (shown always, not only on hover). */
+  describedBy?: string
+}
+
 /**
  * "Import into Unity": the open Unity editors are listed (several projects can be
  * open); the button goes to the one used last, the arrow picks another. Without
- * an open editor it waits for one, refreshed when the app comes back to the front.
+ * an open editor the button is off; the caller shows why in text next to it.
  */
-export function UnityButton({ disabled, onImport, compact }: { disabled?: boolean; onImport(editor: RunningUnity): void; compact?: boolean }) {
+export function UnityControl({ editors, disabled, onImport, compact, split, prefer = 'above', describedBy }: ControlProps) {
   const { t } = useTranslation()
-  const editors = useUnityEditors()
   const [menu, setMenu] = useState(false)
   const box = useRef<HTMLDivElement>(null)
-  const list = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
-
+  const { list, pos } = useFloatingMenu(menu, box, 'start', prefer)
+  const close = () => setMenu(false)
+  useMenuDismiss(menu, close, box, list)
+  // A list left open for an editor that has since closed would point at nothing.
   useEffect(() => {
-    if (!menu) return
-    const close = (e: PointerEvent) => !box.current?.contains(e.target as Node) && !list.current?.contains(e.target as Node) && setMenu(false)
-    const shut = () => setMenu(false)
-    window.addEventListener('pointerdown', close)
-    window.addEventListener('resize', shut)
-    window.addEventListener('blur', shut)
-    return () => {
-      window.removeEventListener('pointerdown', close)
-      window.removeEventListener('resize', shut)
-      window.removeEventListener('blur', shut)
-    }
-  }, [menu])
-  // The list sits on the window, not in the button's panel: kept inside the window's
-  // edges (above the button, or below when there is no room), never cut off.
-  useLayoutEffect(() => {
-    if (!menu) return setPos(null)
-    const anchor = box.current?.getBoundingClientRect()
-    const el = list.current
-    if (!anchor || !el) return
-    const gap = 6
-    const edge = 8
-    const left = Math.max(edge, Math.min(anchor.left, window.innerWidth - el.offsetWidth - edge))
-    const above = anchor.top - el.offsetHeight - gap
-    const top = above >= edge ? above : Math.min(anchor.bottom + gap, window.innerHeight - el.offsetHeight - edge)
-    setPos({ left, top: Math.max(edge, top) })
-  }, [menu])
+    if (!editors.length) setMenu(false)
+  }, [editors.length])
+
+  const label = compact ? (
+    <>
+      <UnityIcon />
+      <span>{t('unity.short')}</span>
+    </>
+  ) : (
+    <>
+      {split && <UnityIcon />}
+      {t('unity.import')}
+    </>
+  )
+  const cls = compact ? 'btn icon-btn labeled' : 'btn'
+  const wrap = `unity-button${split ? ' split' : ''}`
 
   if (!editors.length)
     return (
-      <button type="button" className={compact ? 'btn icon-btn labeled' : 'btn'} disabled title={t('unity.noneOpen')} aria-label={t('unity.import')}>
-        {compact ? (
-          <>
-            <UnityIcon />
-            <span>Unity</span>
-          </>
-        ) : (
-          t('unity.import')
-        )}
-      </button>
+      <div className={wrap}>
+        <button type="button" className={cls} disabled aria-describedby={describedBy} title={t('unity.noneOpen')} aria-label={t('unity.import')}>
+          {label}
+        </button>
+      </div>
     )
 
   const preferred = preferredEditor(editors)
@@ -104,37 +104,43 @@ export function UnityButton({ disabled, onImport, compact }: { disabled?: boolea
   }
 
   return (
-    <div className="unity-button" ref={box}>
-      <button type="button" className={compact ? 'btn icon-btn labeled' : 'btn'} disabled={disabled} title={`${t('unity.importInto', { project: preferred.project })} · ${preferred.projectPath}`} aria-label={t('unity.importInto', { project: preferred.project })} onClick={() => choose(preferred)}>
-        {compact ? (
-          <>
-            <UnityIcon />
-            <span>Unity</span>
-          </>
-        ) : (
-          t('unity.importInto', { project: preferred.project })
-        )}
+    <div className={wrap} ref={box}>
+      <button
+        type="button"
+        className={cls}
+        disabled={disabled}
+        aria-describedby={describedBy}
+        title={`${t('unity.importInto', { project: preferred.project })} · ${preferred.projectPath}`}
+        aria-label={t('unity.importInto', { project: preferred.project })}
+        onClick={() => choose(preferred)}
+      >
+        {compact || split ? label : t('unity.importInto', { project: preferred.project })}
       </button>
       {editors.length > 1 && (
-        <button type="button" className="btn unity-more" disabled={disabled} aria-haspopup="menu" aria-expanded={menu} aria-label={t('unity.pick')} onClick={() => setMenu(!menu)}>
+        <button type="button" className="btn unity-more" disabled={disabled} aria-haspopup="menu" aria-expanded={menu} aria-label={t('unity.pick')} title={t('unity.pick')} onClick={() => setMenu(!menu)}>
           <ChevronDownIcon size={10} />
         </button>
       )}
       {menu &&
         createPortal(
           <div className="unity-menu" role="menu" ref={list} style={pos ? { left: pos.left, top: pos.top } : { visibility: 'hidden' }}>
-          {editors.map((e) => (
-            <button key={e.pid} type="button" role="menuitem" className="unity-menu-item" aria-current={e.pid === preferred.pid || undefined} title={e.projectPath} onClick={() => choose(e)}>
-              <span>
-                {e.project}
-                {e.product && <span className="muted small"> · {e.product}</span>}
-              </span>
-              {e.version && <span className="muted small">{e.version}</span>}
-            </button>
-          ))}
+            {editors.map((e) => (
+              <button key={e.pid} type="button" role="menuitem" className="unity-menu-item" aria-current={e.pid === preferred.pid || undefined} title={e.projectPath} onClick={() => choose(e)}>
+                <span>
+                  {e.project}
+                  {e.product && <span className="muted small"> · {e.product}</span>}
+                </span>
+                {e.version && <span className="muted small">{e.version}</span>}
+              </button>
+            ))}
           </div>,
           document.body
         )}
     </div>
   )
+}
+
+/** `UnityControl` for the editors open now. */
+export function UnityButton(props: Omit<ControlProps, 'editors'>) {
+  return <UnityControl editors={useUnityEditors()} {...props} />
 }

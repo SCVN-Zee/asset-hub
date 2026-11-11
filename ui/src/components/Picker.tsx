@@ -12,7 +12,8 @@ interface Props {
   /** Short tag shown next to an option, e.g. "default". */
   tagOf?(option: string): string | undefined
   placeholder: string
-  width?: number
+  /** Show the group prefix of the current value dimmed before it ("owner / repo"). */
+  dimPrefix?: boolean
   onChange(value: string): void
 }
 
@@ -22,7 +23,7 @@ interface Group {
 }
 
 /** Dropdown that always lists every option, grouped, with a search box. */
-export function Picker({ label, value, options, groupOf, ungroupedLabel, tagOf, placeholder, width = 260, onChange }: Props) {
+export function Picker({ label, value, options, groupOf, ungroupedLabel, tagOf, placeholder, dimPrefix, onChange }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -77,20 +78,23 @@ export function Picker({ label, value, options, groupOf, ungroupedLabel, tagOf, 
     e.preventDefault()
   }
 
+  const prefix = dimPrefix && value ? groupOf(value) : ''
   return (
-    <div className="picker" ref={root}>
-      <span className="muted small">{label}</span>
+    <div className="picker crumb-seg" ref={root}>
       <button
         type="button"
         className="select picker-trigger"
-        style={{ width }}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         disabled={!options.length}
         title={value}
       >
-        <span className="picker-value">{value || placeholder}</span>
+        <span className="sr-only">{label}: </span>
+        <span className="picker-value">
+          {prefix && <em>{prefix.replace(/\/$/, '')} / </em>}
+          {value ? value.slice(prefix.length) : placeholder}
+        </span>
         <span className="picker-caret" data-open={open}>
           <ChevronRightIcon />
         </span>

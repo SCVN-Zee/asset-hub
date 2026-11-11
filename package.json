@@ -17,9 +17,8 @@
     "usage": "bun scripts/usage-report.mjs"
   },
   "devDependencies": {
-    "@fontsource/be-vietnam-pro": "^5.3.0",
-    "@fontsource/chakra-petch": "^5.3.0",
-    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/geist": "^5.3.0",
+    "@fontsource/geist-mono": "^5.3.0",
     "@tauri-apps/api": "2.12.4",
     "@tauri-apps/cli": "2.12.4",
     "@types/node": "^22.10.2",

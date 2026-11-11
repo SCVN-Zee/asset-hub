@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { displayName } from '@shared/displayName'
-import type { AiStatus, AuthStatus, CacheUsage, InstallProgress } from '@shared/ipc'
+import type { AuthStatus, CacheUsage } from '@shared/ipc'
 import { CACHE_LIMITS_GB, DEFAULT_CACHE_LIMIT_GB, DEFAULT_EXPORT_LAYOUT, EXPORT_LAYOUTS, type Settings as AppSettings, type Language } from '@shared/settings'
 import type { BudgetPreset, PlayableBudget } from '@shared/types'
 import { formatBytes } from '../format'
 import { BUDGET_KEYS, BUDGET_PRESETS, DEFAULT_BUDGET_PRESET, budgetFor } from '../playable'
 import { commands, type CliInstall } from '../bindings'
 import { Dropdown } from '../components/Dropdown'
-import { ChevronLeftIcon } from '../components/Icons'
+import { CloseIcon } from '../components/Icons'
 import { LangToggle } from '../components/LangToggle'
 import { useSharedIndex } from '../useSharedIndex'
 import { useStoredFlag } from '../useStoredState'
@@ -58,7 +58,7 @@ function TargetProjectSetting({ settings, onChange }: Pick<Props, 'settings' | '
         <label htmlFor="target-project">{t('target.setting')}</label>
       </h2>
       <div className="field-row">
-        <input id="target-project" className="input mono" value={settings.targetProject ?? ''} placeholder={t('target.none')} readOnly />
+        <input id="target-project" className="input mono prose-empty" value={settings.targetProject ?? ''} placeholder={t('target.none')} readOnly />
         <button type="button" className="btn" onClick={() => void choose()}>
           {t('settings.choose')}
         </button>
@@ -97,7 +97,7 @@ function BudgetSetting({ settings, onChange }: Pick<Props, 'settings' | 'onChang
         />
       </div>
       {preset !== 'off' && (
-      <dl className="stat-grid">
+        <dl className="stat-grid">
         {BUDGET_KEYS.map((key) => (
           <div key={`${preset}:${key}`}>
             <dt>{t(`budget.limits.${key}`)}</dt>
@@ -125,79 +125,6 @@ function BudgetSetting({ settings, onChange }: Pick<Props, 'settings' | 'onChang
   )
 }
 
-/**
- * The AI assistant: ChatGPT through Codex, which the app downloads once. The
- * user signs in with their own ChatGPT account in the browser; no API key.
- */
-function AiSetting({ settings, onChange }: { settings: AppSettings; onChange(patch: Partial<AppSettings>): void }) {
-  const { t } = useTranslation()
-  const [status, setStatus] = useState<AiStatus>()
-  const [progress, setProgress] = useState<InstallProgress>()
-  useEffect(() => {
-    void window.api.ai.status().then(setStatus)
-    return window.api.ai.onStatus(setStatus)
-  }, [])
-  useEffect(() => window.api.ai.onInstallProgress(setProgress), [])
-
-  const installThenConnect = async () => {
-    const after = await window.api.ai.install()
-    setProgress(undefined)
-    if (after.state === 'signedOut') setStatus(await window.api.ai.connect())
-    else setStatus(after)
-  }
-  const percent = progress?.stage === 'download' && progress.total ? Math.round((progress.received / progress.total) * 100) : undefined
-  const state = status?.state
-
-  return (
-    <section className="setting">
-      <h2>{t('ai.title')}</h2>
-      {state === 'unsupported' && <span className="small">{t('ai.unsupported')}</span>}
-      {state === 'connected' && <span>{t('ai.connected', { email: status?.email ?? '—', plan: status?.plan ?? '—' })}</span>}
-      {state === 'connected' && (
-        <label className="check">
-          <input type="checkbox" checked={settings.aiPet !== false} onChange={(e) => onChange({ aiPet: e.target.checked })} />
-          {t('ai.pet')}
-        </label>
-      )}
-      {state === 'connecting' && <span className="small">{t('ai.connecting')}</span>}
-      {state === 'installing' && (
-        <div className="ai-install">
-          <span className="small">{progress?.stage === 'verify' ? t('ai.verifying') : progress?.stage === 'extract' ? t('ai.extracting') : t('ai.downloading', { percent: percent ?? 0 })}</span>
-          <progress className="progress" max={100} value={percent ?? undefined} />
-        </div>
-      )}
-      {status?.error && state !== 'connected' && <span className="warn-text small">{t('ai.failed', { message: status.error })}</span>}
-      <div className="setting-actions">
-        {state === 'notInstalled' && (
-          <button type="button" className="btn btn-primary" onClick={() => void installThenConnect()}>
-            {t('ai.install')}
-          </button>
-        )}
-        {(state === 'signedOut' || state === 'error') && (
-          <button type="button" className="btn btn-primary" onClick={() => void window.api.ai.connect().then(setStatus)}>
-            {t('ai.connect')}
-          </button>
-        )}
-        {state === 'connecting' && (
-          <>
-            <button type="button" className="btn" onClick={() => void window.api.ai.connect().then(setStatus)}>
-              {t('ai.reopen')}
-            </button>
-            <button type="button" className="btn" onClick={() => void window.api.ai.cancelConnect().then(setStatus)}>
-              {t('ai.cancel')}
-            </button>
-          </>
-        )}
-        {state === 'connected' && (
-          <button type="button" className="btn btn-signout" onClick={() => void window.api.ai.disconnect().then(setStatus)}>
-            {t('ai.disconnect')}
-          </button>
-        )}
-      </div>
-    </section>
-  )
-}
-
 export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props) {
   const { t } = useTranslation()
   const [folders, setFolders] = useState(settings.excludedFolders.join(', '))
@@ -210,116 +137,131 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
     if (folder) onChange({ cacheDir: folder })
   }
 
+  // A panel over the hub: focus moves into it, Escape closes it, and focus goes back to where it came from.
+  const sheet = useRef<HTMLDivElement>(null)
+  const back = useRef(onBack)
+  back.current = onBack
+  useEffect(() => {
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+    sheet.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      // A dropdown inside the panel uses Escape to close itself first.
+      if (e.key === 'Escape' && !e.defaultPrevented) back.current()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      if (before?.isConnected) before.focus()
+    }
+  }, [])
+
   return (
-    <div className="settings">
-      <div className="settings-head">
-        <button type="button" className="btn icon-btn" aria-label={t('common.back')} onClick={onBack}>
-          <ChevronLeftIcon />
-        </button>
-        <h1>{t('settings.title')}</h1>
+    <div
+      className="settings-layer"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onBack()
+      }}
+    >
+      <div className="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" tabIndex={-1} ref={sheet}>
+        <div className="settings-head">
+          <h1 id="settings-title">{t('settings.title')}</h1>
+          <button type="button" className="btn icon-btn" aria-label={t('common.close')} title={t('common.close')} onClick={onBack}>
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="settings">
+          <section className="setting">
+            <h2>{t('settings.account')}</h2>
+            {auth?.signedIn ? (
+              <>
+                <span>
+                  {t('settings.signedInAs', { login: displayName(auth.login ?? '') })} · <span className="muted">{t(`settings.method.${auth.method}`)}</span>
+                </span>
+                {auth.persisted === false && <span className="muted small">{t('settings.notPersisted')}</span>}
+              </>
+            ) : null}
+            {auth?.signedIn && auth.method === 'gh' && (
+              <label className="check">
+                <input type="checkbox" checked={signOutGh} onChange={(e) => setSignOutGh(e.target.checked)} />
+                {t('settings.signOutGh')}
+              </label>
+            )}
+            <div>
+              <button type="button" className={auth?.signedIn ? 'btn btn-signout' : 'btn'} onClick={() => onSignOut(auth?.signedIn === true && auth.method === 'gh' && signOutGh)}>
+                {auth?.signedIn ? t('settings.signOut') : t('settings.signIn')}
+              </button>
+            </div>
+          </section>
+
+          <section className="setting">
+            <h2>{t('common.language')}</h2>
+            <div>
+              <LangToggle value={settings.language} onChange={(language: Language) => onChange({ language })} />
+            </div>
+          </section>
+
+          <BudgetSetting settings={settings} onChange={onChange} />
+
+          <section className="setting">
+            <h2>
+              <label htmlFor="export-layout">{t('export.layout')}</label>
+            </h2>
+            <div>
+              <Dropdown
+                id="export-layout"
+                value={settings.exportLayout ?? DEFAULT_EXPORT_LAYOUT}
+                options={EXPORT_LAYOUTS.map((l) => ({ value: l, label: t(`export.layout${l[0].toUpperCase()}${l.slice(1)}`) }))}
+                onChange={(exportLayout: (typeof EXPORT_LAYOUTS)[number]) => onChange({ exportLayout })}
+                label={t('export.layout')}
+              />
+            </div>
+          </section>
+
+          <section className="setting">
+            <h2>
+              <label htmlFor="excluded">{t('settings.excluded')}</label>
+            </h2>
+            <input
+              id="excluded"
+              className="input mono"
+              value={folders}
+              placeholder="_ThirdParty, Plugins"
+              onChange={(e) => setFolders(e.target.value)}
+              onBlur={() => onChange({ excludedFolders: parseFolders(folders) })}
+              onKeyDown={(e) => e.key === 'Enter' && onChange({ excludedFolders: parseFolders(folders) })}
+            />
+          </section>
+
+          <TargetProjectSetting settings={settings} onChange={onChange} />
+
+          <section className="setting">
+            <h2>
+              <label htmlFor="cache">{t('settings.cacheDir')}</label>
+            </h2>
+            <div className="field-row">
+              <input id="cache" className="input mono" value={settings.cacheDir} readOnly />
+              <button type="button" className="btn" onClick={chooseCache}>
+                {t('settings.choose')}
+              </button>
+            </div>
+          </section>
+
+          <CacheSetting settings={settings} onChange={onChange} />
+
+          {auth?.signedIn && <SharedIndexSetting settings={settings} onChange={onChange} />}
+
+          <CliSetting />
+
+          <section className="setting">
+            <h2>{t('settings.usage')}</h2>
+            <label className="check">
+              <input type="checkbox" checked={settings.usageStats !== false} onChange={(e) => onChange({ usageStats: e.target.checked })} />
+              {t('settings.usageStats')}
+            </label>
+            <span className="muted small">{t('settings.usageNote')}</span>
+          </section>
+        </div>
       </div>
-
-      <section className="setting">
-        <h2>{t('settings.account')}</h2>
-        {auth?.signedIn ? (
-          <>
-            <span>
-              {t('settings.signedInAs', { login: displayName(auth.login ?? '') })} · <span className="muted">{t(`settings.method.${auth.method}`)}</span>
-            </span>
-            {auth.persisted === false && <span className="muted small">{t('settings.notPersisted')}</span>}
-          </>
-        ) : null}
-        {auth?.signedIn && auth.method === 'gh' && (
-          <label className="check">
-            <input type="checkbox" checked={signOutGh} onChange={(e) => setSignOutGh(e.target.checked)} />
-            {t('settings.signOutGh')}
-          </label>
-        )}
-        <div>
-          <button type="button" className={auth?.signedIn ? 'btn btn-signout' : 'btn'} onClick={() => onSignOut(auth?.signedIn === true && auth.method === 'gh' && signOutGh)}>
-            {auth?.signedIn ? t('settings.signOut') : t('settings.signIn')}
-          </button>
-        </div>
-      </section>
-
-      <AiSetting settings={settings} onChange={onChange} />
-
-      <section className="setting">
-        <h2>{t('common.language')}</h2>
-        <div>
-          <LangToggle value={settings.language} onChange={(language: Language) => onChange({ language })} />
-        </div>
-      </section>
-
-      <section className="setting">
-        <h2>{t('settings.lobby')}</h2>
-        <label className="check">
-          <input type="checkbox" checked={settings.skipLobby === true} onChange={(e) => onChange({ skipLobby: e.target.checked })} />
-          {t('settings.skipLobby')}
-        </label>
-        <span className="muted small">{t('settings.skipLobbyNote')}</span>
-      </section>
-
-      <BudgetSetting settings={settings} onChange={onChange} />
-
-      <section className="setting">
-        <h2>
-          <label htmlFor="export-layout">{t('export.layout')}</label>
-        </h2>
-        <div>
-          <Dropdown
-            id="export-layout"
-            value={settings.exportLayout ?? DEFAULT_EXPORT_LAYOUT}
-            options={EXPORT_LAYOUTS.map((l) => ({ value: l, label: t(`export.layout${l[0].toUpperCase()}${l.slice(1)}`) }))}
-            onChange={(exportLayout: (typeof EXPORT_LAYOUTS)[number]) => onChange({ exportLayout })}
-            label={t('export.layout')}
-          />
-        </div>
-      </section>
-
-      <section className="setting">
-        <h2>
-          <label htmlFor="excluded">{t('settings.excluded')}</label>
-        </h2>
-        <input
-          id="excluded"
-          className="input mono"
-          value={folders}
-          placeholder="_ThirdParty, Plugins"
-          onChange={(e) => setFolders(e.target.value)}
-          onBlur={() => onChange({ excludedFolders: parseFolders(folders) })}
-          onKeyDown={(e) => e.key === 'Enter' && onChange({ excludedFolders: parseFolders(folders) })}
-        />
-      </section>
-
-      <TargetProjectSetting settings={settings} onChange={onChange} />
-
-      <section className="setting">
-        <h2>
-          <label htmlFor="cache">{t('settings.cacheDir')}</label>
-        </h2>
-        <div className="field-row">
-          <input id="cache" className="input mono" value={settings.cacheDir} readOnly />
-          <button type="button" className="btn" onClick={chooseCache}>
-            {t('settings.choose')}
-          </button>
-        </div>
-      </section>
-
-      <CacheSetting settings={settings} onChange={onChange} />
-
-      {auth?.signedIn && <SharedIndexSetting settings={settings} onChange={onChange} />}
-
-      <CliSetting />
-
-      <section className="setting">
-        <h2>{t('settings.usage')}</h2>
-        <label className="check">
-          <input type="checkbox" checked={settings.usageStats !== false} onChange={(e) => onChange({ usageStats: e.target.checked })} />
-          {t('settings.usageStats')}
-        </label>
-        <span className="muted small">{t('settings.usageNote')}</span>
-      </section>
     </div>
   )
 }
@@ -360,7 +302,7 @@ function CliSetting() {
       )}
       {installed && !installed.onPath && <span className="muted small">{t('settings.cliNotOnPath')}</span>}
       {failed && (
-        <span className="small" style={{ color: 'var(--warn-text)' }}>
+        <span className="small warn-text">
           {t('settings.cliFailed', { error: failed })}
         </span>
       )}
@@ -434,7 +376,7 @@ function SharedIndexSetting({ settings, onChange }: Pick<Props, 'settings' | 'on
       <div className="field-row">
         <input
           id="shared-index"
-          className="input mono"
+          className="input mono prose-empty"
           value={settings.sharedIndexDir ?? ''}
           placeholder={status?.via === 'github' ? t('settings.sharedIndexNone', { repo: status.repo }) : t('settings.sharedIndexNoGit')}
           readOnly
@@ -470,7 +412,7 @@ function SharedIndexSetting({ settings, onChange }: Pick<Props, 'settings' | 'on
               {t(status.lastAction === 'exported' ? 'settings.sharedIndexExported' : 'settings.sharedIndexImported', { ...status.last })}
             </span>
           )}
-          {error && <span className="small" style={{ color: 'var(--warn-text)' }}>{t('settings.sharedIndexFailed', { error })}</span>}
+          {error && <span className="small warn-text">{t('settings.sharedIndexFailed', { error })}</span>}
         </>
       )}
     </section>

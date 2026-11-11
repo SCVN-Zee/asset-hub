@@ -2,17 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Suggestion } from '@shared/types'
 import { parseAssetLink } from '@shared/deeplink'
+import type { SearchScope } from '../useCatalog'
 import { SearchIcon } from './Icons'
+import { ScopeTabs } from './CatalogPanel'
 
 interface Props {
   value: string
   /** Keyword suggestions for what is typed; answered after a round trip. */
   suggest(text: string): Promise<Suggestion[]>
   onChange(value: string): void
+  /** Where the search looks; the control sits fused to the left edge of the field. */
+  scope: SearchScope
+  onScope(scope: SearchScope): void
 }
 
 /** Search field with keyword suggestions (groups like "fish", and words used in file names). */
-export function SearchBox({ value, suggest, onChange }: Props) {
+export function SearchBox({ value, suggest, onChange, scope, onScope }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   /** Highlighted suggestion; -1 while none is (typing, or just focused): Enter then keeps what was typed. */
@@ -56,6 +61,7 @@ export function SearchBox({ value, suggest, onChange }: Props) {
 
   return (
     <div className="search search-box">
+      <ScopeTabs scope={scope} onScope={onScope} />
       <SearchIcon />
       <label htmlFor="q" className="sr-only">
         {t('browse.search')}
@@ -103,6 +109,11 @@ export function SearchBox({ value, suggest, onChange }: Props) {
           } else if (e.key === 'Escape') setOpen(false)
         }}
       />
+      {!value && (
+        <kbd aria-hidden="true" title={t('browse.searchShortcut')}>
+          ⌘K
+        </kbd>
+      )}
       {suggestions.length > 0 && (
         <ul id="q-suggestions" className="search-suggestions" role="listbox">
           {suggestions.map((s, i) => (

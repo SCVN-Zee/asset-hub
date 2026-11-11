@@ -46,8 +46,8 @@ export async function particleStats(report: DependencyReport, base?: StatsSummar
 /** Frames of a moving effect card, laid out as a square sheet. */
 export const MOTION_FRAMES = 16
 const MOTION_COLS = 4
-/** Bumped when effect cards are drawn differently: older ones are drawn again once. v3: blend from the shader, no noise maps as colour; v4: Unity's own meshes, framed per emitter; v5: premultiplied blending, soft default dots; v6: alpha from grey level as Unity imports it; v7: billboards facing the system's axes; v8: 3D rotation per particle, the right mesh of a model, the slot the shader reads; v9: sizes per axis; v10: alpha per mesh particle;; v11: masks kept in a colour channel; v12: AllIn1Vfx and VFX_Klaus shaders ported, custom data and vertex streams; v13: wrapped keyword lines, Unity .mesh meshes, ported shaders on mesh particles,; meshes counted in framing; v14: Gamma projects drawn in Gamma, frames at exact times. */
-export const FX_THUMB_VERSION = 16
+/** Bumped when effect cards are drawn differently: older ones are drawn again once. v3: blend from the shader, no noise maps as colour; v4: Unity's own meshes, framed per emitter; v5: premultiplied blending, soft default dots; v6: alpha from grey level as Unity imports it; v7: billboards facing the system's axes; v8: 3D rotation per particle, the right mesh of a model, the slot the shader reads; v9: sizes per axis; v10: alpha per mesh particle;; v11: masks kept in a colour channel; v12: AllIn1Vfx and VFX_Klaus shaders ported, custom data and vertex streams; v13: wrapped keyword lines, Unity .mesh meshes, ported shaders on mesh particles,; meshes counted in framing; v14: Gamma projects drawn in Gamma, frames at exact times; v17: drawn on a transparent background; v18: drawn without the floor grid, neutral lighting. */
+export const FX_THUMB_VERSION = 18
 
 /** Cache key of an effect's moving card, next to its still one. */
 export const motionKey = (key: string) => `${key}.fx`

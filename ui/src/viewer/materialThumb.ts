@@ -3,6 +3,7 @@ import { parse } from '../parse'
 import type { LiveContext } from '../components/ModelViewer'
 import { unwrap } from '../remoteSource'
 import { offscreenHost } from './backgroundThumb'
+import { MODEL_THUMB_VERSION } from './thumbVersions'
 import { FbxViewer } from './FbxViewer'
 import { fetchMaterialTextures, materialSlots, materialStats } from './materialPreview'
 
@@ -26,7 +27,7 @@ export async function renderMaterialThumbnail(live: LiveContext, path: string, e
     viewer.showShape(look.surface === 'transparent' ? 'plane' : 'sphere')
     await viewer.applyMaterialSlots(materialSlots(material, textures))
     viewer.setLook(look)
-    return { url: viewer.snapshot(), stats: materialStats(material, textures, data.bytes, !report.partial) }
+    return { url: viewer.snapshot(), stats: { ...materialStats(material, textures, data.bytes, !report.partial), modelThumb: MODEL_THUMB_VERSION } }
   } finally {
     viewer.dispose()
     textures.forEach((x) => URL.revokeObjectURL(x.file.url))
