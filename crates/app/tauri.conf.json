@@ -28,7 +28,7 @@
   "plugins": {
     "deep-link": { "desktop": { "schemes": ["assethub"] } },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IFBMQUNFSE9MREVSIC0gbm9ib2R5IGhvbGRzIHRoZSBwcml2YXRlIGtleTsgcmVwbGFjZSB3aXRoIHRoZSBwdWJsaWMga2V5IG9mIHRoZSByZWFsIHVwZGF0ZXIga2V5ClJXUnJKMndUNXNpcFBKRmZTczJ6MnRRMklKNW9JK3ZQd29NMUw2c1ZoS0RJQ3cwT1ppZHRVbnpnCg==",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE4RDJCNEE2OUUwQjMyRDkKUldUWk1ndWVwclRTR0dKa1VPcEhvZ0VQS1U2a08yMFppejNKZXVTTVJGQ3ZxNEVBaE5zZjhNY1MK",
       "requireSignedVersion": true
     }
   }
