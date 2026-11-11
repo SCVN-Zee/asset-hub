@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-catalog-where-is"
+description = "Enables the catalog_where_is command without any pre-configured scope."
+commands.allow = ["catalog_where_is"]
+
+[[permission]]
+identifier = "deny-catalog-where-is"
+description = "Denies the catalog_where_is command without any pre-configured scope."
+commands.deny = ["catalog_where_is"]

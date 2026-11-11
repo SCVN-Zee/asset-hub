@@ -1,0 +1,17 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseEmbeddedTexture-989cd389",
+ "fn": "parseEmbeddedTexture",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!28 &-8638488460860000577\nTexture2D:\n  m_Name: _ColorRampTexGradientTex\n  m_Width: 2\n  m_Height: 1\n  m_TextureFormat: 4\n  m_TextureSettings:\n    m_FilterMode: 1\n    m_WrapU: 1\n  m_ColorSpace: 0\n  image data: 8\n  _typelessdata: ff00008000ff00ff\n--- !u!21 &2100000\nMaterial:\n  m_Name: Smoke\n",
+  "123"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

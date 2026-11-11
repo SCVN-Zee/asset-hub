@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/shared/deeplink.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "3f2f5b6a73731b3c6cc2a55e702dc323adbd951a67c9df2a5c5d6f3247296a24"
+ },
+ "case": "parseAssetLink-bea8d595",
+ "fn": "parseAssetLink",
+ "origin": "unit-test-input",
+ "args": [
+  "https://github.com/a/b"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

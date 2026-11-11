@@ -1,0 +1,83 @@
+{
+ "source": {
+  "path": "src/core/deps/prefab.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "823c6e8856f3e4c5d13d7dda13d2e3df998f3809b1d230a0bf45b57c896101ce"
+ },
+ "case": "resolvePrefabDependencies.prefab.Assets_Prefabs_Hat.prefab",
+ "fn": "resolvePrefabDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Prefabs/Hat.prefab",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "A",
+  "materials": [
+   {
+    "name": "Fx_Spark",
+    "guid": "a0000000000000000000000000000018",
+    "path": "proj/Assets/Art/Mats/Fx_Spark.mat",
+    "missing": false,
+    "shader": {
+     "guid": "0406db5a14f94604a8c57ccfbc9f3b46",
+     "kind": "package",
+     "label": "Universal Render Pipeline/Particles/Unlit"
+    },
+    "textures": [
+     {
+      "prop": "_BaseMap",
+      "guid": "a000000000000000000000000000000d",
+      "path": "proj/Assets/Art/Tex/sheet.png",
+      "name": "sheet.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 200
+     },
+     {
+      "prop": "_EmissionMap",
+      "guid": "a000000000000000000000000000000c",
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "name": "hero_emission.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 86
+     }
+    ]
+   }
+  ],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [],
+  "files": [
+   "proj/Assets/Prefabs/Hat.prefab",
+   "proj/Assets/Prefabs/Hat.prefab.meta",
+   "proj/Assets/Art/Mats/Fx_Spark.mat",
+   "proj/Assets/Art/Mats/Fx_Spark.mat.meta",
+   "proj/Assets/Art/Tex/sheet.png",
+   "proj/Assets/Art/Tex/sheet.png.meta",
+   "proj/Assets/Art/Tex/hero_emission.png",
+   "proj/Assets/Art/Tex/hero_emission.png.meta",
+   "proj/Assets/Art/Models/Hat.fbx",
+   "proj/Assets/Art/Models/Hat.fbx.meta"
+  ],
+  "parts": [
+   {
+    "kind": "model",
+    "guid": "a000000000000000000000000000002b",
+    "name": "Hat.fbx",
+    "path": "proj/Assets/Art/Models/Hat.fbx",
+    "missing": false,
+    "size": 61,
+    "uses": 1
+   }
+  ],
+  "guidPaths": {
+   "a000000000000000000000000000002b": "proj/Assets/Art/Models/Hat.fbx",
+   "a0000000000000000000000000000018": "proj/Assets/Art/Mats/Fx_Spark.mat"
+  }
+ }
+}

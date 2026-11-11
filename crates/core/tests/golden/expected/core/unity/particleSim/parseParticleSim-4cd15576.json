@@ -1,0 +1,137 @@
+{
+ "source": {
+  "path": "src/core/unity/particleSim.ts",
+  "commit": "34e6287058447abce532ccdf8b6cc9077c731e42",
+  "sha256": "0c20690fdc90515ccaf64391efc4bf975dab27fbc240392166f5194652492540"
+ },
+ "case": "parseParticleSim-4cd15576",
+ "fn": "parseParticleSim",
+ "origin": "unit-test-input",
+ "args": [
+  "ParticleSystem:\n  lengthInSec: 1\n  SubModule:\n    serializedVersion: 2\n    enabled: 1\n    subEmitters:\n    - serializedVersion: 3\n      emitter: {fileID: 0}\n      type: 0\n      properties: 0\n      emitProbability: 1\n    - serializedVersion: 3\n      emitter: {fileID: 4567}\n      type: 2\n      properties: 1\n      emitProbability: 0.5\n  TrailModule:\n    enabled: 1\n    mode: 0\n    ratio: 0.5\n    lifetime:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 0.3\n      minScalar: 0.3\n    minVertexDistance: 0.1\n    sizeAffectsWidth: 1\n    inheritParticleColor: 1\n    widthOverTrail:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 0.2\n      minScalar: 0.2\n"
+ ],
+ "result": {
+  "duration": 1,
+  "looping": false,
+  "prewarm": false,
+  "worldSpace": false,
+  "simulationSpeed": 1,
+  "startDelay": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startLifetime": {
+   "mode": 0,
+   "scalar": 5,
+   "min": 5
+  },
+  "startSpeed": {
+   "mode": 0,
+   "scalar": 5,
+   "min": 5
+  },
+  "startSize": {
+   "mode": 0,
+   "scalar": 1,
+   "min": 1
+  },
+  "startRotation": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startColor": {
+   "mode": 0,
+   "max": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "min": [
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "gravity": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "maxParticles": 1000,
+  "rate": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "bursts": [],
+  "lengthScale": 2,
+  "velocityScale": 0,
+  "pivot": [
+   0,
+   0,
+   0
+  ],
+  "maxScreenSize": 0.5,
+  "sortingOrder": 0,
+  "sortingFudge": 0,
+  "alignment": "view",
+  "subEmitters": [
+   {
+    "id": "4567",
+    "type": "death",
+    "inherit": 1,
+    "probability": 0.5
+   }
+  ],
+  "trail": {
+   "ratio": 0.5,
+   "lifetime": {
+    "mode": 0,
+    "scalar": 0.3,
+    "min": 0.3
+   },
+   "minVertexDistance": 0.1,
+   "sizeAffectsWidth": true,
+   "inheritParticleColor": true,
+   "width": {
+    "mode": 0,
+    "scalar": 0.2,
+    "min": 0.2
+   },
+   "colorOverLifetime": {
+    "mode": 0,
+    "max": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "min": [
+     1,
+     1,
+     1,
+     1
+    ]
+   },
+   "colorOverTrail": {
+    "mode": 0,
+    "max": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "min": [
+     1,
+     1,
+     1,
+     1
+    ]
+   }
+  }
+ }
+}

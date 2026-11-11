@@ -1,0 +1,25 @@
+{
+ "source": {
+  "path": "src/main/gitTree.ts",
+  "commit": "e440f63917abea18fa3c50388a6544f6ba65019e",
+  "sha256": "b7f6883439e48f1b4095a0e7019d445dfd005bf479ccda267360fc594b6275b5"
+ },
+ "case": "gitEnv.empty-token",
+ "fn": "gitEnv",
+ "origin": "synthetic",
+ "args": [
+  "",
+  {
+   "env": {
+    "PATH": "/usr/bin"
+   }
+  }
+ ],
+ "result": {
+  "PATH": "/usr/bin",
+  "GIT_TERMINAL_PROMPT": "0",
+  "GIT_CONFIG_COUNT": "1",
+  "GIT_CONFIG_KEY_0": "http.extraHeader",
+  "GIT_CONFIG_VALUE_0": "Authorization: Basic eC1hY2Nlc3MtdG9rZW46"
+ }
+}

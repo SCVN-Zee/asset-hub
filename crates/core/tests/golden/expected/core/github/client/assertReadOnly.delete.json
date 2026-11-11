@@ -1,0 +1,23 @@
+{
+ "source": {
+  "path": "src/core/github/client.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "16b8d24027fdd47e36439fe1dccce7a2ba36c61cfe7dbb922096eb937a5fd80d"
+ },
+ "case": "assertReadOnly.delete",
+ "fn": "assertReadOnly",
+ "origin": "synthetic",
+ "args": [
+  "https://api.github.com/repos/o/r/git/trees/abc",
+  "DELETE",
+  {
+   "$": "undefined"
+  }
+ ],
+ "throws": {
+  "$": "error",
+  "name": "SourceError",
+  "message": "Asset Hub is read-only: DELETE https://api.github.com/repos/o/r/git/trees/abc was not sent",
+  "code": "readOnly"
+ }
+}

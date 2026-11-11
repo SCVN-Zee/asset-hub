@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "materialKeywords-41cef0d9",
+ "fn": "materialKeywords",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!21 &2100000\nMaterial:\n  serializedVersion: 8\n  m_Name: Wall\n  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}\n  m_ValidKeywords:\n  - _ALPHABLEND_ON\n  - _NORMALMAP\n  - _EMISSION\n  m_InvalidKeywords: []\n  m_LightmapFlags: 4\n  m_CustomRenderQueue: 3000\n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs:\n    - _MainTex:\n        m_Texture: {fileID: 2800000, guid: ed0c2c8a99e92e14ba740ac8aa428288, type: 3}\n        m_Scale: {x: 1.5, y: 4.5}\n        m_Offset: {x: 0, y: 0}\n    - _BumpMap:\n        m_Texture: {fileID: 2800000, guid: 0123456789abcdef0123456789abcdef, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    m_Ints: []\n    m_Floats:\n    - _Mode: 2\n    - _SrcBlend: 5\n    - _DstBlend: 10\n    - _ZWrite: 0\n    - _GlossMapScale: 0.3\n    - _Surface: 1\n    - _Blend: 0\n    - _Glossiness: 0.3\n    m_Colors:\n    - _Color: {r: 1, g: 0.5, b: 0.25, a: 1}\n  m_BuildTextureStacks: []\n"
+ ],
+ "result": [
+  "_ALPHABLEND_ON",
+  "_NORMALMAP",
+  "_EMISSION"
+ ]
+}

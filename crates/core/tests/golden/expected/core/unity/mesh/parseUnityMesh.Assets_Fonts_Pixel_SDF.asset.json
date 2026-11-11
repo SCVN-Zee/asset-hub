@@ -1,0 +1,19 @@
+{
+ "source": {
+  "path": "src/core/unity/mesh.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "dfa3b07b2454b96bc50aee3ec8bfffff72895f6cecf582d6db118d822a8e5631"
+ },
+ "case": "parseUnityMesh.Assets_Fonts_Pixel_SDF.asset",
+ "fn": "parseUnityMesh",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Fonts/Pixel SDF.asset"
+  }
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

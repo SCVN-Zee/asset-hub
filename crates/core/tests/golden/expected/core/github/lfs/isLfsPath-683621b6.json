@@ -1,0 +1,48 @@
+{
+ "source": {
+  "path": "src/core/github/lfs.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "4b3ed8c41aa3b1ba18ede49fe821285d963c34830849fdf44d7508d186bdb9e7"
+ },
+ "case": "isLfsPath-683621b6",
+ "fn": "isLfsPath",
+ "origin": "unit-test-input",
+ "args": [
+  "Assets/Art/Hero.FBX",
+  [
+   {
+    "re": {
+     "$": "regexp",
+     "source": "(?:^|\\/)[^/]*\\.fbx$",
+     "flags": ""
+    },
+    "lfs": true
+   },
+   {
+    "re": {
+     "$": "regexp",
+     "source": "(?:^|\\/)[^/]*\\.[pP][nN][gG]$",
+     "flags": ""
+    },
+    "lfs": true
+   },
+   {
+    "re": {
+     "$": "regexp",
+     "source": "^Assets\\/Raw\\/.*$",
+     "flags": ""
+    },
+    "lfs": true
+   },
+   {
+    "re": {
+     "$": "regexp",
+     "source": "^Assets\\/Raw\\/keep\\.txt$",
+     "flags": ""
+    },
+    "lfs": false
+   }
+  ]
+ ],
+ "result": false
+}

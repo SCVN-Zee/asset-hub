@@ -1,0 +1,53 @@
+{
+ "source": {
+  "path": "src/shared/collections.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "559399e3131d1f7505cd55404e5a60f4df30133aa03cf1d3a1a36b38cb34fcdf"
+ },
+ "case": "sanitizeCollections-9d239da4",
+ "fn": "sanitizeCollections",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "id": "a",
+    "name": "A",
+    "items": [
+     {
+      "repo": "o/r",
+      "branch": "main",
+      "path": "p",
+      "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "name": "p",
+      "type": "fbx"
+     },
+     {
+      "repo": "o/r"
+     }
+    ]
+   },
+   {
+    "id": "a",
+    "name": "dup",
+    "items": []
+   },
+   null
+  ]
+ ],
+ "result": [
+  {
+   "id": "a",
+   "name": "A",
+   "items": [
+    {
+     "repo": "o/r",
+     "branch": "main",
+     "path": "p",
+     "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "name": "p",
+     "type": "fbx"
+    }
+   ]
+  }
+ ]
+}

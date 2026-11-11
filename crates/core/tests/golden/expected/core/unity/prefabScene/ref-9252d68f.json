@@ -1,0 +1,15 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "ref-9252d68f",
+ "fn": "ref",
+ "origin": "unit-test-input",
+ "args": [
+  "\nParticleSystem:\n  m_GameObject: {fileID: 2}\n",
+  "m_GameObject"
+ ],
+ "result": "2"
+}

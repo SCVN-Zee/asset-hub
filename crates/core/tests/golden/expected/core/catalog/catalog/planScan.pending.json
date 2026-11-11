@@ -1,0 +1,35 @@
+{
+ "source": {
+  "path": "src/core/catalog/catalog.ts",
+  "commit": "b72ffbeca5323939d8c04c34624eceaccb1cc8e8",
+  "sha256": "70f66279ec081de4bc815670d19830fd992cb3a6e4bdd6996aafa0c62c3d0e77"
+ },
+ "case": "planScan.pending",
+ "fn": "planScan",
+ "origin": "synthetic",
+ "args": [
+  "org/pend (4 branches) + org/hero",
+  1794182400000,
+  30
+ ],
+ "result": [
+  {
+   "repo": "org/pend",
+   "branch": "main",
+   "commit": "p1",
+   "recent": true
+  },
+  {
+   "repo": "org/pend",
+   "branch": "stale",
+   "commit": "p2",
+   "recent": false
+  },
+  {
+   "repo": "org/pend",
+   "branch": "undated",
+   "commit": "p3",
+   "recent": false
+  }
+ ]
+}

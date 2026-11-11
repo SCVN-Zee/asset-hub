@@ -1,0 +1,76 @@
+{
+ "source": {
+  "path": "src/core/export/tar.ts",
+  "commit": "86b50a93a1fa404384ec39d57a6b635a60aefc10",
+  "sha256": "91c3a517fb59da51ec181e3d32bd3a6358ad0f2017aa1f048fd0bd20206da6d0"
+ },
+ "case": "tar-a0f0eed0",
+ "fn": "tar",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "name": "00000000000000000000000000000001/asset",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvQS5mYng="
+    }
+   },
+   {
+    "name": "00000000000000000000000000000001/asset.meta",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEK"
+    }
+   },
+   {
+    "name": "00000000000000000000000000000001/pathname",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "QXNzZXRzL0EuZmJ4"
+    }
+   },
+   {
+    "name": "00000000000000000000000000000001/preview.png",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "UE5H"
+    }
+   },
+   {
+    "name": "00000000000000000000000000000002/asset",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvVC5wbmc="
+    }
+   },
+   {
+    "name": "00000000000000000000000000000002/asset.meta",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDIK"
+    }
+   },
+   {
+    "name": "00000000000000000000000000000002/pathname",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "QXNzZXRzL1QucG5n"
+    }
+   }
+  ]
+ ],
+ "result": {
+  "$": "bytes",
+  "type": "Uint8Array",
+  "len": 8192,
+  "file": "2732c21ffd9b9ff0dfc9.bin"
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "source": {
+  "path": "src/core/catalog/catalog.ts",
+  "commit": "b72ffbeca5323939d8c04c34624eceaccb1cc8e8",
+  "sha256": "70f66279ec081de4bc815670d19830fd992cb3a6e4bdd6996aafa0c62c3d0e77"
+ },
+ "case": "listCatalog.excluded-none._repo_org_none_",
+ "fn": "listCatalog",
+ "origin": "synthetic",
+ "args": [
+  "grouped of groupCatalog.excluded-none",
+  {
+   "repo": "org/none"
+  }
+ ],
+ "result": {
+  "assets": [],
+  "facets": {
+   "repos": [
+    [
+     "org/hero",
+     39
+    ],
+    [
+     "org/other",
+     5
+    ]
+   ],
+   "branches": []
+  }
+ }
+}

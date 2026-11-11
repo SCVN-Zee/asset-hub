@@ -1,0 +1,20 @@
+{
+ "source": {
+  "path": "src/shared/usage.ts",
+  "commit": "fe262491fc6c9f431f62ae7ef8e6e13c4f767b66",
+  "sha256": "f1a551b3900877494964295ecec4c207d505679855221c65fd65c63d290945f8"
+ },
+ "case": "sanitizeFeedback-2f152bb4",
+ "fn": "sanitizeFeedback",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "kind": "bug",
+   "title": "  ",
+   "body": ""
+  }
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

@@ -1,0 +1,160 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "planAgainstTarget-939531ab",
+ "fn": "planAgainstTarget",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "path": "p/Toon.shader",
+    "guid": "22222222222222222222222222222222",
+    "pathname": "Assets/AssetHub/Toon.shader",
+    "hash": "h-toon",
+    "shader": {
+     "name": "Custom/Toon",
+     "kind": "shader"
+    }
+   },
+   {
+    "path": "p/Old.shader",
+    "guid": "11111111111111111111111111111111",
+    "pathname": "Assets/AssetHub/Old.shader",
+    "hash": "h-new",
+    "shader": {
+     "name": "Custom/Old",
+     "kind": "shader"
+    }
+   },
+   {
+    "path": "p/Water.shader",
+    "guid": "33333333333333333333333333333333",
+    "pathname": "Assets/AssetHub/Water.shader",
+    "hash": "h-water",
+    "shader": {
+     "name": "Shader Graphs/Water",
+     "kind": "shader"
+    }
+   }
+  ],
+  {
+   "byGuid": {
+    "$": "map",
+    "v": [
+     [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "Assets/Art/Rock.fbx"
+     ],
+     [
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "Assets/Art/Rock.mat"
+     ],
+     [
+      "11111111111111111111111111111111",
+      "Assets/Shaders/Old.shader"
+     ]
+    ]
+   },
+   "byHash": {
+    "$": "map",
+    "v": [
+     [
+      "h-tex",
+      {
+       "path": "Assets/Shared/rock_d.png",
+       "guid": "99999999999999999999999999999999"
+      }
+     ]
+    ]
+   },
+   "hashOf": {
+    "$": "map",
+    "v": [
+     [
+      "Assets/Art/Rock.fbx",
+      "h-fbx"
+     ],
+     [
+      "Assets/Art/Rock.mat",
+      "h-old-mat"
+     ],
+     [
+      "Assets/Shaders/Old.shader",
+      "h-old"
+     ]
+    ]
+   },
+   "paths": {
+    "$": "set",
+    "v": [
+     "assets/assethub/models/tree.fbx"
+    ]
+   },
+   "shaders": {
+    "$": "map",
+    "v": [
+     [
+      "Custom/Toon",
+      {
+       "path": "Assets/Shaders/Toon.shader",
+       "guid": "77777777777777777777777777777777",
+       "kind": "shader"
+      }
+     ],
+     [
+      "Shader Graphs/Water",
+      {
+       "path": "Assets/SG/Water.shadergraph",
+       "guid": "88888888888888888888888888888888",
+       "kind": "shadergraph"
+      }
+     ]
+    ]
+   }
+  },
+  true
+ ],
+ "result": {
+  "decisions": {
+   "$": "map",
+   "v": [
+    [
+     "p/Toon.shader",
+     {
+      "action": "reuse",
+      "existing": "Assets/Shaders/Toon.shader",
+      "guid": "77777777777777777777777777777777",
+      "byName": "Custom/Toon"
+     }
+    ],
+    [
+     "p/Old.shader",
+     {
+      "action": "keep",
+      "existing": "Assets/Shaders/Old.shader"
+     }
+    ],
+    [
+     "p/Water.shader",
+     {
+      "action": "clash",
+      "existing": "Assets/SG/Water.shadergraph",
+      "name": "Shader Graphs/Water"
+     }
+    ]
+   ]
+  },
+  "remap": {
+   "$": "map",
+   "v": [
+    [
+     "22222222222222222222222222222222",
+     "77777777777777777777777777777777"
+    ]
+   ]
+  }
+ }
+}

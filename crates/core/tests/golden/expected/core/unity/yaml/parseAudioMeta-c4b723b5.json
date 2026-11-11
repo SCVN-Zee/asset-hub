@@ -1,0 +1,39 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseAudioMeta-c4b723b5",
+ "fn": "parseAudioMeta",
+ "origin": "unit-test-input",
+ "args": [
+  "fileFormatVersion: 2\nguid: f88e41c34b5a345e4bd9b91343cf1377\nAudioImporter:\r\n  externalObjects: {}\n  serializedVersion: 7\n  defaultSettings:\n    serializedVersion: 2\n    loadType: 0\n    sampleRateSetting: 0\n    sampleRateOverride: 44100\n    compressionFormat: 1\n    quality: 0.7\n    conversionMode: 0\n  platformSettingOverrides:\n    1:\n      loadType: 2\n      compressionFormat: 0\n      quality: 1\n    99:\n      loadType: 1\n      sampleRateSetting: 2\n      sampleRateOverride: 22050\n      compressionFormat: 2\n      quality: 1\n  forceToMono: 1\n  normalize: 1\n  preloadAudioData: 1\n  loadInBackground: 0\n  3D: 1\n"
+ ],
+ "result": {
+  "loadType": 0,
+  "compressionFormat": 1,
+  "quality": 0.7,
+  "sampleRateSetting": 0,
+  "sampleRateOverride": 44100,
+  "forceToMono": true,
+  "preload": true,
+  "loadInBackground": false,
+  "overrides": [
+   {
+    "target": "Standalone",
+    "loadType": 2,
+    "compressionFormat": 0,
+    "quality": 1
+   },
+   {
+    "target": "99",
+    "loadType": 1,
+    "compressionFormat": 2,
+    "quality": 1,
+    "sampleRateSetting": 2,
+    "sampleRateOverride": 22050
+   }
+  ]
+ }
+}

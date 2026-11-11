@@ -1,0 +1,70 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "parsePrefabScene.Assets_Prefabs_Hat.prefab",
+ "fn": "parsePrefabScene",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/Hat.prefab"
+  }
+ ],
+ "result": {
+  "nodes": {
+   "$": "map",
+   "v": [
+    [
+     "5002",
+     {
+      "id": "5002",
+      "name": "Hat",
+      "position": [
+       0,
+       0,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "active": true
+     }
+    ]
+   ]
+  },
+  "meshes": [
+   {
+    "node": "5002",
+    "mesh": {
+     "fileID": "4300000",
+     "guid": "a000000000000000000000000000002b"
+    },
+    "materials": [
+     "a0000000000000000000000000000018"
+    ],
+    "skinned": true
+   }
+  ],
+  "instances": [],
+  "scripts": [],
+  "particleSystems": 0,
+  "particleMaterials": [],
+  "particleMeshes": [],
+  "uiElements": 0,
+  "guids": [
+   "a0000000000000000000000000000018",
+   "a000000000000000000000000000002b"
+  ]
+ }
+}

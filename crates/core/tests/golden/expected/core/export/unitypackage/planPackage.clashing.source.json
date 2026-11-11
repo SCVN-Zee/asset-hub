@@ -1,0 +1,86 @@
+{
+ "source": {
+  "path": "src/core/export/unitypackage.ts",
+  "commit": "102c376a1bc41e0561c95ba830151cd3b4ceb116",
+  "sha256": "d838a4ec50d900a9419ff32e99736f3846d789f2e9ee1dff7030ac2c157806db"
+ },
+ "case": "planPackage.clashing.source",
+ "fn": "planPackage",
+ "origin": "synthetic",
+ "args": [
+  [
+   {
+    "path": "proj/Assets/A/Tex/hero_albedo.png",
+    "asset": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "len": 1918,
+     "file": "a70dc7e450b2516309cf.bin"
+    },
+    "meta": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Z3VpZDogYjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEK"
+    }
+   },
+   {
+    "path": "proj/Assets/B/Tex/hero_albedo.png",
+    "asset": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "len": 1918,
+     "file": "a70dc7e450b2516309cf.bin"
+    },
+    "meta": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Z3VpZDogYjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDIK"
+    }
+   }
+  ],
+  "proj/",
+  "source",
+  "org/hero repo"
+ ],
+ "result": {
+  "entries": [
+   {
+    "guid": "b0000000000000000000000000000001",
+    "pathname": "Assets/A/Tex/hero_albedo.png",
+    "file": {
+     "path": "proj/Assets/A/Tex/hero_albedo.png",
+     "asset": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "len": 1918,
+      "file": "a70dc7e450b2516309cf.bin"
+     },
+     "meta": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "b64": "Z3VpZDogYjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEK"
+     }
+    }
+   },
+   {
+    "guid": "b0000000000000000000000000000002",
+    "pathname": "Assets/B/Tex/hero_albedo.png",
+    "file": {
+     "path": "proj/Assets/B/Tex/hero_albedo.png",
+     "asset": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "len": 1918,
+      "file": "a70dc7e450b2516309cf.bin"
+     },
+     "meta": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "b64": "Z3VpZDogYjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDIK"
+     }
+    }
+   }
+  ],
+  "skipped": []
+ }
+}

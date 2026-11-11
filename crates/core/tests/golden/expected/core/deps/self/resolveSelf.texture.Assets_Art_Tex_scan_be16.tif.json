@@ -1,0 +1,29 @@
+{
+ "source": {
+  "path": "src/core/deps/self.ts",
+  "commit": "7994728f3a12774c7258b7b986c0315cef845d31",
+  "sha256": "7a8f16744376be1d0c3c8b34d5d5679a0664e39894a3b63fa94519ad8899e043"
+ },
+ "case": "resolveSelf.texture.Assets_Art_Tex_scan_be16.tif",
+ "fn": "resolveSelf",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Art/Tex/scan_be16.tif",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "none",
+  "materials": [],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [
+   "noMeta"
+  ],
+  "files": [
+   "proj/Assets/Art/Tex/scan_be16.tif"
+  ]
+ }
+}

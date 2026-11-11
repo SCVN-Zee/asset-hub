@@ -1,0 +1,22 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterialLook-e37924f0",
+ "fn": "parseMaterialLook",
+ "origin": "unit-test-input",
+ "args": [
+  "Material:\r\n  m_Name: Old\r\n  m_ShaderKeywords: _ALPHABLEND_ON\r\n  m_SavedProperties:\r\n    m_Floats:\r\n    - first:\r\n        name: _Mode\r\n      second: 3\r\n    m_Colors:\r\n    - first:\r\n        name: _Color\r\n      second: {r: 1, g: 1, b: 1, a: 0.5}\r\n    - first:\r\n        name: _EmissionColor\r\n      second: {r: 0, g: 0, b: 0, a: 1}\r\n"
+ ],
+ "result": {
+  "color": {
+   "r": 1,
+   "g": 1,
+   "b": 1,
+   "a": 0.5
+  },
+  "surface": "transparent"
+ }
+}

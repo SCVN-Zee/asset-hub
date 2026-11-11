@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/github/client.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "16b8d24027fdd47e36439fe1dccce7a2ba36c61cfe7dbb922096eb937a5fd80d"
+ },
+ "case": "assertReadOnly-8cc43d36",
+ "fn": "assertReadOnly",
+ "origin": "unit-test-input",
+ "args": [
+  "https://github.com/a/b.git/info/lfs/objects/batch",
+  "POST",
+  "{\"operation\":\"download\",\"objects\":[]}"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

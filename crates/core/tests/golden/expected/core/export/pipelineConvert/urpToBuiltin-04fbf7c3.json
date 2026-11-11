@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/export/pipelineConvert.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "45a6e8b593c197e1bf3b7a7c00167e9c942faad4fa8fdd4bc8c2d8c5793801f9"
+ },
+ "case": "urpToBuiltin-04fbf7c3",
+ "fn": "urpToBuiltin",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!21 &2100000\nMaterial:\n  serializedVersion: 8\n  m_Name: Wall\n  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}\n  m_ValidKeywords:\n  - _EMISSION\n  - _SURFACE_TYPE_TRANSPARENT\n  m_InvalidKeywords: []\n  m_LightmapFlags: 4\n  m_CustomRenderQueue: -1\n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs:\n    - _BaseMap:\n        m_Texture: {fileID: 2800000, guid: ed0c2c8a99e92e14ba740ac8aa428288, type: 3}\n        m_Scale: {x: 1.5, y: 4.5}\n        m_Offset: {x: 0, y: 0}\n    - _BumpMap:\n        m_Texture: {fileID: 2800000, guid: 0123456789abcdef0123456789abcdef, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    m_Ints: []\n    m_Floats:\n    - _Surface: 1\n    - _Blend: 0\n    - _Smoothness: 0.3\n    m_Colors:\n    - _BaseColor: {r: 1, g: 0.5, b: 0.25, a: 1}\n  m_BuildTextureStacks: []\n"
+ ],
+ "result": {
+  "text": "%YAML 1.1\n--- !u!21 &2100000\nMaterial:\n  serializedVersion: 8\n  m_Name: Wall\n  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}\n  m_ValidKeywords:\n  - _ALPHABLEND_ON\n  - _NORMALMAP\n  - _EMISSION\n  m_InvalidKeywords: []\n  m_LightmapFlags: 4\n  m_CustomRenderQueue: 3000\n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs:\n    - _MainTex:\n        m_Texture: {fileID: 2800000, guid: ed0c2c8a99e92e14ba740ac8aa428288, type: 3}\n        m_Scale: {x: 1.5, y: 4.5}\n        m_Offset: {x: 0, y: 0}\n    - _BumpMap:\n        m_Texture: {fileID: 2800000, guid: 0123456789abcdef0123456789abcdef, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    m_Ints: []\n    m_Floats:\n    - _Mode: 2\n    - _SrcBlend: 5\n    - _DstBlend: 10\n    - _ZWrite: 0\n    - _GlossMapScale: 0.3\n    - _Surface: 1\n    - _Blend: 0\n    - _Glossiness: 0.3\n    m_Colors:\n    - _Color: {r: 1, g: 0.5, b: 0.25, a: 1}\n  m_BuildTextureStacks: []\n",
+  "from": "Universal Render Pipeline/Lit",
+  "to": "Standard"
+ }
+}

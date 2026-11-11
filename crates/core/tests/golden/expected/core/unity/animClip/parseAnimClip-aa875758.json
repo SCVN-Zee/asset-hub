@@ -1,0 +1,31 @@
+{
+ "source": {
+  "path": "src/core/unity/animClip.ts",
+  "commit": "6aff18b0040ac8c53aed195473567c641cea85a8",
+  "sha256": "6484dc8047e017e7dd6a3151aa02d79f5bac580da59603e8095ee007c1b86b1c"
+ },
+ "case": "parseAnimClip-aa875758",
+ "fn": "parseAnimClip",
+ "origin": "unit-test-input",
+ "args": [
+  "AnimationClip:\n  m_PPtrCurves:\n  - curve:\n    - time: 0\n      value: {fileID: 21300000, guid: 0123456789abcdef0123456789abcdef, type: 3}\n    attribute: m_Sprite\n    path: \n  m_SampleRate: 12\n"
+ ],
+ "result": {
+  "name": "",
+  "length": 0,
+  "sampleRate": 12,
+  "loop": false,
+  "legacy": false,
+  "compressed": false,
+  "kind": "sprite",
+  "transformCurves": [],
+  "floatCurves": [],
+  "spriteCurves": 1,
+  "spriteGuids": [
+   "0123456789abcdef0123456789abcdef"
+  ],
+  "events": 0,
+  "paths": [],
+  "keyframes": 0
+ }
+}

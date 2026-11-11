@@ -1,0 +1,292 @@
+{
+ "source": {
+  "path": "src/core/catalog/catalog.ts",
+  "commit": "b72ffbeca5323939d8c04c34624eceaccb1cc8e8",
+  "sha256": "70f66279ec081de4bc815670d19830fd992cb3a6e4bdd6996aafa0c62c3d0e77"
+ },
+ "case": "listCatalog-d7013979",
+ "fn": "listCatalog",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "id": "big",
+    "type": "fbx",
+    "path": "P0/Big.fbx",
+    "name": "Big.fbx",
+    "sha": "big",
+    "size": 100,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/wide",
+      "path": "P0/Big.fbx",
+      "branches": [
+       "main",
+       "a",
+       "b",
+       "c",
+       "d",
+       "e"
+      ]
+     },
+     {
+      "repo": "org/wide",
+      "path": "P1/Big.fbx",
+      "branches": [
+       "main",
+       "a",
+       "b",
+       "c",
+       "d",
+       "e"
+      ]
+     },
+     {
+      "repo": "org/wide",
+      "path": "P2/Big.fbx",
+      "branches": [
+       "main",
+       "a",
+       "b",
+       "c",
+       "d",
+       "e"
+      ]
+     },
+     {
+      "repo": "org/wide",
+      "path": "P3/Big.fbx",
+      "branches": [
+       "main",
+       "a",
+       "b",
+       "c",
+       "d",
+       "e"
+      ]
+     },
+     {
+      "repo": "org/wide",
+      "path": "P4/Big.fbx",
+      "branches": [
+       "main",
+       "a",
+       "b",
+       "c",
+       "d",
+       "e"
+      ]
+     },
+     {
+      "repo": "org/wide",
+      "path": "P5/Big.fbx",
+      "branches": [
+       "main",
+       "a",
+       "b",
+       "c",
+       "d",
+       "e"
+      ]
+     },
+     {
+      "repo": "org/wide",
+      "path": "P6/Big.fbx",
+      "branches": [
+       "main",
+       "a",
+       "b",
+       "c",
+       "d",
+       "e"
+      ]
+     }
+    ],
+    "branchCount": 6,
+    "repoCount": 1
+   },
+   {
+    "id": "only",
+    "type": "fbx",
+    "path": "Only.fbx",
+    "name": "Only.fbx",
+    "sha": "only",
+    "size": 100,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/wide",
+      "path": "Only.fbx",
+      "branches": [
+       "e"
+      ]
+     }
+    ],
+    "branchCount": 1,
+    "repoCount": 1
+   }
+  ],
+  {
+   "branch": "e"
+  },
+  {
+   "repos": [
+    [
+     "org/wide",
+     8
+    ]
+   ],
+   "branches": [
+    [
+     "e",
+     8
+    ],
+    [
+     "a",
+     7
+    ],
+    [
+     "b",
+     7
+    ],
+    [
+     "c",
+     7
+    ],
+    [
+     "d",
+     7
+    ],
+    [
+     "main",
+     7
+    ]
+   ]
+  }
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "big",
+    "type": "fbx",
+    "path": "P0/Big.fbx",
+    "name": "Big.fbx",
+    "sha": "big",
+    "size": 100,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/wide",
+      "path": "P0/Big.fbx",
+      "branches": [
+       "e",
+       "main",
+       "a"
+      ],
+      "branchTotal": 6
+     },
+     {
+      "repo": "org/wide",
+      "path": "P1/Big.fbx",
+      "branches": [
+       "e",
+       "main",
+       "a"
+      ],
+      "branchTotal": 6
+     },
+     {
+      "repo": "org/wide",
+      "path": "P2/Big.fbx",
+      "branches": [
+       "e",
+       "main",
+       "a"
+      ],
+      "branchTotal": 6
+     },
+     {
+      "repo": "org/wide",
+      "path": "P3/Big.fbx",
+      "branches": [
+       "e",
+       "main",
+       "a"
+      ],
+      "branchTotal": 6
+     },
+     {
+      "repo": "org/wide",
+      "path": "P4/Big.fbx",
+      "branches": [
+       "e",
+       "main",
+       "a"
+      ],
+      "branchTotal": 6
+     }
+    ],
+    "branchCount": 6,
+    "repoCount": 1,
+    "locationTotal": 7
+   },
+   {
+    "id": "only",
+    "type": "fbx",
+    "path": "Only.fbx",
+    "name": "Only.fbx",
+    "sha": "only",
+    "size": 100,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/wide",
+      "path": "Only.fbx",
+      "branches": [
+       "e"
+      ],
+      "branchTotal": 1
+     }
+    ],
+    "branchCount": 1,
+    "repoCount": 1,
+    "locationTotal": 1
+   }
+  ],
+  "facets": {
+   "repos": [
+    [
+     "org/wide",
+     8
+    ]
+   ],
+   "branches": [
+    [
+     "e",
+     8
+    ],
+    [
+     "a",
+     7
+    ],
+    [
+     "b",
+     7
+    ],
+    [
+     "c",
+     7
+    ],
+    [
+     "d",
+     7
+    ],
+    [
+     "main",
+     7
+    ]
+   ]
+  }
+ }
+}

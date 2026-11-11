@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-fbx-info"
+description = "Enables the fbx_info command without any pre-configured scope."
+commands.allow = ["fbx_info"]
+
+[[permission]]
+identifier = "deny-fbx-info"
+description = "Denies the fbx_info command without any pre-configured scope."
+commands.deny = ["fbx_info"]

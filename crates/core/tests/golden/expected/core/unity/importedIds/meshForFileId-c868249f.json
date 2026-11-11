@@ -1,0 +1,19 @@
+{
+ "source": {
+  "path": "src/core/unity/importedIds.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "165e3240acd19389735f8195ba38c8a5504735e843f58d30f2f3c35d3d939108"
+ },
+ "case": "meshForFileId-c868249f",
+ "fn": "meshForFileId",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   "Rock",
+   "Grass",
+   "Rock"
+  ],
+  "2600289885735097105"
+ ],
+ "result": 2
+}

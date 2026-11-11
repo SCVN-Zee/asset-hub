@@ -1,0 +1,19 @@
+{
+ "source": {
+  "path": "src/core/image/tiff.ts",
+  "commit": "98d0cec73fef8632c955b6705cfdbdd93c81524b",
+  "sha256": "270612b133fb126c087620bfe0033d4b20a3fcb14620cd927a26d3067dfd9942"
+ },
+ "case": "isTiff-40f3b2d1",
+ "fn": "isTiff",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "len": 3600,
+   "file": "a760ebd3405cd83e30b4.bin"
+  }
+ ],
+ "result": true
+}

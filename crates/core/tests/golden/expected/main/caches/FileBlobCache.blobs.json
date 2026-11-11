@@ -1,0 +1,55 @@
+{
+ "source": {
+  "path": "src/main/caches.ts",
+  "commit": "aabe84c355d266588b392547a16d30e4718099dc",
+  "sha256": "eff604f4a485dc822d4e53ed54f26da0a60f9d9c21fcc150cf29468580a7fe56"
+ },
+ "case": "FileBlobCache.blobs",
+ "fn": "FileBlobCache",
+ "origin": "synthetic",
+ "calls": [
+  [
+   "set",
+   "abcdef0123456789",
+   {
+    "$": "bytes",
+    "type": "Uint8Array",
+    "b64": "AAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qhqK+2vcTL0tng5+71/AMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4+rx+P8GDRQbIikwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3+bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi/xs3U2+Lp8Pf+BQwTGiEoLzY9REtSWWBnbnV8g4qRmJ+mrbS7wsnQ197l7PP6AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09rh6O/2/QQLEhkgJy41PENKUVhfZm10e4KJkJeepayzusHIz9bd5Ovy+QAHDhUcIyoxOD9GTVRbYmlwd36FjJOaoaivtr3Ey9LZ4Ofu9fwDChEYHyYt"
+   }
+  ],
+  [
+   "set",
+   "lfs:sha256/odd key",
+   [
+    1,
+    2,
+    3
+   ]
+  ]
+ ],
+ "readBack": {
+  "a": {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "AAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qhqK+2vcTL0tng5+71/AMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4+rx+P8GDRQbIikwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3+bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi/xs3U2+Lp8Pf+BQwTGiEoLzY9REtSWWBnbnV8g4qRmJ+mrbS7wsnQ197l7PP6AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09rh6O/2/QQLEhkgJy41PENKUVhfZm10e4KJkJeepayzusHIz9bd5Ovy+QAHDhUcIyoxOD9GTVRbYmlwd36FjJOaoaivtr3Ey9LZ4Ofu9fwDChEYHyYt"
+  },
+  "odd": {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "AQID"
+  },
+  "missing": null
+ },
+ "files": [
+  {
+   "path": "blobs/ab/abcdef0123456789",
+   "bytes": 300,
+   "sha256": "9a76b8af8f16f19d60de2b3999c22f9d10be4395c90ea3bfc5eb6cd6254243af"
+  },
+  {
+   "path": "blobs/lf/lfs_sha256_odd_key",
+   "bytes": 3,
+   "sha256": "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81"
+  }
+ ]
+}

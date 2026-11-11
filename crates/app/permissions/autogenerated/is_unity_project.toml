@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-is-unity-project"
+description = "Enables the is_unity_project command without any pre-configured scope."
+commands.allow = ["is_unity_project"]
+
+[[permission]]
+identifier = "deny-is-unity-project"
+description = "Denies the is_unity_project command without any pre-configured scope."
+commands.deny = ["is_unity_project"]

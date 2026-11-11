@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/unity/tmpFont.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "c9792fd3b780fcc42c46130e3deab3b7ff736c9df151d164edbf3295583757c9"
+ },
+ "case": "isTmpFontAsset-a23d6ff6",
+ "fn": "isTmpFontAsset",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!114 &11400000\nMonoBehaviour:\n  m_Script: {fileID: 11500000, guid: 71c1514a6bd24e1e882cebbe1904ce04, type: 3}\n  m_Name: Bakbak SDF\n  m_FaceInfo:\n    m_FaceIndex: 0\n    m_FamilyName: Bakbak One\n    m_StyleName: Regular\n    m_PointSize: 52\n  m_Material: {fileID: 2100000}\n  m_SourceFontFileGUID: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n  m_SourceFontFile: {fileID: 0}\n  m_AtlasPopulationMode: 0\n  m_GlyphTable:\n  - m_Index: 3\n  - m_Index: 4\n  m_CharacterTable:\n  - m_ElementType: 1\n    m_Unicode: 65\n    m_GlyphIndex: 3\n  - m_ElementType: 1\n    m_Unicode: 7899\n    m_GlyphIndex: 4\n  m_AtlasTextures:\n  - {fileID: 2800000}\n  m_AtlasWidth: 2\n  m_AtlasHeight: 2\n  m_AtlasPadding: 10\n  m_FallbackFontAssetTable:\n  - {fileID: 11400000, guid: cccccccccccccccccccccccccccccccc, type: 2}\n  m_fontInfo:\n    Name: \n    PointSize: 0\n--- !u!21 &2100000\nMaterial:\n  m_Name: Bakbak SDF Material\n--- !u!28 &2800000\nTexture2D:\n  m_Name: Bakbak SDF Atlas\n  m_Width: 2\n  m_Height: 2\n  m_TextureFormat: 1\n  image data: 4\n  _typelessdata: 00ff7f10\n"
+ ],
+ "result": true
+}

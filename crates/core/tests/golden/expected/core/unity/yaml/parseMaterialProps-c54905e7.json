@@ -1,0 +1,27 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterialProps-c54905e7",
+ "fn": "parseMaterialProps",
+ "origin": "unit-test-input",
+ "args": [
+  "Material:\n  m_ShaderKeywords: ADDITIVECONFIG_ON COLORRAMPGRAD_ON COLORRAMP_ON GLOW_ON PREMULTIPLYCOLOR_ON\n    SHAPE2_ON\n  m_LightmapFlags: 4\n"
+ ],
+ "result": {
+  "keywords": [
+   "ADDITIVECONFIG_ON",
+   "COLORRAMPGRAD_ON",
+   "COLORRAMP_ON",
+   "GLOW_ON",
+   "PREMULTIPLYCOLOR_ON",
+   "SHAPE2_ON"
+  ],
+  "floats": {},
+  "colors": {},
+  "st": {},
+  "refs": {}
+ }
+}

@@ -1,0 +1,14 @@
+%YAML 1.1
+--- !u!21 &2100000
+Material:
+  m_Name: M_Legacy
+  m_Shader: {fileID: 10750, guid: 0000000000000000f000000000000000, type: 0}
+  m_SavedProperties:
+    m_TexEnvs:
+      data:
+        first:
+          name: _MainTex
+        second:
+          m_Texture: {fileID: 2800000, guid: a000000000000000000000000000000a, type: 3}
+          m_Scale: {x: 1, y: 1}
+          m_Offset: {x: 0, y: 0}

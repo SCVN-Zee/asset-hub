@@ -1,0 +1,21 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "extractFbxTextureNames-910f03cb",
+ "fn": "extractFbxTextureNames",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "S2F5ZGFyYSBGQlggQmluYXJ5ICBVc2Vycy9hcnRpc3QvRGVza3RvcC9CYXJrLnBuZyAgbWlzc2luZ19vbmUucG5n"
+  }
+ ],
+ "result": [
+  "Bark.png",
+  "missing_one.png"
+ ]
+}

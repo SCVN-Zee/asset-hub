@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "urpVersion-38baa4ea",
+ "fn": "urpVersion",
+ "origin": "unit-test-input",
+ "args": [
+  "not json"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

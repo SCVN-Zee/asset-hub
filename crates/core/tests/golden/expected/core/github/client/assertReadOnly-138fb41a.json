@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/github/client.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "16b8d24027fdd47e36439fe1dccce7a2ba36c61cfe7dbb922096eb937a5fd80d"
+ },
+ "case": "assertReadOnly-138fb41a",
+ "fn": "assertReadOnly",
+ "origin": "unit-test-input",
+ "args": [
+  "https://api.github.com/graphql",
+  "POST",
+  "{\"query\":\"{ viewer { login } }\",\"variables\":{}}"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

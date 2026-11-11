@@ -1,0 +1,25 @@
+{
+ "source": {
+  "path": "src/core/unity/prefab.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "e03c1149880d5d2964d7ecc8d776dd02738417eb812bfda4ec1a84639cf9b495"
+ },
+ "case": "modelMaterials-c961dfe9",
+ "fn": "modelMaterials",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!1 &100\nGameObject:\n  m_Name: Fish_Tuna_A\n--- !u!137 &101\nSkinnedMeshRenderer:\n  m_GameObject: {fileID: 100}\n  m_Materials:\n  - {fileID: 2100000, guid: 0000000000000000000000000000000a, type: 2}\n  m_Mesh: {fileID: -169009198292248300, guid: 00000000000000000000000000000001, type: 3}\n--- !u!137 &201\nSkinnedMeshRenderer:\n  m_GameObject: {fileID: 200}\n  m_Materials:\n  - {fileID: 2100000, guid: 0000000000000000000000000000000b, type: 2}\n  m_Mesh: {fileID: -169009198292248300, guid: 00000000000000000000000000000001, type: 3}\n--- !u!137 &301\nSkinnedMeshRenderer:\n  m_GameObject: {fileID: 300}\n  m_Materials:\n  - {fileID: 2100000, guid: 0000000000000000000000000000000b, type: 2}\n  m_Mesh: {fileID: -169009198292248300, guid: 00000000000000000000000000000001, type: 3}\n--- !u!33 &401\nMeshFilter:\n  m_GameObject: {fileID: 400}\n  m_Mesh: {fileID: 4300000, guid: 00000000000000000000000000000002, type: 3}\n--- !u!23 &402\nMeshRenderer:\n  m_GameObject: {fileID: 400}\n  m_Materials:\n  - {fileID: 2100000, guid: 0000000000000000000000000000000c, type: 2}\n  m_StaticBatchInfo:\n--- !u!1001 &500\nPrefabInstance:\n  m_Modification:\n    m_Modifications:\n    - target: {fileID: 123, guid: 00000000000000000000000000000003, type: 3}\n      propertyPath: m_Materials.Array.data[0]\n      value:\n      objectReference: {fileID: 2100000, guid: 0000000000000000000000000000000a, type: 2}\n  m_SourcePrefab: {fileID: 100100000, guid: 00000000000000000000000000000003, type: 3}\n"
+ ],
+ "result": {
+  "00000000000000000000000000000001": [
+   "0000000000000000000000000000000b",
+   "0000000000000000000000000000000a"
+  ],
+  "00000000000000000000000000000002": [
+   "0000000000000000000000000000000c"
+  ],
+  "00000000000000000000000000000003": [
+   "0000000000000000000000000000000a"
+  ]
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterial.Assets_Art_Mats_Fx_Spark.mat",
+ "fn": "parseMaterial",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Mats/Fx_Spark.mat"
+  }
+ ],
+ "result": {
+  "name": "Fx_Spark",
+  "shader": {
+   "fileID": "4800000",
+   "guid": "0406db5a14f94604a8c57ccfbc9f3b46"
+  },
+  "textures": [
+   {
+    "prop": "_BaseMap",
+    "guid": "a000000000000000000000000000000d"
+   },
+   {
+    "prop": "_EmissionMap",
+    "guid": "a000000000000000000000000000000c"
+   }
+  ]
+ }
+}

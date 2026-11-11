@@ -1,0 +1,144 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "parseParticleSystems.Assets_Prefabs_Fx_Burst.prefab",
+ "fn": "parseParticleSystems",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/Fx/Burst.prefab"
+  }
+ ],
+ "result": [
+  {
+   "id": "202",
+   "name": "Burst",
+   "duration": 2,
+   "looping": false,
+   "prewarm": false,
+   "lifetime": 1.5,
+   "speed": 4,
+   "size": 0.3,
+   "maxParticles": 200,
+   "rate": 20,
+   "bursts": 30,
+   "peak": 60,
+   "shape": "Cone",
+   "renderMode": "billboard",
+   "material": "a0000000000000000000000000000016",
+   "modules": [],
+   "subEmitters": 0,
+   "node": "201",
+   "sim": {
+    "duration": 2,
+    "looping": false,
+    "prewarm": false,
+    "worldSpace": false,
+    "simulationSpeed": 1,
+    "startDelay": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startLifetime": {
+     "mode": 0,
+     "scalar": 1.5,
+     "min": 0
+    },
+    "startSpeed": {
+     "mode": 0,
+     "scalar": 4,
+     "min": 0
+    },
+    "startSize": {
+     "mode": 0,
+     "scalar": 0.3,
+     "min": 0
+    },
+    "startRotation": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startColor": {
+     "mode": 0,
+     "max": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "min": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    "gravity": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "maxParticles": 200,
+    "rate": {
+     "mode": 0,
+     "scalar": 20,
+     "min": 0
+    },
+    "bursts": [
+     {
+      "time": 0,
+      "count": {
+       "mode": 0,
+       "scalar": 30,
+       "min": 0
+      },
+      "cycles": 1,
+      "interval": 0.01,
+      "probability": 1
+     }
+    ],
+    "lengthScale": 2,
+    "velocityScale": 0,
+    "pivot": [
+     0,
+     0,
+     0
+    ],
+    "maxScreenSize": 0.5,
+    "sortingOrder": 0,
+    "sortingFudge": 0,
+    "alignment": "view",
+    "shape": {
+     "type": 4,
+     "radius": 1,
+     "radiusThickness": 1,
+     "angle": 25,
+     "arc": 360,
+     "length": 5,
+     "position": [
+      0,
+      0,
+      0
+     ],
+     "rotation": [
+      0,
+      0,
+      0
+     ],
+     "scale": [
+      1,
+      1,
+      1
+     ],
+     "randomDirection": 0
+    }
+   }
+  }
+ ]
+}

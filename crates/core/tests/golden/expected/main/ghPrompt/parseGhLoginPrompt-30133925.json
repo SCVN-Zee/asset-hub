@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/main/ghPrompt.ts",
+  "commit": "3c1c65ccc0a0fa81807eae5219034965eb4d1af0",
+  "sha256": "b3c85dd4890eaa875ce900af3088b40c90e189dc9c2f29aece5851e126646cb4"
+ },
+ "case": "parseGhLoginPrompt-30133925",
+ "fn": "parseGhLoginPrompt",
+ "origin": "unit-test-input",
+ "args": [
+  "! One-time code (2C04-3C10) copied to clipboard\n"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "source": {
+  "path": "src/core/unity/importedIds.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "165e3240acd19389735f8195ba38c8a5504735e843f58d30f2f3c35d3d939108"
+ },
+ "case": "importedObjectId-4e4362c5",
+ "fn": "importedObjectId",
+ "origin": "unit-test-input",
+ "args": [
+  "Mesh",
+  "Branch"
+ ],
+ "result": "571416741228946723"
+}

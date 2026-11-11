@@ -1,0 +1,117 @@
+{
+ "source": {
+  "path": "src/core/export/unitypackage.ts",
+  "commit": "102c376a1bc41e0561c95ba830151cd3b4ceb116",
+  "sha256": "d838a4ec50d900a9419ff32e99736f3846d789f2e9ee1dff7030ac2c157806db"
+ },
+ "case": "planPackage-25a012d5",
+ "fn": "planPackage",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "path": "p/Assets/A.fbx",
+    "asset": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvQS5mYng="
+    },
+    "meta": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEK"
+    }
+   },
+   {
+    "path": "p/Assets/T.png",
+    "asset": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvVC5wbmc="
+    },
+    "meta": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDIK"
+    }
+   },
+   {
+    "path": "p/Assets/T2.png",
+    "asset": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvVDIucG5n"
+    },
+    "meta": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDIK"
+    }
+   },
+   {
+    "path": "p/Assets/N.mat",
+    "asset": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvTi5tYXQ="
+    },
+    "meta": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIK"
+    }
+   }
+  ],
+  "p/",
+  "source",
+  "o/r"
+ ],
+ "result": {
+  "entries": [
+   {
+    "guid": "00000000000000000000000000000001",
+    "pathname": "Assets/A.fbx",
+    "file": {
+     "path": "p/Assets/A.fbx",
+     "asset": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvQS5mYng="
+     },
+     "meta": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEK"
+     }
+    }
+   },
+   {
+    "guid": "00000000000000000000000000000002",
+    "pathname": "Assets/T.png",
+    "file": {
+     "path": "p/Assets/T.png",
+     "asset": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "b64": "Ynl0ZXMgb2YgcC9Bc3NldHMvVC5wbmc="
+     },
+     "meta": {
+      "$": "bytes",
+      "type": "Uint8Array",
+      "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDIK"
+     }
+    }
+   }
+  ],
+  "skipped": [
+   {
+    "path": "p/Assets/T2.png",
+    "reason": "duplicateGuid"
+   },
+   {
+    "path": "p/Assets/N.mat",
+    "reason": "noGuid"
+   }
+  ]
+ }
+}

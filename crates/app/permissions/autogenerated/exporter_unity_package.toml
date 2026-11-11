@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-exporter-unity-package"
+description = "Enables the exporter_unity_package command without any pre-configured scope."
+commands.allow = ["exporter_unity_package"]
+
+[[permission]]
+identifier = "deny-exporter-unity-package"
+description = "Denies the exporter_unity_package command without any pre-configured scope."
+commands.deny = ["exporter_unity_package"]

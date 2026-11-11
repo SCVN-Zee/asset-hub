@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-source-watch-check"
+description = "Enables the source_watch_check command without any pre-configured scope."
+commands.allow = ["source_watch_check"]
+
+[[permission]]
+identifier = "deny-source-watch-check"
+description = "Denies the source_watch_check command without any pre-configured scope."
+commands.deny = ["source_watch_check"]

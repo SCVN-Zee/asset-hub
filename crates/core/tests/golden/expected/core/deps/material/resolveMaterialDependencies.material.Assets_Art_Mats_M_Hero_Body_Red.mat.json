@@ -1,0 +1,44 @@
+{
+ "source": {
+  "path": "src/core/deps/material.ts",
+  "commit": "70875fe237d0b2ccde16808da33d2a50ff8bbdef",
+  "sha256": "a8db094759944fdd770da284b23c43d3ff3e203cbb2985472c5f1fa127caf550"
+ },
+ "case": "resolveMaterialDependencies.material.Assets_Art_Mats_M_Hero_Body_Red.mat",
+ "fn": "resolveMaterialDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "A",
+  "materials": [
+   {
+    "name": "M_Hero_Body_Red",
+    "guid": "a0000000000000000000000000000017",
+    "path": "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+    "missing": false,
+    "textures": []
+   }
+  ],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [],
+  "files": [
+   "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+   "proj/Assets/Art/Mats/M_Hero_Body_Red.mat.meta",
+   "proj/Assets/Art/Mats/M_Hero_Body.mat",
+   "proj/Assets/Art/Mats/M_Hero_Body.mat.meta",
+   "proj/Assets/Art/Tex/hero_albedo.png",
+   "proj/Assets/Art/Tex/hero_albedo.png.meta",
+   "proj/Assets/Art/Tex/hero_normal.png",
+   "proj/Assets/Art/Tex/hero_normal.png.meta",
+   "proj/Assets/Art/Tex/hero_emission.png",
+   "proj/Assets/Art/Tex/hero_emission.png.meta"
+  ]
+ }
+}

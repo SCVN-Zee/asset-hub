@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/format.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "94056d427b249207e8f84e579db927a9653de828eb3529f2a8e4b9ed4a18b9e6"
+ },
+ "case": "shortPath-88badb0a",
+ "fn": "shortPath",
+ "origin": "unit-test-input",
+ "args": [
+  "Assets/Supercent/XP Hero/FBXs/Fish_Dirty.fbx"
+ ],
+ "result": "../XP Hero/FBXs/Fish_Dirty.fbx"
+}

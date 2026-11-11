@@ -1,0 +1,56 @@
+{
+ "source": {
+  "path": "src/core/unity/particleSim.ts",
+  "commit": "34e6287058447abce532ccdf8b6cc9077c731e42",
+  "sha256": "0c20690fdc90515ccaf64391efc4bf975dab27fbc240392166f5194652492540"
+ },
+ "case": "readMinMaxColor-61401fc0",
+ "fn": "readMinMaxColor",
+ "origin": "unit-test-input",
+ "args": [
+  "    startColor:\n      serializedVersion: 2\n      minMaxState: 1\n      minColor: {r: 1, g: 1, b: 1, a: 1}\n      maxColor: {r: 1, g: 1, b: 1, a: 1}\n      maxGradient:\n        serializedVersion: 2\n        key0: {r: 1, g: 0, b: 0, a: 1}\n        key1: {r: 0, g: 0, b: 1, a: 0}\n        key2: {r: 0, g: 0, b: 0, a: 0}\n        ctime0: 0\n        ctime1: 65535\n        atime0: 0\n        atime1: 65535\n        m_Mode: 0\n        m_NumColorKeys: 2\n        m_NumAlphaKeys: 2\n",
+  4,
+  "startColor"
+ ],
+ "result": {
+  "mode": 1,
+  "max": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "min": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "gradient": {
+   "colors": [
+    {
+     "t": 0,
+     "r": 1,
+     "g": 0,
+     "b": 0
+    },
+    {
+     "t": 1,
+     "r": 0,
+     "g": 0,
+     "b": 1
+    }
+   ],
+   "alphas": [
+    {
+     "t": 0,
+     "a": 1
+    },
+    {
+     "t": 1,
+     "a": 0
+    }
+   ]
+  }
+ }
+}

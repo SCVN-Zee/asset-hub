@@ -1,0 +1,152 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "parseParticleSystems-913fef58",
+ "fn": "parseParticleSystems",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &100\nGameObject:\n  m_Name: Rain\n--- !u!198 &101\nParticleSystem:\n  m_GameObject: {fileID: 100}\n  serializedVersion: 8\n  lengthInSec: 2\n  looping: 0\n  prewarm: 0\n  startDelay:\n    serializedVersion: 2\n    minMaxState: 0\n    scalar: 0\n    minScalar: 0\n    maxCurve:\n      serializedVersion: 2\n      m_Curve: []\n  InitialModule:\n    serializedVersion: 3\n    enabled: 1\n    startLifetime:\n      serializedVersion: 2\n      minMaxState: 3\n      scalar: 0.5\n      minScalar: 0.8\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    startSpeed:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 4\n      minScalar: 4\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    startSize:\n      serializedVersion: 2\n      minMaxState: 1\n      scalar: 0.3\n      minScalar: 0.3\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    maxNumParticles: 200\n  ShapeModule:\n    serializedVersion: 6\n    enabled: 1\n    type: 4\n  EmissionModule:\n    enabled: 1\n    serializedVersion: 4\n    rateOverTime:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 20\n      minScalar: 20\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    rateOverDistance:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 0\n      minScalar: 0\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    m_BurstCount: 1\n    m_Bursts:\n    - serializedVersion: 2\n      time: 0\n      countCurve:\n        serializedVersion: 2\n        minMaxState: 3\n        scalar: 10\n        minScalar: 900\n        maxCurve:\n          serializedVersion: 2\n          m_Curve: []\n      cycleCount: 2\n      repeatInterval: 0.1\n    - serializedVersion: 2\n      time: 0.5\n      countCurve:\n        serializedVersion: 2\n        minMaxState: 0\n        scalar: 5\n        minScalar: 5\n        maxCurve:\n          serializedVersion: 2\n          m_Curve: []\n      cycleCount: 1\n  UVModule:\n    serializedVersion: 2\n    enabled: 0\n    tilesX: 4\n    tilesY: 2\n  NoiseModule:\n    enabled: 0\n  CollisionModule:\n    enabled: 0\n    type: 0\n  SubModule:\n    serializedVersion: 2\n    enabled: 0\n    subEmitters:\n    - serializedVersion: 3\n      emitter: {fileID: 0}\n  TrailModule:\n    enabled: 0\n--- !u!199 &102\nParticleSystemRenderer:\n  m_GameObject: {fileID: 100}\n  m_Enabled: 1\n  m_Materials:\n  - {fileID: 2100000, guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, type: 2}\n  - {fileID: 2100000, guid: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, type: 2}\n  m_RenderMode: 0\n  m_Mesh: {fileID: 0}\n"
+ ],
+ "result": [
+  {
+   "id": "101",
+   "name": "Rain",
+   "duration": 2,
+   "looping": false,
+   "prewarm": false,
+   "lifetime": 0.8,
+   "speed": 4,
+   "size": 0.3,
+   "maxParticles": 200,
+   "rate": 20,
+   "bursts": 1805,
+   "peak": 200,
+   "shape": "Cone",
+   "renderMode": "billboard",
+   "material": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "modules": [],
+   "subEmitters": 0,
+   "sim": {
+    "duration": 2,
+    "looping": false,
+    "prewarm": false,
+    "worldSpace": false,
+    "simulationSpeed": 1,
+    "startDelay": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startLifetime": {
+     "mode": 3,
+     "scalar": 0.5,
+     "min": 0.8
+    },
+    "startSpeed": {
+     "mode": 0,
+     "scalar": 4,
+     "min": 4
+    },
+    "startSize": {
+     "mode": 1,
+     "scalar": 0.3,
+     "min": 0.3,
+     "curve": []
+    },
+    "startRotation": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startColor": {
+     "mode": 0,
+     "max": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "min": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    "gravity": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "maxParticles": 200,
+    "rate": {
+     "mode": 0,
+     "scalar": 20,
+     "min": 20
+    },
+    "bursts": [
+     {
+      "time": 0,
+      "count": {
+       "mode": 3,
+       "scalar": 10,
+       "min": 900
+      },
+      "cycles": 2,
+      "interval": 0.1,
+      "probability": 1
+     },
+     {
+      "time": 0.5,
+      "count": {
+       "mode": 0,
+       "scalar": 5,
+       "min": 5
+      },
+      "cycles": 1,
+      "interval": 0.01,
+      "probability": 1
+     }
+    ],
+    "lengthScale": 2,
+    "velocityScale": 0,
+    "pivot": [
+     0,
+     0,
+     0
+    ],
+    "maxScreenSize": 0.5,
+    "sortingOrder": 0,
+    "sortingFudge": 0,
+    "alignment": "view",
+    "shape": {
+     "type": 4,
+     "radius": 1,
+     "radiusThickness": 1,
+     "angle": 25,
+     "arc": 360,
+     "length": 5,
+     "position": [
+      0,
+      0,
+      0
+     ],
+     "rotation": [
+      0,
+      0,
+      0
+     ],
+     "scale": [
+      1,
+      1,
+      1
+     ],
+     "randomDirection": 0
+    }
+   }
+  }
+ ]
+}

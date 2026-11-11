@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "prefabEffectFact-fe078465",
+ "fn": "prefabEffectFact",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n--- !u!198 &198\nParticleSystem:\n"
+ ],
+ "result": "1"
+}

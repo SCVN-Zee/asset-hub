@@ -1,0 +1,28 @@
+{
+ "source": {
+  "path": "src/core/deps/self.ts",
+  "commit": "7994728f3a12774c7258b7b986c0315cef845d31",
+  "sha256": "7a8f16744376be1d0c3c8b34d5d5679a0664e39894a3b63fa94519ad8899e043"
+ },
+ "case": "resolveSelf.audio.Assets_Audio_music.ogg",
+ "fn": "resolveSelf",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Audio/music.ogg",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "none",
+  "materials": [],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [],
+  "files": [
+   "proj/Assets/Audio/music.ogg",
+   "proj/Assets/Audio/music.ogg.meta"
+  ]
+ }
+}

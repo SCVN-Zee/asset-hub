@@ -1,0 +1,33 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "splitDocs-9ed2d34c",
+ "fn": "splitDocs",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: Additive GameObjects\n--- !u!4 &4\nTransform:\n  m_GameObject: {fileID: 1}\n--- !u!1001 &5\nPrefabInstance:\n  m_Modification:\n    m_TransformParent: {fileID: 4}\n  m_SourcePrefab: {fileID: 100100000, guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, type: 3}\n"
+ ],
+ "result": [
+  {
+   "cls": "1",
+   "id": "1",
+   "stripped": false,
+   "body": "\nGameObject:\n  m_Name: Additive GameObjects\n"
+  },
+  {
+   "cls": "4",
+   "id": "4",
+   "stripped": false,
+   "body": "\nTransform:\n  m_GameObject: {fileID: 1}\n"
+  },
+  {
+   "cls": "1001",
+   "id": "5",
+   "stripped": false,
+   "body": "\nPrefabInstance:\n  m_Modification:\n    m_TransformParent: {fileID: 4}\n  m_SourcePrefab: {fileID: 100100000, guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, type: 3}\n"
+  }
+ ]
+}

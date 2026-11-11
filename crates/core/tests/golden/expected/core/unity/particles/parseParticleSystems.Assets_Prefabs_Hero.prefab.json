@@ -1,0 +1,17 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "parseParticleSystems.Assets_Prefabs_Hero.prefab",
+ "fn": "parseParticleSystems",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/Hero.prefab"
+  }
+ ],
+ "result": []
+}

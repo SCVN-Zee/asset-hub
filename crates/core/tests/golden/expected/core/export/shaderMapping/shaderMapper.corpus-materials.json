@@ -1,0 +1,74 @@
+{
+ "source": {
+  "path": "src/core/export/shaderMapping.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "9ed930c5b527512de2f7367b32f4ff7bbc5be038b3a7ce78b4dce1618ebb407e"
+ },
+ "case": "shaderMapper.corpus-materials",
+ "fn": "shaderMapper",
+ "origin": "synthetic",
+ "args": [
+  [
+   {
+    "from": "builtin:46",
+    "to": "AllIn1Vfx/AllIn1Vfx",
+    "props": {
+     "_MainTex": "_MainTex"
+    }
+   },
+   {
+    "from": "Universal Render Pipeline/Lit",
+    "to": "Missing/Shader",
+    "props": {}
+   },
+   {
+    "from": "933532a4fcc9baf4fa0491de14d08ed7",
+    "to": "AllIn1Vfx/AllIn1Vfx",
+    "props": {
+     "_BaseMap": "_MainTex",
+     "_BaseColor": "_GlowColor"
+    }
+   }
+  ],
+  {
+   "$": "map",
+   "v": [
+    [
+     "AllIn1Vfx/AllIn1Vfx",
+     {
+      "path": "Assets/Shaders/AllIn1Vfx.shader",
+      "guid": "a000000000000000000000000000001e",
+      "kind": "shader"
+     }
+    ]
+   ]
+  },
+  {
+   "$": "map",
+   "v": [
+    [
+     "933532a4fcc9baf4fa0491de14d08ed7",
+     "Universal Render Pipeline/Lit"
+    ]
+   ]
+  }
+ ],
+ "errors": [
+  ".assethub/shader-mapping.json: \"Missing/Shader\" is not a shader of the project"
+ ],
+ "materials": "inputs/repo/proj/Assets/Art/Mats/<name>.mat",
+ "mapped": {
+  "M_Hero_Body": {
+   "text": "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!21 &2100000\nMaterial:\n  serializedVersion: 8\n  m_ObjectHideFlags: 0\n  m_Name: M_Hero_Body\n  m_Shader: {fileID: 4800000, guid: a000000000000000000000000000001e, type: 3}\n  m_ShaderKeywords: _EMISSION _NORMALMAP\n  m_LightmapFlags: 2\n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs:\n    - _MainTex:\n        m_Texture: {fileID: 2800000, guid: a000000000000000000000000000000a, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    - _BumpMap:\n        m_Texture: {fileID: 2800000, guid: a000000000000000000000000000000b, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    - _EmissionMap:\n        m_Texture: {fileID: 2800000, guid: a000000000000000000000000000000c, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    - _MetallicGlossMap:\n        m_Texture: {fileID: 0}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    m_Floats:\n    - _Glossiness: 0.35\n    - _Metallic: 0.1\n    - _Mode: 0\n    m_Colors:\n    - _Color: {r: 0.8, g: 0.7, b: 0.6, a: 1}\n    - _EmissionColor: {r: 0.2, g: 0.1, b: 0, a: 1}\n",
+   "from": "builtin:46",
+   "to": "AllIn1Vfx/AllIn1Vfx"
+  },
+  "M_Hero_Urp": {
+   "text": "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!114 &-7739431231234567890\nMonoBehaviour:\n  m_ObjectHideFlags: 11\n  m_Name: \n  m_EditorClassIdentifier: \n  version: 9\n--- !u!21 &2100000\nMaterial:\n  serializedVersion: 8\n  m_ObjectHideFlags: 0\n  m_Name: M_Hero_Urp\n  m_Shader: {fileID: 4800000, guid: a000000000000000000000000000001e, type: 3}\n  m_ValidKeywords:\n  - _EMISSION\n  m_InvalidKeywords: []\n  m_LightmapFlags: 2\n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs:\n    - _MainTex:\n        m_Texture: {fileID: 2800000, guid: a000000000000000000000000000000a, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    - _BumpMap:\n        m_Texture: {fileID: 0}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    - _EmissionMap:\n        m_Texture: {fileID: 2800000, guid: a000000000000000000000000000000c, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    m_Floats:\n    - _Smoothness: 0.5\n    - _Metallic: 0\n    - _Surface: 0\n    - _Cutoff: 0.5\n    m_Colors:\n    - _GlowColor: {r: 1, g: 0.5, b: 0.25, a: 1}\n    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}\n",
+   "from": "Universal Render Pipeline/Lit",
+   "to": "AllIn1Vfx/AllIn1Vfx"
+  },
+  "Fx_Portal": null,
+  "M_Legacy": null
+ }
+}

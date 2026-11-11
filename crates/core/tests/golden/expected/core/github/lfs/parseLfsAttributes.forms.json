@@ -1,0 +1,63 @@
+{
+ "source": {
+  "path": "src/core/github/lfs.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "4b3ed8c41aa3b1ba18ede49fe821285d963c34830849fdf44d7508d186bdb9e7"
+ },
+ "case": "parseLfsAttributes.forms",
+ "fn": "parseLfsAttributes",
+ "origin": "synthetic",
+ "args": [
+  "*.[fF][bB][xX] filter=lfs diff=lfs merge=lfs -text\nAssets/**/*.png filter=lfs\n/Art/*.psd filter=lfs\n!bad filter=lfs\n*.dat filter=lfs\n*.dat -filter\nfoo?.bin filter=lfs\n"
+ ],
+ "result": [
+  {
+   "re": {
+    "$": "regexp",
+    "source": "(?:^|\\/)[^/]*\\.[fF][bB][xX]$",
+    "flags": ""
+   },
+   "lfs": true
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "^Assets\\/(?:.*\\/)?[^/]*\\.png$",
+    "flags": ""
+   },
+   "lfs": true
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "^Art\\/[^/]*\\.psd$",
+    "flags": ""
+   },
+   "lfs": true
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "(?:^|\\/)[^/]*\\.dat$",
+    "flags": ""
+   },
+   "lfs": true
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "(?:^|\\/)[^/]*\\.dat$",
+    "flags": ""
+   },
+   "lfs": false
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "(?:^|\\/)foo[^/]\\.bin$",
+    "flags": ""
+   },
+   "lfs": true
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "source": {
+  "path": "src/core/deps/tmpFont.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "c972905680502a68840e6ba9c3e4f2c9482f07ea60f1e1c1e316e1603766167f"
+ },
+ "case": "resolveTmpFontDependencies.tmpFont.Assets_Fonts_Dyn_SDF.asset",
+ "fn": "resolveTmpFontDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Fonts/Dyn SDF.asset",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "none",
+  "materials": [],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [],
+  "files": [
+   "proj/Assets/Fonts/Dyn SDF.asset",
+   "proj/Assets/Fonts/Dyn SDF.asset.meta",
+   "proj/Assets/Fonts/Pixel SDF.asset",
+   "proj/Assets/Fonts/Pixel SDF.asset.meta"
+  ],
+  "parts": [
+   {
+    "kind": "other",
+    "guid": "a0000000000000000000000000000050",
+    "name": "Pixel SDF.asset",
+    "path": "proj/Assets/Fonts/Pixel SDF.asset",
+    "missing": false,
+    "size": 887,
+    "uses": 1
+   }
+  ]
+ }
+}

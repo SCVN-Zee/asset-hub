@@ -1,0 +1,110 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "parsePrefabScene.Assets_Prefabs_Hero.prefab",
+ "fn": "parsePrefabScene",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/Hero.prefab"
+  }
+ ],
+ "result": {
+  "nodes": {
+   "$": "map",
+   "v": [
+    [
+     "101",
+     {
+      "id": "101",
+      "name": "Hero",
+      "position": [
+       0,
+       0,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "active": true
+     }
+    ],
+    [
+     "111",
+     {
+      "id": "111",
+      "name": "Gadget",
+      "parent": "101",
+      "position": [
+       0,
+       1,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "active": true
+     }
+    ]
+   ]
+  },
+  "meshes": [
+   {
+    "node": "101",
+    "mesh": {
+     "fileID": "4300000",
+     "guid": "a0000000000000000000000000000028"
+    },
+    "materials": [
+     "a0000000000000000000000000000014",
+     "a0000000000000000000000000000015"
+    ],
+    "skinned": true
+   }
+  ],
+  "instances": [
+   {
+    "id": "120",
+    "source": "a0000000000000000000000000000033",
+    "parent": "101",
+    "materials": []
+   }
+  ],
+  "scripts": [
+   "a000000000000000000000000000003c",
+   "a0000000000000000000000000000063"
+  ],
+  "particleSystems": 0,
+  "particleMaterials": [],
+  "particleMeshes": [],
+  "uiElements": 0,
+  "guids": [
+   "a0000000000000000000000000000014",
+   "a0000000000000000000000000000015",
+   "a0000000000000000000000000000028",
+   "a000000000000000000000000000003c",
+   "a0000000000000000000000000000063",
+   "a0000000000000000000000000000033"
+  ]
+ }
+}

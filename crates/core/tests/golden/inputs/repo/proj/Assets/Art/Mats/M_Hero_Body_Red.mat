@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_Name: M_Hero_Body_Red
+  m_Shader: {fileID: 0}
+  m_Parent: {fileID: 2100000, guid: a0000000000000000000000000000014, type: 2}
+  m_ModifiedSerializedProperties: 1
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Floats: []
+    m_Colors:
+    - _Color: {r: 1, g: 0, b: 0, a: 1}

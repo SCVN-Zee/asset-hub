@@ -1,0 +1,150 @@
+{
+ "source": {
+  "path": "src/core/unity/animClip.ts",
+  "commit": "6aff18b0040ac8c53aed195473567c641cea85a8",
+  "sha256": "6484dc8047e017e7dd6a3151aa02d79f5bac580da59603e8095ee007c1b86b1c"
+ },
+ "case": "parseAnimClip-cf05bf90",
+ "fn": "parseAnimClip",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!74 &7400000\nAnimationClip:\n  m_Name: Run\n  m_Legacy: 0\n  m_Compressed: 0\n  m_RotationCurves:\n  - curve:\n      serializedVersion: 2\n      m_Curve:\n      - serializedVersion: 3\n        time: 0\n        value: {x: 0, y: 0, z: 0, w: 1}\n        inSlope: {x: 0, y: 0, z: 0, w: 0}\n        outSlope: {x: 0, y: 0, z: 0, w: 0}\n        tangentMode: 0\n      - serializedVersion: 3\n        time: 1\n        value: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}\n        inSlope: {x: 0, y: 0, z: 0, w: 0}\n        outSlope: {x: 0, y: 0, z: 0, w: 0}\n        tangentMode: 0\n      m_PreInfinity: 2\n    path: Armature/Hips\n  m_CompressedRotationCurves: []\n  m_EulerCurves: []\n  m_PositionCurves:\n  - curve:\n      serializedVersion: 2\n      m_Curve:\n      - serializedVersion: 3\n        time: 0\n        value: {x: 0, y: 0, z: 0}\n        inSlope: {x: 0, y: 0, z: 0}\n        outSlope: {x: 0, y: 0, z: 0}\n        tangentMode: 0\n      - serializedVersion: 3\n        time: 0.5\n        value: {x: 0, y: 1, z: 0}\n        inSlope: {x: 0, y: Infinity, z: 0}\n        outSlope: {x: 0, y: Infinity, z: 0}\n        tangentMode: 0\n    path: \n  m_ScaleCurves: []\n  m_FloatCurves:\n  - curve:\n      serializedVersion: 2\n      m_Curve:\n      - serializedVersion: 3\n        time: 0\n        value: 0\n        inSlope: 0\n        outSlope: 0\n        tangentMode: 0\n    attribute: m_IsActive\n    path: Armature/Hips/Sword\n    classID: 1\n  m_PPtrCurves: []\n  m_SampleRate: 30\n  m_AnimationClipSettings:\n    serializedVersion: 2\n    m_StartTime: 0\n    m_StopTime: 1\n    m_LoopTime: 1\n  m_Events:\n  - time: 0.5\n    functionName: Step\n"
+ ],
+ "result": {
+  "name": "Run",
+  "length": 1,
+  "sampleRate": 30,
+  "loop": true,
+  "legacy": false,
+  "compressed": false,
+  "kind": "generic",
+  "transformCurves": [
+   {
+    "path": "",
+    "kind": "position",
+    "keys": [
+     {
+      "t": 0,
+      "v": [
+       0,
+       0,
+       0
+      ],
+      "inS": [
+       0,
+       0,
+       0
+      ],
+      "outS": [
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "t": 0.5,
+      "v": [
+       0,
+       1,
+       0
+      ],
+      "inS": [
+       0,
+       {
+        "$": "num",
+        "v": "Infinity"
+       },
+       0
+      ],
+      "outS": [
+       0,
+       {
+        "$": "num",
+        "v": "Infinity"
+       },
+       0
+      ]
+     }
+    ]
+   },
+   {
+    "path": "Armature/Hips",
+    "kind": "rotation",
+    "keys": [
+     {
+      "t": 0,
+      "v": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "inS": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "outS": [
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "t": 1,
+      "v": [
+       0,
+       0.7071068,
+       0,
+       0.7071068
+      ],
+      "inS": [
+       0,
+       0,
+       0,
+       0
+      ],
+      "outS": [
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    ]
+   }
+  ],
+  "floatCurves": [
+   {
+    "path": "Armature/Hips/Sword",
+    "attribute": "m_IsActive",
+    "classID": 1,
+    "keys": [
+     {
+      "t": 0,
+      "v": [
+       0
+      ],
+      "inS": [
+       0
+      ],
+      "outS": [
+       0
+      ]
+     }
+    ]
+   }
+  ],
+  "spriteCurves": 0,
+  "spriteGuids": [],
+  "events": 1,
+  "paths": [
+   "",
+   "Armature/Hips",
+   "Armature/Hips/Sword"
+  ],
+  "keyframes": 5
+ }
+}

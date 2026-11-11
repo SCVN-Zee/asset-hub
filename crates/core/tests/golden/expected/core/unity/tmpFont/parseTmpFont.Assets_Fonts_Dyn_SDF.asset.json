@@ -1,0 +1,32 @@
+{
+ "source": {
+  "path": "src/core/unity/tmpFont.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "c9792fd3b780fcc42c46130e3deab3b7ff736c9df151d164edbf3295583757c9"
+ },
+ "case": "parseTmpFont.Assets_Fonts_Dyn_SDF.asset",
+ "fn": "parseTmpFont",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Fonts/Dyn SDF.asset"
+  }
+ ],
+ "result": {
+  "name": "Dyn SDF",
+  "family": "Pixel Sans",
+  "style": "Regular",
+  "pointSize": 36,
+  "atlasWidth": 512,
+  "atlasHeight": 512,
+  "dynamic": true,
+  "characters": [
+   65,
+   66
+  ],
+  "fallbacks": [
+   "a0000000000000000000000000000050"
+  ]
+ }
+}

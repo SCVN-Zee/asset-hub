@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/shared/aiTools.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "93e866f1505e77fa3b1184056630dda0293b0802759874e3279f1133bce0bb8b"
+ },
+ "case": "assetRef-75674859",
+ "fn": "assetRef",
+ "origin": "unit-test-input",
+ "args": [
+  "supercent-io/luna_pizza",
+  "VN/DEV/playable003",
+  "Assets/FX/Fire Effect.prefab"
+ ],
+ "result": "supercent-io/luna_pizza@VN/DEV/playable003:Assets/FX/Fire Effect.prefab"
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-catalog-scan"
+description = "Enables the catalog_scan command without any pre-configured scope."
+commands.allow = ["catalog_scan"]
+
+[[permission]]
+identifier = "deny-catalog-scan"
+description = "Denies the catalog_scan command without any pre-configured scope."
+commands.deny = ["catalog_scan"]

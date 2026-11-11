@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-anim-clip"
+description = "Enables the anim_clip command without any pre-configured scope."
+commands.allow = ["anim_clip"]
+
+[[permission]]
+identifier = "deny-anim-clip"
+description = "Denies the anim_clip command without any pre-configured scope."
+commands.deny = ["anim_clip"]

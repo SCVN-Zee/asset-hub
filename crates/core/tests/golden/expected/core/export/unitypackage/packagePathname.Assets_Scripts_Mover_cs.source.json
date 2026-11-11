@@ -1,0 +1,17 @@
+{
+ "source": {
+  "path": "src/core/export/unitypackage.ts",
+  "commit": "102c376a1bc41e0561c95ba830151cd3b4ceb116",
+  "sha256": "d838a4ec50d900a9419ff32e99736f3846d789f2e9ee1dff7030ac2c157806db"
+ },
+ "case": "packagePathname.Assets_Scripts_Mover_cs.source",
+ "fn": "packagePathname",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Scripts/Mover.cs",
+  "proj/",
+  "source",
+  "My Repo!"
+ ],
+ "result": "Assets/Scripts/Mover.cs"
+}

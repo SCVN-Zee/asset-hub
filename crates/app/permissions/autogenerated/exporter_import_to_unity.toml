@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-exporter-import-to-unity"
+description = "Enables the exporter_import_to_unity command without any pre-configured scope."
+commands.allow = ["exporter_import_to_unity"]
+
+[[permission]]
+identifier = "deny-exporter-import-to-unity"
+description = "Denies the exporter_import_to_unity command without any pre-configured scope."
+commands.deny = ["exporter_import_to_unity"]

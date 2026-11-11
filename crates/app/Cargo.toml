@@ -1,0 +1,81 @@
+[package]
+name = "asset-hub"
+description = "Browse the Unity projects on GitHub, preview their assets and export them as .unitypackage."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+default-run = "asset-hub"
+
+[lib]
+name = "asset_hub_lib"
+crate-type = ["rlib"]
+
+[[bin]]
+name = "asset-hub"
+path = "src/main.rs"
+
+[[bin]]
+name = "asset-hub-cli"
+path = "src/bin/asset-hub-cli.rs"
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [] }
+serde_json = "1"
+
+[dependencies]
+asset_hub_core = { path = "../core" }
+tauri = { version = "=2.12.5", features = [] }
+tauri-plugin-deep-link = "=2.6.3"
+tauri-plugin-single-instance = { version = "=2.5.5", features = ["deep-link"] }
+tauri-plugin-dialog = "=2.8.4"
+tauri-plugin-opener = "=2.7.2"
+tauri-plugin-updater = "=2.14.1"
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+specta = { version = "=2.0.0-rc.26", features = ["derive"] }
+specta-typescript = "=0.0.13"
+tauri-specta = { version = "=2.0.0-rc.26", features = ["derive", "typescript"] }
+url = "2"
+clap = { version = "4", features = ["derive"] }
+serde_with = { version = "3", default-features = false, features = ["macros"] }
+tokio = { version = "1", features = ["process", "time", "sync", "io-util", "fs", "rt", "rt-multi-thread", "macros"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-native-roots", "stream", "http2", "gzip", "macos-system-configuration"] }
+keyring = "=4.2.0"
+arboard = { version = "3", default-features = false }
+sha2 = "0.10"
+sha1 = "0.10"
+regex = "1"
+uuid = { version = "1", features = ["v4"] }
+flate2 = "1"
+crc32fast = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+futures-util = "0.3"
+base64 = "0.22"
+percent-encoding = "2"
+lewton = "0.10.2"
+rmcp = { version = "=3.9.0", features = ["server", "transport-io", "macros"] }
+schemars = "1"
+webp = { version = "0.3", default-features = false }
+png = "0.18"
+
+[dev-dependencies]
+rmcp = { version = "=3.9.0", features = ["client"] }
+tauri = { version = "=2.12.5", features = ["test"] }
+tempfile = "3"
+tokio = { version = "1", features = ["net", "rt-multi-thread"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# Only for the `e2e` test hook; all five are already in the tree through tauri and wry.
+objc2 = { version = "0.6", optional = true }
+objc2-app-kit = { version = "0.3", optional = true }
+objc2-foundation = { version = "0.3", optional = true }
+objc2-web-kit = { version = "0.3", optional = true }
+block2 = { version = "0.6", optional = true }
+
+[features]
+# Set by `tauri build`: serve the bundled frontend instead of the dev server.
+custom-protocol = ["tauri/custom-protocol"]
+# A local automation socket for parity runs (src/e2e.rs). Off by default and never part of a release build:
+# it is compiled only with `--features e2e`, and runs only when `ASSETHUB_E2E_SOCKET` is set.
+e2e = ["dep:objc2", "dep:objc2-app-kit", "dep:objc2-foundation", "dep:objc2-web-kit", "dep:block2"]

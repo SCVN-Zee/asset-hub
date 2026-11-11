@@ -1,0 +1,37 @@
+{
+ "source": {
+  "path": "src/core/export/modelBundle.ts",
+  "commit": "cc945012fe29f4ca5479f86546a3c0fc7c5cf978",
+  "sha256": "4fc765f7d9a82a5784ecd365204e9c0115d6dd540090ff31ca0748ec38e2dd55"
+ },
+ "case": "bundleFileNames.hero",
+ "fn": "bundleFileNames",
+ "origin": "synthetic",
+ "args": [
+  [
+   "proj/Assets/Art/Tex/hero_albedo.png",
+   "proj/Assets/Art/Tex/hero_normal.png",
+   "proj/Assets/Art/Tex/hero_emission.png",
+   "proj/Assets/Art/Tex/hero_albedo.png",
+   "proj/Assets/Art/Tex/hero_emission.png",
+   "proj/Assets/Art/Tex/hero_albedo.png"
+  ]
+ ],
+ "result": {
+  "$": "map",
+  "v": [
+   [
+    "proj/Assets/Art/Tex/hero_albedo.png",
+    "hero_albedo.png"
+   ],
+   [
+    "proj/Assets/Art/Tex/hero_normal.png",
+    "hero_normal.png"
+   ],
+   [
+    "proj/Assets/Art/Tex/hero_emission.png",
+    "hero_emission.png"
+   ]
+  ]
+ }
+}

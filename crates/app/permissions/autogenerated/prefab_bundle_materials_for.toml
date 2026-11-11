@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-prefab-bundle-materials-for"
+description = "Enables the prefab_bundle_materials_for command without any pre-configured scope."
+commands.allow = ["prefab_bundle_materials_for"]
+
+[[permission]]
+identifier = "deny-prefab-bundle-materials-for"
+description = "Denies the prefab_bundle_materials_for command without any pre-configured scope."
+commands.deny = ["prefab_bundle_materials_for"]

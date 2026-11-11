@@ -1,0 +1,34 @@
+{
+ "source": {
+  "path": "src/core/unity/animClip.ts",
+  "commit": "6aff18b0040ac8c53aed195473567c641cea85a8",
+  "sha256": "6484dc8047e017e7dd6a3151aa02d79f5bac580da59603e8095ee007c1b86b1c"
+ },
+ "case": "parseAnimClip.Assets_Art_Animations_Spark.anim",
+ "fn": "parseAnimClip",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Animations/Spark.anim"
+  }
+ ],
+ "result": {
+  "name": "Spark",
+  "length": 1,
+  "sampleRate": 30,
+  "loop": true,
+  "legacy": false,
+  "compressed": false,
+  "kind": "sprite",
+  "transformCurves": [],
+  "floatCurves": [],
+  "spriteCurves": 1,
+  "spriteGuids": [
+   "a000000000000000000000000000000d"
+  ],
+  "events": 0,
+  "paths": [],
+  "keyframes": 0
+ }
+}

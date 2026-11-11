@@ -1,0 +1,61 @@
+{
+ "source": {
+  "path": "src/shared/collections.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "559399e3131d1f7505cd55404e5a60f4df30133aa03cf1d3a1a36b38cb34fcdf"
+ },
+ "case": "toggleItem-c77edb3e",
+ "fn": "toggleItem",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "id": "favorites",
+    "name": "",
+    "items": [
+     {
+      "repo": "o/r",
+      "branch": "main",
+      "path": "Assets/Tree.fbx",
+      "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "name": "Tree.fbx",
+      "type": "fbx"
+     }
+    ]
+   }
+  ],
+  "favorites",
+  {
+   "repo": "o/r",
+   "branch": "main",
+   "path": "Assets/Rock.fbx",
+   "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "name": "Rock.fbx",
+   "type": "fbx"
+  }
+ ],
+ "result": [
+  {
+   "id": "favorites",
+   "name": "",
+   "items": [
+    {
+     "repo": "o/r",
+     "branch": "main",
+     "path": "Assets/Rock.fbx",
+     "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "name": "Rock.fbx",
+     "type": "fbx"
+    },
+    {
+     "repo": "o/r",
+     "branch": "main",
+     "path": "Assets/Tree.fbx",
+     "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "name": "Tree.fbx",
+     "type": "fbx"
+    }
+   ]
+  }
+ ]
+}

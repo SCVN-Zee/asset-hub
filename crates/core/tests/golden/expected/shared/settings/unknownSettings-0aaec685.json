@@ -1,0 +1,25 @@
+{
+ "source": {
+  "path": "src/shared/settings.ts",
+  "commit": "02e24f3ef2ef1ee23aa4792e9c3d495df2c5e993",
+  "sha256": "23484091c67f6098e08e8fbc0d35b29f6900f61bc7497b7205ac5f33cc94d749"
+ },
+ "case": "unknownSettings-0aaec685",
+ "fn": "unknownSettings",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "language": "vi",
+   "cacheDir": "/c",
+   "excludedFolders": [],
+   "futureThing": {
+    "on": true
+   }
+  }
+ ],
+ "result": {
+  "futureThing": {
+   "on": true
+  }
+ }
+}

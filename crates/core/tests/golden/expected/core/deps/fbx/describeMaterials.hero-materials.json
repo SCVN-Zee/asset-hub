@@ -1,0 +1,78 @@
+{
+ "source": {
+  "path": "src/core/deps/fbx.ts",
+  "commit": "6eb64be82e321450da11f2c8751638d1e6570fbc",
+  "sha256": "548b00631ca717a37017c93e88fe41aa0b37a3c64bf18939355d4ac1e3f65440"
+ },
+ "case": "describeMaterials.hero-materials",
+ "fn": "describeMaterials",
+ "origin": "synthetic",
+ "args": [
+  "M_Hero_Body + a missing guid",
+  "ctx"
+ ],
+ "result": {
+  "materials": [
+   {
+    "name": "M_Hero_Body",
+    "sourceName": "M_Hero_Body",
+    "guid": "a0000000000000000000000000000014",
+    "path": "proj/Assets/Art/Mats/M_Hero_Body.mat",
+    "missing": false,
+    "shader": {
+     "guid": "0000000000000000f000000000000000",
+     "kind": "builtin",
+     "label": "Standard"
+    },
+    "textures": [
+     {
+      "prop": "_MainTex",
+      "guid": "a000000000000000000000000000000a",
+      "path": "proj/Assets/Art/Tex/hero_albedo.png",
+      "name": "hero_albedo.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 136
+     },
+     {
+      "prop": "_BumpMap",
+      "guid": "a000000000000000000000000000000b",
+      "path": "proj/Assets/Art/Tex/hero_normal.png",
+      "name": "hero_normal.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 136
+     },
+     {
+      "prop": "_EmissionMap",
+      "guid": "a000000000000000000000000000000c",
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "name": "hero_emission.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 86
+     }
+    ]
+   },
+   {
+    "name": "a0000000",
+    "guid": "a0000000000000000000000000000063",
+    "missing": true,
+    "textures": []
+   }
+  ],
+  "files": [
+   "proj/Assets/Art/Mats/M_Hero_Body.mat",
+   "proj/Assets/Art/Mats/M_Hero_Body.mat.meta",
+   "proj/Assets/Art/Tex/hero_albedo.png",
+   "proj/Assets/Art/Tex/hero_albedo.png.meta",
+   "proj/Assets/Art/Tex/hero_normal.png",
+   "proj/Assets/Art/Tex/hero_normal.png.meta",
+   "proj/Assets/Art/Tex/hero_emission.png",
+   "proj/Assets/Art/Tex/hero_emission.png.meta"
+  ],
+  "warnings": [
+   "missingMaterial"
+  ]
+ }
+}

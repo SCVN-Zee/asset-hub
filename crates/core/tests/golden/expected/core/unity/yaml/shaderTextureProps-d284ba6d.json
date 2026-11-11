@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "shaderTextureProps-d284ba6d",
+ "fn": "shaderTextureProps",
+ "origin": "unit-test-input",
+ "args": [
+  "a/simple.shader",
+  "Shader \"HunFX/simple\" {\n  Properties {\n    _MainTex (\"Particle Texture\", 2D) = \"white\" {}\n    _MainTexture(\"MainTexture\", 2D) = \"white\" {}\n  }\n  SubShader { Pass { CGPROGRAM\n float4 c = tex2D( _MainTexture, uv );\n ENDCG } }\n}"
+ ],
+ "result": [
+  "_MainTexture",
+  "_MainTex"
+ ]
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-particle-totals"
+description = "Enables the particle_totals command without any pre-configured scope."
+commands.allow = ["particle_totals"]
+
+[[permission]]
+identifier = "deny-particle-totals"
+description = "Denies the particle_totals command without any pre-configured scope."
+commands.deny = ["particle_totals"]

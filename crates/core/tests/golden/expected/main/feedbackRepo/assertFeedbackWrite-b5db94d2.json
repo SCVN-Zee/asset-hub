@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/main/feedbackRepo.ts",
+  "commit": "fe262491fc6c9f431f62ae7ef8e6e13c4f767b66",
+  "sha256": "72d67dd5f0d294e3b9f2861610ca4be0b32d22a7012872f04abdcd05fc0443e9"
+ },
+ "case": "assertFeedbackWrite-b5db94d2",
+ "fn": "assertFeedbackWrite",
+ "origin": "unit-test-input",
+ "args": [
+  "org/feedback",
+  "https://api.github.com/repos/org/feedback/issues/12/comments",
+  "POST"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

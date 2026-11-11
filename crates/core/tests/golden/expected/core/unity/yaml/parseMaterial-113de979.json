@@ -1,0 +1,22 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterial-113de979",
+ "fn": "parseMaterial",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!21 &2100000\nMaterial:\n  m_Name: M_Body\n  m_Parent: {fileID: 2100000, guid: 0000000000000000000000000000001e, type: 2}\n  m_Shader: {fileID: 4800000, guid: 00000000000000000000000000000007, type: 3}\n  m_SavedProperties:\n    m_TexEnvs: []\n    m_Floats: []\n"
+ ],
+ "result": {
+  "name": "M_Body",
+  "shader": {
+   "fileID": "4800000",
+   "guid": "00000000000000000000000000000007"
+  },
+  "parentGuid": "0000000000000000000000000000001e",
+  "textures": []
+ }
+}

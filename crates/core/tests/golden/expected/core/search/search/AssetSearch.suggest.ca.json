@@ -1,0 +1,64 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.suggest.ca",
+ "fn": "AssetSearch.suggest",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "ca",
+  8
+ ],
+ "result": [
+  {
+   "text": "cây",
+   "count": 6,
+   "examples": [
+    "cactus",
+    "tree",
+    "pine",
+    "flower"
+   ]
+  },
+  {
+   "text": "car",
+   "count": 7,
+   "examples": [
+    "truck",
+    "xe"
+   ]
+  },
+  {
+   "text": "cá mập",
+   "count": 2,
+   "examples": [
+    "shark"
+   ]
+  },
+  {
+   "text": "cá heo",
+   "count": 1,
+   "examples": [
+    "dolphins"
+   ]
+  },
+  {
+   "text": "cây cối",
+   "count": 2,
+   "examples": [
+    "tree",
+    "pine"
+   ]
+  },
+  {
+   "text": "cactus",
+   "count": 1
+  }
+ ]
+}

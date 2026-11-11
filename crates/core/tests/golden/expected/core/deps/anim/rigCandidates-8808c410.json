@@ -1,0 +1,66 @@
+{
+ "source": {
+  "path": "src/core/deps/anim.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "3ac28b2260d637d64c9c3af3f99e7b8a62edb50df584b809ca3f501d321d1cd3"
+ },
+ "case": "rigCandidates-8808c410",
+ "fn": "rigCandidates",
+ "origin": "unit-test-input",
+ "args": [
+  "p/Assets/Game/Animation/Enemy/Goblin_Melee/Skill1.anim",
+  {
+   "root": "p/",
+   "byPath": {
+    "$": "map",
+    "v": [
+     [
+      "p/Assets/Game/FBXs/Enemy/Enemy_Goblin.fbx",
+      {
+       "path": "p/Assets/Game/FBXs/Enemy/Enemy_Goblin.fbx",
+       "type": "blob",
+       "sha": "p/Assets/Game/FBXs/Enemy/Enemy_Goblin.fbx"
+      }
+     ],
+     [
+      "p/Assets/Game/FBXs/Enemy/Enemy_Goblin@Run.fbx",
+      {
+       "path": "p/Assets/Game/FBXs/Enemy/Enemy_Goblin@Run.fbx",
+       "type": "blob",
+       "sha": "p/Assets/Game/FBXs/Enemy/Enemy_Goblin@Run.fbx"
+      }
+     ],
+     [
+      "p/Assets/Game/FBXs/Prop/Tree.fbx",
+      {
+       "path": "p/Assets/Game/FBXs/Prop/Tree.fbx",
+       "type": "blob",
+       "sha": "p/Assets/Game/FBXs/Prop/Tree.fbx"
+      }
+     ],
+     [
+      "p/Assets/Game/Animation/Enemy/BigFoot/Standing Melee Attack.fbx",
+      {
+       "path": "p/Assets/Game/Animation/Enemy/BigFoot/Standing Melee Attack.fbx",
+       "type": "blob",
+       "sha": "p/Assets/Game/Animation/Enemy/BigFoot/Standing Melee Attack.fbx"
+      }
+     ],
+     [
+      "p/Other/Goblin.fbx",
+      {
+       "path": "p/Other/Goblin.fbx",
+       "type": "blob",
+       "sha": "p/Other/Goblin.fbx"
+      }
+     ]
+    ]
+   }
+  }
+ ],
+ "result": [
+  "p/Assets/Game/FBXs/Enemy/Enemy_Goblin.fbx",
+  "p/Assets/Game/Animation/Enemy/BigFoot/Standing Melee Attack.fbx",
+  "p/Assets/Game/FBXs/Enemy/Enemy_Goblin@Run.fbx"
+ ]
+}

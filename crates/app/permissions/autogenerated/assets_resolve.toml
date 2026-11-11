@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-assets-resolve"
+description = "Enables the assets_resolve command without any pre-configured scope."
+commands.allow = ["assets_resolve"]
+
+[[permission]]
+identifier = "deny-assets-resolve"
+description = "Denies the assets_resolve command without any pre-configured scope."
+commands.deny = ["assets_resolve"]

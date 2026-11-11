@@ -1,0 +1,286 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "planAgainstTarget.reuse-false",
+ "fn": "planAgainstTarget",
+ "origin": "synthetic",
+ "args": [
+  [
+   {
+    "path": "proj/Assets/Prefabs/Hero.prefab",
+    "guid": "a0000000000000000000000000000032",
+    "pathname": "Assets/AssetHub/Prefabs/Hero.prefab",
+    "hash": "4f184b1766dbf99d381db21b2408a916e9656728"
+   },
+   {
+    "path": "proj/Assets/Art/Mats/M_Hero_Body.mat",
+    "guid": "a0000000000000000000000000000014",
+    "pathname": "Assets/AssetHub/Materials/M_Hero_Body.mat",
+    "hash": "6672839043fe404efd82116d830ba44f2fb241d6"
+   },
+   {
+    "path": "proj/Assets/Art/Tex/hero_albedo.png",
+    "guid": "a000000000000000000000000000000a",
+    "pathname": "Assets/AssetHub/Textures/hero_albedo.png",
+    "hash": "22b51a0f04967d4c0d0465225c81d54b92475d78"
+   },
+   {
+    "path": "proj/Assets/Art/Tex/hero_normal.png",
+    "guid": "a000000000000000000000000000000b",
+    "pathname": "Assets/AssetHub/Textures/hero_normal.png",
+    "hash": "746865e1e8ea4b5f2b2040ee8cd5038c58e68bd2"
+   },
+   {
+    "path": "proj/Assets/Art/Tex/hero_emission.png",
+    "guid": "a000000000000000000000000000000c",
+    "pathname": "Assets/AssetHub/Textures/hero_emission.png",
+    "hash": "8f5c7ca013325f1a7cc4750961b407e79fed8a4f"
+   },
+   {
+    "path": "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+    "guid": "a0000000000000000000000000000015",
+    "pathname": "Assets/AssetHub/Materials/M_Hero_Urp.mat",
+    "hash": "4c5f37bd95338fef4896c15fde468c4058c655f6"
+   },
+   {
+    "path": "proj/Assets/Art/Mats/Fx_Spark.mat",
+    "guid": "a0000000000000000000000000000018",
+    "pathname": "Assets/AssetHub/Materials/Fx_Spark.mat",
+    "hash": "0c759475979b7441720941ea345b553157f1db09"
+   },
+   {
+    "path": "proj/Assets/Art/Tex/sheet.png",
+    "guid": "a000000000000000000000000000000d",
+    "pathname": "Assets/AssetHub/Textures/sheet.png",
+    "hash": "6dd07e57ea2d6848fce3b65b0a23e5753992927b"
+   },
+   {
+    "path": "proj/Assets/Art/Models/Hero.fbx",
+    "guid": "a0000000000000000000000000000028",
+    "pathname": "Assets/AssetHub/Models/Hero.fbx",
+    "hash": "e222de4db6287177e9e8699868e13be338c37444"
+   },
+   {
+    "path": "proj/Assets/Prefabs/Hat.prefab",
+    "guid": "a0000000000000000000000000000033",
+    "pathname": "Assets/AssetHub/Prefabs/Hat.prefab",
+    "hash": "66099e48209c19f072b0c57c0d86bf8177385568"
+   },
+   {
+    "path": "proj/Assets/Scripts/Mover.cs",
+    "guid": "a000000000000000000000000000003c",
+    "pathname": "Assets/Scripts/Mover.cs",
+    "hash": "daeaee0e500c8bc1a735e27ee333792331880c04"
+   },
+   {
+    "path": "proj/Assets/Art/Models/Hat.fbx",
+    "guid": "a000000000000000000000000000002b",
+    "pathname": "Assets/AssetHub/Models/Hat.fbx",
+    "hash": "e6686cd3e66a844a36fe7993433ba26d9365647a"
+   },
+   {
+    "path": "proj/Assets/Prefabs/Fx/Burst.prefab",
+    "guid": "a0000000000000000000000000000035",
+    "pathname": "Assets/AssetHub/Prefabs/Burst.prefab",
+    "hash": "e8331f79fa40ae581e08994f88a12fe302bf15e0"
+   },
+   {
+    "path": "proj/Assets/Art/Mats/Fx_Portal.mat",
+    "guid": "a0000000000000000000000000000016",
+    "pathname": "Assets/AssetHub/Materials/Fx_Portal.mat",
+    "hash": "a2cee9c88689a2c9c4c49262b8933f50ff27dc5a"
+   },
+   {
+    "path": "proj/Assets/Shaders/AllIn1Vfx.shader",
+    "guid": "a000000000000000000000000000001e",
+    "pathname": "Assets/AssetHub/Shaders/Shaders/AllIn1Vfx.shader",
+    "hash": "012bdd1801d7c443de031187a08f77d857ae1998",
+    "shader": {
+     "name": "AllIn1Vfx/AllIn1Vfx",
+     "kind": "shader"
+    }
+   },
+   {
+    "path": "proj/Assets/Shaders/AllIn1Include.cginc",
+    "guid": "a000000000000000000000000000001f",
+    "pathname": "Assets/AssetHub/Shaders/Shaders/AllIn1Include.cginc",
+    "hash": "b0be59d98943549299df4ac40efa8be5af131ec5"
+   }
+  ],
+  {
+   "byGuid": {
+    "$": "map",
+    "v": [
+     [
+      "a000000000000000000000000000000a",
+      "Assets/Mine/albedo.png"
+     ],
+     [
+      "a0000000000000000000000000000014",
+      "Assets/Mine/Body.mat"
+     ]
+    ]
+   },
+   "byHash": {
+    "$": "map",
+    "v": [
+     [
+      "4c5f37bd95338fef4896c15fde468c4058c655f6",
+      {
+       "path": "Assets/Mine/Urp.mat",
+       "guid": "c0000000000000000000000000000001"
+      }
+     ]
+    ]
+   },
+   "hashOf": {
+    "$": "map",
+    "v": [
+     [
+      "Assets/Mine/albedo.png",
+      "22b51a0f04967d4c0d0465225c81d54b92475d78"
+     ],
+     [
+      "Assets/Mine/Body.mat",
+      "different"
+     ]
+    ]
+   },
+   "paths": {
+    "$": "set",
+    "v": [
+     "assets/assethub/prefabs/hero.prefab"
+    ]
+   },
+   "shaders": {
+    "$": "map",
+    "v": [
+     [
+      "AllIn1Vfx/AllIn1Vfx",
+      {
+       "path": "Assets/Mine/Other.shader",
+       "guid": "c0000000000000000000000000000002",
+       "kind": "shader"
+      }
+     ]
+    ]
+   }
+  },
+  false
+ ],
+ "result": {
+  "decisions": {
+   "$": "map",
+   "v": [
+    [
+     "proj/Assets/Prefabs/Hero.prefab",
+     {
+      "action": "rename",
+      "existing": "Assets/AssetHub/Prefabs/Hero.prefab"
+     }
+    ],
+    [
+     "proj/Assets/Art/Mats/M_Hero_Body.mat",
+     {
+      "action": "overwrite",
+      "existing": "Assets/Mine/Body.mat"
+     }
+    ],
+    [
+     "proj/Assets/Art/Tex/hero_albedo.png",
+     {
+      "action": "same",
+      "existing": "Assets/Mine/albedo.png"
+     }
+    ],
+    [
+     "proj/Assets/Art/Tex/hero_normal.png",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Art/Tex/hero_emission.png",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Art/Mats/Fx_Spark.mat",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Art/Tex/sheet.png",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Art/Models/Hero.fbx",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Prefabs/Hat.prefab",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Scripts/Mover.cs",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Art/Models/Hat.fbx",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Prefabs/Fx/Burst.prefab",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Art/Mats/Fx_Portal.mat",
+     {
+      "action": "add"
+     }
+    ],
+    [
+     "proj/Assets/Shaders/AllIn1Vfx.shader",
+     {
+      "action": "clash",
+      "existing": "Assets/Mine/Other.shader",
+      "name": "AllIn1Vfx/AllIn1Vfx"
+     }
+    ],
+    [
+     "proj/Assets/Shaders/AllIn1Include.cginc",
+     {
+      "action": "add"
+     }
+    ]
+   ]
+  },
+  "remap": {
+   "$": "map",
+   "v": []
+  }
+ }
+}

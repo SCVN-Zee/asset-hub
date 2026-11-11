@@ -1,0 +1,140 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "parsePrefabScene-dd1d69a9",
+ "fn": "parsePrefabScene",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!1 &100\nGameObject:\n  m_Name: House\n  m_IsActive: 1\n--- !u!4 &400\nTransform:\n  m_GameObject: {fileID: 100}\n  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}\n  m_LocalPosition: {x: 0, y: 0, z: 0}\n  m_LocalScale: {x: 1, y: 1, z: 1}\n  m_Children:\n  - {fileID: 401}\n  m_Father: {fileID: 0}\n--- !u!114 &500\nMonoBehaviour:\n  m_GameObject: {fileID: 100}\n  m_Script: {fileID: 11500000, guid: a0000000000000000000000000000014, type: 3}\n--- !u!114 &501\nMonoBehaviour:\n  m_GameObject: {fileID: 100}\n  m_Script: {fileID: 11500000, guid: a0000000000000000000000000000015, type: 3}\n  sound: {fileID: 8300000, guid: a000000000000000000000000000001e, type: 3}\n--- !u!1 &101\nGameObject:\n  m_Name: Roof\n  m_IsActive: 0\n--- !u!4 &401\nTransform:\n  m_GameObject: {fileID: 101}\n  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}\n  m_LocalPosition: {x: 1, y: 2, z: 3}\n  m_LocalScale: {x: 2, y: 2, z: 2}\n  m_Children: []\n  m_Father: {fileID: 400}\n--- !u!33 &3300\nMeshFilter:\n  m_GameObject: {fileID: 101}\n  m_Mesh: {fileID: 4300000, guid: a0000000000000000000000000000001, type: 3}\n--- !u!23 &2300\nMeshRenderer:\n  m_GameObject: {fileID: 101}\n  m_Materials:\n  - {fileID: 2100000, guid: a0000000000000000000000000000002, type: 2}\n  - {fileID: 2100000, guid: a0000000000000000000000000000003, type: 2}\n--- !u!1001 &9000\nPrefabInstance:\n  m_Modification:\n    m_TransformParent: {fileID: 400}\n    m_Modifications:\n    - target: {fileID: -8679921383154817045, guid: a0000000000000000000000000000005, type: 3}\n      propertyPath: m_LocalPosition.x\n      value: 4\n      objectReference: {fileID: 0}\n    - target: {fileID: -8679921383154817045, guid: a0000000000000000000000000000005, type: 3}\n      propertyPath: m_LocalPosition.y\n      value: 0\n      objectReference: {fileID: 0}\n    - target: {fileID: -8679921383154817045, guid: a0000000000000000000000000000005, type: 3}\n      propertyPath: m_LocalPosition.z\n      value: -1\n      objectReference: {fileID: 0}\n    - target: {fileID: 777, guid: a0000000000000000000000000000005, type: 3}\n      propertyPath: m_Materials.Array.data[0]\n      value: \n      objectReference: {fileID: 2100000, guid: a0000000000000000000000000000003, type: 2}\n  m_SourcePrefab: {fileID: 100100000, guid: a0000000000000000000000000000005, type: 3}\n--- !u!4 &402 stripped\nTransform:\n  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a0000000000000000000000000000005, type: 3}\n  m_PrefabInstance: {fileID: 9000}\n"
+ ],
+ "result": {
+  "nodes": {
+   "$": "map",
+   "v": [
+    [
+     "400",
+     {
+      "id": "400",
+      "name": "House",
+      "position": [
+       0,
+       0,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "active": true
+     }
+    ],
+    [
+     "401",
+     {
+      "id": "401",
+      "name": "Roof",
+      "parent": "400",
+      "position": [
+       1,
+       2,
+       3
+      ],
+      "rotation": [
+       0,
+       0.7071068,
+       0,
+       0.7071068
+      ],
+      "scale": [
+       2,
+       2,
+       2
+      ],
+      "active": false
+     }
+    ],
+    [
+     "402",
+     {
+      "id": "402",
+      "name": "",
+      "position": [
+       0,
+       0,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "active": true,
+      "instance": "9000"
+     }
+    ]
+   ]
+  },
+  "meshes": [
+   {
+    "node": "401",
+    "mesh": {
+     "fileID": "4300000",
+     "guid": "a0000000000000000000000000000001"
+    },
+    "materials": [
+     "a0000000000000000000000000000002",
+     "a0000000000000000000000000000003"
+    ],
+    "skinned": false
+   }
+  ],
+  "instances": [
+   {
+    "id": "9000",
+    "source": "a0000000000000000000000000000005",
+    "parent": "400",
+    "position": [
+     4,
+     0,
+     -1
+    ],
+    "materials": [
+     "a0000000000000000000000000000003"
+    ]
+   }
+  ],
+  "scripts": [
+   "a0000000000000000000000000000014",
+   "a0000000000000000000000000000015"
+  ],
+  "particleSystems": 0,
+  "particleMaterials": [],
+  "particleMeshes": [],
+  "uiElements": 0,
+  "guids": [
+   "a0000000000000000000000000000014",
+   "a0000000000000000000000000000015",
+   "a000000000000000000000000000001e",
+   "a0000000000000000000000000000001",
+   "a0000000000000000000000000000002",
+   "a0000000000000000000000000000003",
+   "a0000000000000000000000000000005"
+  ]
+ }
+}

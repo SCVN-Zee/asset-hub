@@ -1,0 +1,86 @@
+{
+ "source": {
+  "path": "src/core/unity/particleSim.ts",
+  "commit": "34e6287058447abce532ccdf8b6cc9077c731e42",
+  "sha256": "0c20690fdc90515ccaf64391efc4bf975dab27fbc240392166f5194652492540"
+ },
+ "case": "parseParticleSim-8ba008e4",
+ "fn": "parseParticleSim",
+ "origin": "unit-test-input",
+ "args": [
+  "\nParticleSystem:\n  m_GameObject: {fileID: 1}\n",
+  {
+   "$": "undefined"
+  }
+ ],
+ "result": {
+  "duration": 5,
+  "looping": false,
+  "prewarm": false,
+  "worldSpace": false,
+  "simulationSpeed": 1,
+  "startDelay": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startLifetime": {
+   "mode": 0,
+   "scalar": 5,
+   "min": 5
+  },
+  "startSpeed": {
+   "mode": 0,
+   "scalar": 5,
+   "min": 5
+  },
+  "startSize": {
+   "mode": 0,
+   "scalar": 1,
+   "min": 1
+  },
+  "startRotation": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startColor": {
+   "mode": 0,
+   "max": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "min": [
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "gravity": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "maxParticles": 1000,
+  "rate": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "bursts": [],
+  "lengthScale": 2,
+  "velocityScale": 0,
+  "pivot": [
+   0,
+   0,
+   0
+  ],
+  "maxScreenSize": 0.5,
+  "sortingOrder": 0,
+  "sortingFudge": 0,
+  "alignment": "view"
+ }
+}

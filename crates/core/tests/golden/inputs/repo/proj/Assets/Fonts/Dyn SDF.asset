@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  m_Name: Dyn SDF Material
+--- !u!114 &11400000
+MonoBehaviour:
+  m_Name: Dyn SDF
+  m_Script: {fileID: 11500000, guid: 74dfce233ba2d6a4d8cb3e1f8d7a1d5e, type: 3}
+  m_FaceInfo:
+    m_FaceIndex: 0
+    m_FamilyName: Pixel Sans
+    m_StyleName: Regular
+    m_PointSize: 36
+    m_Scale: 1
+    m_Padding: 5
+  m_AtlasWidth: 512
+  m_AtlasHeight: 512
+  m_AtlasPopulationMode: 1
+  m_SourceFontFile: {fileID: 12800000, guid: a0000000000000000000000000000051, type: 3}
+  m_CharacterTable:
+  - m_ElementType: 1
+    m_Unicode: 65
+    m_GlyphIndex: 34
+    m_Scale: 1
+  - m_ElementType: 1
+    m_Unicode: 66
+    m_GlyphIndex: 35
+    m_Scale: 1
+  m_FallbackFontAssetTable:
+  - {fileID: 11400000, guid: a0000000000000000000000000000050, type: 2}

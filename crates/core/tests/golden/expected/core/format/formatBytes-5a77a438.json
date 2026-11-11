@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/format.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "94056d427b249207e8f84e579db927a9653de828eb3529f2a8e4b9ed4a18b9e6"
+ },
+ "case": "formatBytes-5a77a438",
+ "fn": "formatBytes",
+ "origin": "unit-test-input",
+ "args": [
+  1536
+ ],
+ "result": "1.5 KB"
+}

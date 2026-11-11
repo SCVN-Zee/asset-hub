@@ -1,0 +1,234 @@
+{
+ "source": {
+  "path": "src/core/deps/prefab.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "823c6e8856f3e4c5d13d7dda13d2e3df998f3809b1d230a0bf45b57c896101ce"
+ },
+ "case": "resolvePrefabDependencies.prefab.Assets_Prefabs_HeroVariant.prefab",
+ "fn": "resolvePrefabDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Prefabs/HeroVariant.prefab",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "A",
+  "materials": [
+   {
+    "name": "M_Hero_Body_Red",
+    "guid": "a0000000000000000000000000000017",
+    "path": "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+    "missing": false,
+    "textures": []
+   },
+   {
+    "name": "M_Hero_Body",
+    "guid": "a0000000000000000000000000000014",
+    "path": "proj/Assets/Art/Mats/M_Hero_Body.mat",
+    "missing": false,
+    "shader": {
+     "guid": "0000000000000000f000000000000000",
+     "kind": "builtin",
+     "label": "Standard"
+    },
+    "textures": [
+     {
+      "prop": "_MainTex",
+      "guid": "a000000000000000000000000000000a",
+      "path": "proj/Assets/Art/Tex/hero_albedo.png",
+      "name": "hero_albedo.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 136
+     },
+     {
+      "prop": "_BumpMap",
+      "guid": "a000000000000000000000000000000b",
+      "path": "proj/Assets/Art/Tex/hero_normal.png",
+      "name": "hero_normal.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 136
+     },
+     {
+      "prop": "_EmissionMap",
+      "guid": "a000000000000000000000000000000c",
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "name": "hero_emission.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 86
+     }
+    ]
+   },
+   {
+    "name": "M_Hero_Urp",
+    "guid": "a0000000000000000000000000000015",
+    "path": "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+    "missing": false,
+    "shader": {
+     "guid": "933532a4fcc9baf4fa0491de14d08ed7",
+     "kind": "package",
+     "label": "Universal Render Pipeline/Lit"
+    },
+    "textures": [
+     {
+      "prop": "_BaseMap",
+      "guid": "a000000000000000000000000000000a",
+      "path": "proj/Assets/Art/Tex/hero_albedo.png",
+      "name": "hero_albedo.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 136
+     },
+     {
+      "prop": "_EmissionMap",
+      "guid": "a000000000000000000000000000000c",
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "name": "hero_emission.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 86
+     }
+    ]
+   },
+   {
+    "name": "Fx_Spark",
+    "guid": "a0000000000000000000000000000018",
+    "path": "proj/Assets/Art/Mats/Fx_Spark.mat",
+    "missing": false,
+    "shader": {
+     "guid": "0406db5a14f94604a8c57ccfbc9f3b46",
+     "kind": "package",
+     "label": "Universal Render Pipeline/Particles/Unlit"
+    },
+    "textures": [
+     {
+      "prop": "_BaseMap",
+      "guid": "a000000000000000000000000000000d",
+      "path": "proj/Assets/Art/Tex/sheet.png",
+      "name": "sheet.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 200
+     },
+     {
+      "prop": "_EmissionMap",
+      "guid": "a000000000000000000000000000000c",
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "name": "hero_emission.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 86
+     }
+    ]
+   },
+   {
+    "name": "a0000000",
+    "guid": "a0000000000000000000000000000063",
+    "missing": true,
+    "textures": []
+   }
+  ],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [
+   "missingMaterial",
+   "customScript"
+  ],
+  "files": [
+   "proj/Assets/Prefabs/HeroVariant.prefab",
+   "proj/Assets/Prefabs/HeroVariant.prefab.meta",
+   "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+   "proj/Assets/Art/Mats/M_Hero_Body_Red.mat.meta",
+   "proj/Assets/Art/Mats/M_Hero_Body.mat",
+   "proj/Assets/Art/Mats/M_Hero_Body.mat.meta",
+   "proj/Assets/Art/Tex/hero_albedo.png",
+   "proj/Assets/Art/Tex/hero_albedo.png.meta",
+   "proj/Assets/Art/Tex/hero_normal.png",
+   "proj/Assets/Art/Tex/hero_normal.png.meta",
+   "proj/Assets/Art/Tex/hero_emission.png",
+   "proj/Assets/Art/Tex/hero_emission.png.meta",
+   "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+   "proj/Assets/Art/Mats/M_Hero_Urp.mat.meta",
+   "proj/Assets/Art/Mats/Fx_Spark.mat",
+   "proj/Assets/Art/Mats/Fx_Spark.mat.meta",
+   "proj/Assets/Art/Tex/sheet.png",
+   "proj/Assets/Art/Tex/sheet.png.meta",
+   "proj/Assets/Prefabs/Hero.prefab",
+   "proj/Assets/Prefabs/Hero.prefab.meta",
+   "proj/Assets/Art/Models/Hero.fbx",
+   "proj/Assets/Art/Models/Hero.fbx.meta",
+   "proj/Assets/Prefabs/Hat.prefab",
+   "proj/Assets/Prefabs/Hat.prefab.meta",
+   "proj/Assets/Scripts/Mover.cs",
+   "proj/Assets/Scripts/Mover.cs.meta",
+   "proj/Assets/Art/Models/Hat.fbx",
+   "proj/Assets/Art/Models/Hat.fbx.meta"
+  ],
+  "parts": [
+   {
+    "kind": "model",
+    "guid": "a000000000000000000000000000002b",
+    "name": "Hat.fbx",
+    "path": "proj/Assets/Art/Models/Hat.fbx",
+    "missing": false,
+    "size": 61,
+    "uses": 1
+   },
+   {
+    "kind": "model",
+    "guid": "a0000000000000000000000000000028",
+    "name": "Hero.fbx",
+    "path": "proj/Assets/Art/Models/Hero.fbx",
+    "missing": false,
+    "size": 95,
+    "uses": 1
+   },
+   {
+    "kind": "prefab",
+    "guid": "a0000000000000000000000000000033",
+    "name": "Hat.prefab",
+    "path": "proj/Assets/Prefabs/Hat.prefab",
+    "missing": false,
+    "size": 681,
+    "uses": 1
+   },
+   {
+    "kind": "prefab",
+    "guid": "a0000000000000000000000000000032",
+    "name": "Hero.prefab",
+    "path": "proj/Assets/Prefabs/Hero.prefab",
+    "missing": false,
+    "size": 1918,
+    "uses": 1
+   },
+   {
+    "kind": "script",
+    "guid": "a000000000000000000000000000003c",
+    "name": "Mover.cs",
+    "path": "proj/Assets/Scripts/Mover.cs",
+    "missing": false,
+    "size": 58,
+    "uses": 1
+   }
+  ],
+  "guidPaths": {
+   "a0000000000000000000000000000032": "proj/Assets/Prefabs/Hero.prefab",
+   "a0000000000000000000000000000028": "proj/Assets/Art/Models/Hero.fbx",
+   "a0000000000000000000000000000033": "proj/Assets/Prefabs/Hat.prefab",
+   "a000000000000000000000000000003c": "proj/Assets/Scripts/Mover.cs",
+   "a000000000000000000000000000002b": "proj/Assets/Art/Models/Hat.fbx",
+   "a0000000000000000000000000000017": "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+   "a0000000000000000000000000000014": "proj/Assets/Art/Mats/M_Hero_Body.mat",
+   "a0000000000000000000000000000015": "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+   "a0000000000000000000000000000018": "proj/Assets/Art/Mats/Fx_Spark.mat"
+  },
+  "packageScripts": [
+   "a0000000000000000000000000000063"
+  ]
+ }
+}

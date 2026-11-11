@@ -1,0 +1,995 @@
+{
+ "source": {
+  "path": "src/core/catalog/catalog.ts",
+  "commit": "b72ffbeca5323939d8c04c34624eceaccb1cc8e8",
+  "sha256": "70f66279ec081de4bc815670d19830fd992cb3a6e4bdd6996aafa0c62c3d0e77"
+ },
+ "case": "listCatalog.excluded-_ThirdParty+New._repo_org_hero_",
+ "fn": "listCatalog",
+ "origin": "synthetic",
+ "args": [
+  "grouped of groupCatalog.excluded-_ThirdParty+New",
+  {
+   "repo": "org/hero"
+  }
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "0a3c3aa6198bcad1603af4e182c46ddac5eacaeb",
+    "type": "animation",
+    "path": "proj/Assets/Art/Animations/Hero_Legacy.anim",
+    "name": "Hero_Legacy.anim",
+    "sha": "0a3c3aa6198bcad1603af4e182c46ddac5eacaeb",
+    "size": 787,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Animations/Hero_Legacy.anim",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     },
+     {
+      "repo": "org/other",
+      "path": "proj/Assets/Art/Animations/Hero_Legacy.anim",
+      "branches": [
+       "main"
+      ],
+      "branchTotal": 1
+     }
+    ],
+    "branchCount": 4,
+    "repoCount": 2,
+    "locationTotal": 2
+   },
+   {
+    "id": "a1f1f2f59bd7d537cc3e2a603930be30ab651ea2",
+    "type": "animation",
+    "path": "proj/Assets/Art/Animations/Hero_Run.anim",
+    "name": "Hero_Run.anim",
+    "sha": "a1f1f2f59bd7d537cc3e2a603930be30ab651ea2",
+    "size": 784,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Animations/Hero_Run.anim",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     },
+     {
+      "repo": "org/other",
+      "path": "proj/Assets/Art/Animations/Hero_Run.anim",
+      "branches": [
+       "main"
+      ],
+      "branchTotal": 1
+     }
+    ],
+    "branchCount": 4,
+    "repoCount": 2,
+    "locationTotal": 2
+   },
+   {
+    "id": "4cd39fce70319926672d5e28b7fa11df52add06c",
+    "type": "animation",
+    "path": "proj/Assets/Art/Animations/Hero_Wave.anim",
+    "name": "Hero_Wave.anim",
+    "sha": "4cd39fce70319926672d5e28b7fa11df52add06c",
+    "size": 1135,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Animations/Hero_Wave.anim",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     },
+     {
+      "repo": "org/other",
+      "path": "proj/Assets/Art/Animations/Hero_Wave.anim",
+      "branches": [
+       "main"
+      ],
+      "branchTotal": 1
+     }
+    ],
+    "branchCount": 4,
+    "repoCount": 2,
+    "locationTotal": 2
+   },
+   {
+    "id": "800bffeb8250825771923228eaaf94d8b55aec85",
+    "type": "animation",
+    "path": "proj/Assets/Art/Animations/Spark.anim",
+    "name": "Spark.anim",
+    "sha": "800bffeb8250825771923228eaaf94d8b55aec85",
+    "size": 545,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Animations/Spark.anim",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     },
+     {
+      "repo": "org/other",
+      "path": "proj/Assets/Art/Animations/Spark.anim",
+      "branches": [
+       "main"
+      ],
+      "branchTotal": 1
+     }
+    ],
+    "branchCount": 4,
+    "repoCount": 2,
+    "locationTotal": 2
+   },
+   {
+    "id": "a2cee9c88689a2c9c4c49262b8933f50ff27dc5a",
+    "type": "material",
+    "path": "proj/Assets/Art/Mats/Fx_Portal.mat",
+    "name": "Fx_Portal.mat",
+    "sha": "a2cee9c88689a2c9c4c49262b8933f50ff27dc5a",
+    "size": 903,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Mats/Fx_Portal.mat",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     },
+     {
+      "repo": "org/other",
+      "path": "proj/Assets/Art/Mats/Fx_Portal.mat",
+      "branches": [
+       "main"
+      ],
+      "branchTotal": 1
+     }
+    ],
+    "branchCount": 4,
+    "repoCount": 2,
+    "locationTotal": 2
+   },
+   {
+    "id": "0c759475979b7441720941ea345b553157f1db09",
+    "type": "material",
+    "path": "proj/Assets/Art/Mats/Fx_Spark.mat",
+    "name": "Fx_Spark.mat",
+    "sha": "0c759475979b7441720941ea345b553157f1db09",
+    "size": 1117,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Mats/Fx_Spark.mat",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "6672839043fe404efd82116d830ba44f2fb241d6",
+    "type": "material",
+    "path": "proj/Assets/Art/Mats/M_Hero_Body.mat",
+    "name": "M_Hero_Body.mat",
+    "sha": "6672839043fe404efd82116d830ba44f2fb241d6",
+    "size": 1129,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Mats/M_Hero_Body.mat",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "95b00f66826e6fba62767591cd19ef0615db6c53",
+    "type": "material",
+    "path": "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+    "name": "M_Hero_Body_Red.mat",
+    "sha": "95b00f66826e6fba62767591cd19ef0615db6c53",
+    "size": 392,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Mats/M_Hero_Body_Red.mat",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "4c5f37bd95338fef4896c15fde468c4058c655f6",
+    "type": "material",
+    "path": "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+    "name": "M_Hero_Urp.mat",
+    "sha": "4c5f37bd95338fef4896c15fde468c4058c655f6",
+    "size": 1119,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "0b12e15a9264b5c641cf36f046053948a4098ad1",
+    "type": "material",
+    "path": "proj/Assets/Art/Mats/M_Legacy.mat",
+    "name": "M_Legacy.mat",
+    "sha": "0b12e15a9264b5c641cf36f046053948a4098ad1",
+    "size": 392,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Mats/M_Legacy.mat",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "1aa60c938debd55f8f78cc86d21a75d074edbf22",
+    "type": "fbx",
+    "path": "proj/Assets/Art/Models/Big.fbx",
+    "name": "Big.fbx",
+    "sha": "1aa60c938debd55f8f78cc86d21a75d074edbf22",
+    "size": 132,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Models/Big.fbx",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "e6686cd3e66a844a36fe7993433ba26d9365647a",
+    "type": "fbx",
+    "path": "proj/Assets/Art/Models/Hat.fbx",
+    "name": "Hat.fbx",
+    "sha": "e6686cd3e66a844a36fe7993433ba26d9365647a",
+    "size": 61,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Models/Hat.fbx",
+      "branches": [
+       "main",
+       "feature/x"
+      ],
+      "branchTotal": 2
+     }
+    ],
+    "branchCount": 2,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "e222de4db6287177e9e8699868e13be338c37444",
+    "type": "fbx",
+    "path": "proj/Assets/Art/Models/Hero.fbx",
+    "name": "Hero.fbx",
+    "sha": "e222de4db6287177e9e8699868e13be338c37444",
+    "size": 95,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Models/Hero.fbx",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "7c536222599afbcd6c3f749fa8d091f580d24a1c",
+    "type": "fbx",
+    "path": "proj/Assets/Art/Models/Hero@Run.fbx",
+    "name": "Hero@Run.fbx",
+    "sha": "7c536222599afbcd6c3f749fa8d091f580d24a1c",
+    "size": 27,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Models/Hero@Run.fbx",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "6bccd772d40955f2a1e797dd0c56efb453174e58",
+    "type": "fbx",
+    "path": "proj/Assets/Art/Models/Prop.fbx",
+    "name": "Prop.fbx",
+    "sha": "6bccd772d40955f2a1e797dd0c56efb453174e58",
+    "size": 178,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Models/Prop.fbx",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "22b51a0f04967d4c0d0465225c81d54b92475d78",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/hero_albedo.png",
+    "name": "hero_albedo.png",
+    "sha": "22b51a0f04967d4c0d0465225c81d54b92475d78",
+    "size": 136,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/hero_albedo.png",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "8f5c7ca013325f1a7cc4750961b407e79fed8a4f",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/hero_emission.png",
+    "name": "hero_emission.png",
+    "sha": "8f5c7ca013325f1a7cc4750961b407e79fed8a4f",
+    "size": 86,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "746865e1e8ea4b5f2b2040ee8cd5038c58e68bd2",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/hero_normal.png",
+    "name": "hero_normal.png",
+    "sha": "746865e1e8ea4b5f2b2040ee8cd5038c58e68bd2",
+    "size": 136,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/hero_normal.png",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "de4b0a2277f43ae9e124904845987d65a6169307",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/paint16.psd",
+    "name": "paint16.psd",
+    "sha": "de4b0a2277f43ae9e124904845987d65a6169307",
+    "size": 48,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/paint16.psd",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "57d8df4f5940bb3248c1ff9eafa8c48a160df951",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/paint_raw.psd",
+    "name": "paint_raw.psd",
+    "sha": "57d8df4f5940bb3248c1ff9eafa8c48a160df951",
+    "size": 52,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/paint_raw.psd",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "2a7c952a9cb9b5914a1bdb6c6585a119646c025a",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/paint_rle.psd",
+    "name": "paint_rle.psd",
+    "sha": "2a7c952a9cb9b5914a1bdb6c6585a119646c025a",
+    "size": 88,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/paint_rle.psd",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "8ec40624e0211c53b08bd09af80152e81746f186",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/scan_be16.tif",
+    "name": "scan_be16.tif",
+    "sha": "8ec40624e0211c53b08bd09af80152e81746f186",
+    "size": 142,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/scan_be16.tif",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "e510440b55eddfd43cd723d9b7b0c1ec241c02db",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/scan_deflate.tif",
+    "name": "scan_deflate.tif",
+    "sha": "e510440b55eddfd43cd723d9b7b0c1ec241c02db",
+    "size": 161,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/scan_deflate.tif",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "78a268f51d6882bc3459d5a2937cc858b68f86db",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/scan_none.tif",
+    "name": "scan_none.tif",
+    "sha": "78a268f51d6882bc3459d5a2937cc858b68f86db",
+    "size": 150,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/scan_none.tif",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "4c3423f83e0fb5ca26a27bf95f40baf2505967c2",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/scan_packbits.tif",
+    "name": "scan_packbits.tif",
+    "sha": "4c3423f83e0fb5ca26a27bf95f40baf2505967c2",
+    "size": 154,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/scan_packbits.tif",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "6dd07e57ea2d6848fce3b65b0a23e5753992927b",
+    "type": "texture",
+    "path": "proj/Assets/Art/Tex/sheet.png",
+    "name": "sheet.png",
+    "sha": "6dd07e57ea2d6848fce3b65b0a23e5753992927b",
+    "size": 200,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Art/Tex/sheet.png",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "4338e48db1851bd7dd0780e4f2611ffcf7112335",
+    "type": "audio",
+    "path": "proj/Assets/Audio/hit.wav",
+    "name": "hit.wav",
+    "sha": "4338e48db1851bd7dd0780e4f2611ffcf7112335",
+    "size": 1808,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Audio/hit.wav",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "13266d258dc1c0e5faddcf0bc2eeb4e847d0c414",
+    "type": "audio",
+    "path": "proj/Assets/Audio/jingle.mp3",
+    "name": "jingle.mp3",
+    "sha": "13266d258dc1c0e5faddcf0bc2eeb4e847d0c414",
+    "size": 3356,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Audio/jingle.mp3",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "1e9a4dd4f45a0c2cf9c82bf17aa380cdfbfa3969",
+    "type": "audio",
+    "path": "proj/Assets/Audio/music.ogg",
+    "name": "music.ogg",
+    "sha": "1e9a4dd4f45a0c2cf9c82bf17aa380cdfbfa3969",
+    "size": 144,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Audio/music.ogg",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "d0aebb54cf3f46a8ff8169f9da17dd02177b2b72",
+    "type": "tmpFont",
+    "path": "proj/Assets/Fonts/Dyn SDF.asset",
+    "name": "Dyn SDF.asset",
+    "sha": "d0aebb54cf3f46a8ff8169f9da17dd02177b2b72",
+    "size": 796,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Fonts/Dyn SDF.asset",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "368663d34ef3b939a00f45b85fc5b9a0801ed1dd",
+    "type": "tmpFont",
+    "path": "proj/Assets/Fonts/Pixel SDF.asset",
+    "name": "Pixel SDF.asset",
+    "sha": "368663d34ef3b939a00f45b85fc5b9a0801ed1dd",
+    "size": 887,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Fonts/Pixel SDF.asset",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "f8705a1fc00c6038d03b2aacdce9e8f25e502212",
+    "type": "font",
+    "path": "proj/Assets/Fonts/gothic.otf",
+    "name": "gothic.otf",
+    "sha": "f8705a1fc00c6038d03b2aacdce9e8f25e502212",
+    "size": 300,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Fonts/gothic.otf",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "075e40ea9cfc05a7cf6511052d007f13c55b881c",
+    "type": "font",
+    "path": "proj/Assets/Fonts/pixel.ttf",
+    "name": "pixel.ttf",
+    "sha": "075e40ea9cfc05a7cf6511052d007f13c55b881c",
+    "size": 264,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Fonts/pixel.ttf",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "e8331f79fa40ae581e08994f88a12fe302bf15e0",
+    "type": "prefab",
+    "path": "proj/Assets/Prefabs/Fx/Burst.prefab",
+    "name": "Burst.prefab",
+    "sha": "e8331f79fa40ae581e08994f88a12fe302bf15e0",
+    "size": 1265,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Prefabs/Fx/Burst.prefab",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "66099e48209c19f072b0c57c0d86bf8177385568",
+    "type": "prefab",
+    "path": "proj/Assets/Prefabs/Hat.prefab",
+    "name": "Hat.prefab",
+    "sha": "66099e48209c19f072b0c57c0d86bf8177385568",
+    "size": 681,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Prefabs/Hat.prefab",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "4f184b1766dbf99d381db21b2408a916e9656728",
+    "type": "prefab",
+    "path": "proj/Assets/Prefabs/Hero.prefab",
+    "name": "Hero.prefab",
+    "sha": "4f184b1766dbf99d381db21b2408a916e9656728",
+    "size": 1918,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Prefabs/Hero.prefab",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "8181331aca634c6c96a0581c9e30a26a6545cb80",
+    "type": "prefab",
+    "path": "proj/Assets/Prefabs/HeroVariant.prefab",
+    "name": "HeroVariant.prefab",
+    "sha": "8181331aca634c6c96a0581c9e30a26a6545cb80",
+    "size": 701,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "proj/Assets/Prefabs/HeroVariant.prefab",
+      "branches": [
+       "main",
+       "dev",
+       "feature/x"
+      ],
+      "branchTotal": 3
+     }
+    ],
+    "branchCount": 3,
+    "repoCount": 1,
+    "locationTotal": 1
+   },
+   {
+    "id": "cafecafe",
+    "type": "fbx",
+    "path": "Assets/Art/Models/LfsThing.fbx",
+    "name": "LfsThing.fbx",
+    "sha": "cafecafe",
+    "size": 4096,
+    "lfs": false,
+    "locations": [
+     {
+      "repo": "org/hero",
+      "path": "Assets/Art/Models/LfsThing.fbx",
+      "branches": [
+       "dev"
+      ],
+      "branchTotal": 1
+     }
+    ],
+    "branchCount": 1,
+    "repoCount": 1,
+    "locationTotal": 1
+   }
+  ],
+  "facets": {
+   "repos": [
+    [
+     "org/hero",
+     38
+    ],
+    [
+     "org/other",
+     5
+    ]
+   ],
+   "branches": [
+    [
+     "dev",
+     37
+    ],
+    [
+     "feature/x",
+     37
+    ],
+    [
+     "main",
+     37
+    ]
+   ]
+  }
+ }
+}

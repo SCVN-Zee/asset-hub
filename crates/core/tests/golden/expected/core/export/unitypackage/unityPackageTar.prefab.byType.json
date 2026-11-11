@@ -1,0 +1,309 @@
+{
+ "source": {
+  "path": "src/core/export/unitypackage.ts",
+  "commit": "102c376a1bc41e0561c95ba830151cd3b4ceb116",
+  "sha256": "d838a4ec50d900a9419ff32e99736f3846d789f2e9ee1dff7030ac2c157806db"
+ },
+ "case": "unityPackageTar.prefab.byType",
+ "fn": "unityPackageTar",
+ "origin": "synthetic",
+ "args": [
+  {
+   "entries": [
+    {
+     "guid": "a0000000000000000000000000000032",
+     "pathname": "Assets/AssetHub/Prefabs/Hero.prefab",
+     "file": {
+      "path": "proj/Assets/Prefabs/Hero.prefab",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "len": 1918,
+       "file": "a70dc7e450b2516309cf.bin"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMzIKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a0000000000000000000000000000014",
+     "pathname": "Assets/AssetHub/Materials/M_Hero_Body.mat",
+     "file": {
+      "path": "proj/Assets/Art/Mats/M_Hero_Body.mat",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "len": 1129,
+       "file": "6f1a20481f95469302be.bin"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMTQKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000000a",
+     "pathname": "Assets/AssetHub/Textures/hero_albedo.png",
+     "file": {
+      "path": "proj/Assets/Art/Tex/hero_albedo.png",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAT0lEQVR4AQFEALv/AMh4PP/YeDz/6Hg8//h4PP8AyIg8/9iIPP/oiDz/+Ig8/wDImDz/2Jg8/+iYPP/4mDz/AMioPP/YqDz/6Kg8//ioPP+RZyqx73qtdAAAAABJRU5ErkJggg=="
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGEKVGV4dHVyZUltcG9ydGVyOgogIHNlcmlhbGl6ZWRWZXJzaW9uOiAxMgogIG1pcG1hcHM6CiAgICBlbmFibGVNaXBNYXA6IDEKICBzUkdCVGV4dHVyZTogMQogIGlzUmVhZGFibGU6IDAKICBtYXhUZXh0dXJlU2l6ZTogMjA0OAogIHRleHR1cmVUeXBlOiAwCiAgcGxhdGZvcm1TZXR0aW5nczoKICAtIHNlcmlhbGl6ZWRWZXJzaW9uOiAzCiAgICBidWlsZFRhcmdldDogV2ViR0wKICAgIG1heFRleHR1cmVTaXplOiA1MTIKICAgIHRleHR1cmVGb3JtYXQ6IDQKICAgIG92ZXJyaWRkZW46IDEK"
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000000b",
+     "pathname": "Assets/AssetHub/Textures/hero_normal.png",
+     "file": {
+      "path": "proj/Assets/Art/Tex/hero_normal.png",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAT0lEQVR4AQFEALv/AICA//+QgP//oID//7CA//8AgJD//5CQ//+gkP//sJD//wCAoP//kKD//6Cg//+woP//AICw//+QsP//oLD//7Cw//+bPjLh5Iv35AAAAABJRU5ErkJggg=="
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGIKVGV4dHVyZUltcG9ydGVyOgogIHNlcmlhbGl6ZWRWZXJzaW9uOiAxMgogIG1pcG1hcHM6CiAgICBlbmFibGVNaXBNYXA6IDEKICBzUkdCVGV4dHVyZTogMQogIGlzUmVhZGFibGU6IDAKICBtYXhUZXh0dXJlU2l6ZTogMjA0OAogIHRleHR1cmVUeXBlOiAwCiAgcGxhdGZvcm1TZXR0aW5nczoKICAtIHNlcmlhbGl6ZWRWZXJzaW9uOiAzCiAgICBidWlsZFRhcmdldDogV2ViR0wKICAgIG1heFRleHR1cmVTaXplOiA1MTIKICAgIHRleHR1cmVGb3JtYXQ6IDQKICAgIG92ZXJyaWRkZW46IDEK"
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000000c",
+     "pathname": "Assets/AssetHub/Textures/hero_emission.png",
+     "file": {
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAHUlEQVR4AQESAO3/AP//AP8P/wD/AP8PAP8PDwD/VFQINbL5hRgAAAAASUVORK5CYII="
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGMKVGV4dHVyZUltcG9ydGVyOgogIHNlcmlhbGl6ZWRWZXJzaW9uOiAxMgogIG1pcG1hcHM6CiAgICBlbmFibGVNaXBNYXA6IDEKICBzUkdCVGV4dHVyZTogMQogIGlzUmVhZGFibGU6IDAKICBtYXhUZXh0dXJlU2l6ZTogMjA0OAogIHRleHR1cmVUeXBlOiAwCiAgcGxhdGZvcm1TZXR0aW5nczoKICAtIHNlcmlhbGl6ZWRWZXJzaW9uOiAzCiAgICBidWlsZFRhcmdldDogV2ViR0wKICAgIG1heFRleHR1cmVTaXplOiA1MTIKICAgIHRleHR1cmVGb3JtYXQ6IDQKICAgIG92ZXJyaWRkZW46IDEK"
+      }
+     }
+    },
+    {
+     "guid": "a0000000000000000000000000000015",
+     "pathname": "Assets/AssetHub/Materials/M_Hero_Urp.mat",
+     "file": {
+      "path": "proj/Assets/Art/Mats/M_Hero_Urp.mat",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "len": 1119,
+       "file": "69d733451c52d2f72a8b.bin"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMTUKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a0000000000000000000000000000018",
+     "pathname": "Assets/AssetHub/Materials/Fx_Spark.mat",
+     "file": {
+      "path": "proj/Assets/Art/Mats/Fx_Spark.mat",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "len": 1117,
+       "file": "5c5512aa3afce946b3a2.bin"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMTgKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000000d",
+     "pathname": "Assets/AssetHub/Textures/sheet.png",
+     "file": {
+      "path": "proj/Assets/Art/Tex/sheet.png",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAYAAACzzX7wAAAAj0lEQVR4AQGEAHv/AAoUHv8aFB7/KhQe/zoUHv9KFB7/WhQe/2oUHv96FB7/AAokHv8aJB7/KiQe/zokHv9KJB7/WiQe/2okHv96JB7/AAo0Hv8aNB7/KjQe/zo0Hv9KNB7/WjQe/2o0Hv96NB7/AApEHv8aRB7/KkQe/zpEHv9KRB7/WkQe/2pEHv96RB7/HOgxYZGofpoAAAAASUVORK5CYII="
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGQKVGV4dHVyZUltcG9ydGVyOgogIHNlcmlhbGl6ZWRWZXJzaW9uOiAxMgogIHRleHR1cmVUeXBlOiA4CiAgc3ByaXRlTW9kZTogMgogIHNwcml0ZUJvcmRlcjoge3g6IDAsIHk6IDAsIHo6IDAsIHc6IDB9CiAgc3ByaXRlUGl4ZWxzVG9Vbml0czogMTAwCiAgc3ByaXRlU2hlZXQ6CiAgICBzZXJpYWxpemVkVmVyc2lvbjogMgogICAgc3ByaXRlczoKICAgIC0gc2VyaWFsaXplZFZlcnNpb246IDIKICAgICAgbmFtZTogc2hlZXRfMAogICAgICByZWN0OgogICAgICAgIHNlcmlhbGl6ZWRWZXJzaW9uOiAyCiAgICAgICAgeDogMAogICAgICAgIHk6IDAKICAgICAgICB3aWR0aDogNAogICAgICAgIGhlaWdodDogNAogICAgICBhbGlnbm1lbnQ6IDAKICAgICAgcGl2b3Q6IHt4OiAwLjUsIHk6IDAuNX0KICAgICAgYm9yZGVyOiB7eDogMSwgeTogMSwgejogMSwgdzogMX0KICAgIC0gc2VyaWFsaXplZFZlcnNpb246IDIKICAgICAgbmFtZTogc2hlZXRfMQogICAgICByZWN0OgogICAgICAgIHNlcmlhbGl6ZWRWZXJzaW9uOiAyCiAgICAgICAgeDogNAogICAgICAgIHk6IDAKICAgICAgICB3aWR0aDogNAogICAgICAgIGhlaWdodDogNAogICAgICBhbGlnbm1lbnQ6IDAKICAgICAgcGl2b3Q6IHt4OiAwLjUsIHk6IDAuNX0KICAgICAgYm9yZGVyOiB7eDogMCwgeTogMCwgejogMCwgdzogMH0K"
+      }
+     }
+    },
+    {
+     "guid": "a0000000000000000000000000000028",
+     "pathname": "Assets/AssetHub/Models/Hero.fbx",
+     "file": {
+      "path": "proj/Assets/Art/Models/Hero.fbx",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "S2F5ZGFyYSBGQlggQmluYXJ5ICAAGgDoHAAAUmVsYXRpdmVGaWxlbmFtZQBoZXJvX2FsYmVkby5wbmcABVJlbGF0aXZlRmlsZW5hbWUAaGVyb19ub3JtYWwucG5nAAU="
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMjgKTW9kZWxJbXBvcnRlcjoKICBzZXJpYWxpemVkVmVyc2lvbjogMjIyMDAKICBleHRlcm5hbE9iamVjdHM6CiAgLSBmaXJzdDoKICAgICAgdHlwZTogVW5pdHlFbmdpbmU6TWF0ZXJpYWwKICAgICAgYXNzZW1ibHk6IFVuaXR5RW5naW5lLkNvcmVNb2R1bGUKICAgICAgbmFtZTogTV9IZXJvX0JvZHkKICAgIHNlY29uZDoge2ZpbGVJRDogMjEwMDAwMCwgZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMTQsIHR5cGU6IDJ9CiAgLSBmaXJzdDoKICAgICAgdHlwZTogVW5pdHlFbmdpbmU6TWF0ZXJpYWwKICAgICAgYXNzZW1ibHk6IFVuaXR5RW5naW5lLkNvcmVNb2R1bGUKICAgICAgbmFtZTogTV9IZXJvX1VycAogICAgc2Vjb25kOiB7ZmlsZUlEOiAyMTAwMDAwLCBndWlkOiBhMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAxNSwgdHlwZTogMn0KICAtIGZpcnN0OgogICAgICB0eXBlOiBVbml0eUVuZ2luZTpNYXRlcmlhbAogICAgICBhc3NlbWJseTogVW5pdHlFbmdpbmUuQ29yZU1vZHVsZQogICAgICBuYW1lOiBNX0dvbmUKICAgIHNlY29uZDoge2ZpbGVJRDogMjEwMDAwMCwgZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwNjMsIHR5cGU6IDJ9CiAgbWF0ZXJpYWxzOgogICAgbWF0ZXJpYWxJbXBvcnRNb2RlOiAyCiAgICBtYXRlcmlhbE5hbWU6IDAKICAgIG1hdGVyaWFsU2VhcmNoOiAxCiAgICBtYXRlcmlhbExvY2F0aW9uOiAxCiAgZ2xvYmFsU2NhbGU6IDAuMDEKICB1c2VGaWxlU2NhbGU6IDEK"
+      }
+     }
+    },
+    {
+     "guid": "a0000000000000000000000000000033",
+     "pathname": "Assets/AssetHub/Prefabs/Hat.prefab",
+     "file": {
+      "path": "proj/Assets/Prefabs/Hat.prefab",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "JVlBTUwgMS4xCiVUQUcgIXUhIHRhZzp1bml0eTNkLmNvbSwyMDExOgotLS0gIXUhMSAmNTAwMQpHYW1lT2JqZWN0OgogIG1fT2JqZWN0SGlkZUZsYWdzOiAwCiAgc2VyaWFsaXplZFZlcnNpb246IDYKICBtX0NvbXBvbmVudDoKICAtIGNvbXBvbmVudDoge2ZpbGVJRDogNTAwMn0KICAtIGNvbXBvbmVudDoge2ZpbGVJRDogNTAwM30KICBtX05hbWU6IEhhdAogIG1fSXNBY3RpdmU6IDEKLS0tICF1ITQgJjUwMDIKVHJhbnNmb3JtOgogIG1fR2FtZU9iamVjdDoge2ZpbGVJRDogNTAwMX0KICBtX0xvY2FsUm90YXRpb246IHt4OiAwLCB5OiAwLCB6OiAwLCB3OiAxfQogIG1fTG9jYWxQb3NpdGlvbjoge3g6IDAsIHk6IDAsIHo6IDB9CiAgbV9Mb2NhbFNjYWxlOiB7eDogMSwgeTogMSwgejogMX0KICBtX0NoaWxkcmVuOiBbXQogIG1fRmF0aGVyOiB7ZmlsZUlEOiAwfQotLS0gIXUhMTM3ICY1MDAzClNraW5uZWRNZXNoUmVuZGVyZXI6CiAgbV9HYW1lT2JqZWN0OiB7ZmlsZUlEOiA1MDAxfQogIG1fRW5hYmxlZDogMQogIG1fTWF0ZXJpYWxzOgogIC0ge2ZpbGVJRDogMjEwMDAwMCwgZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMTgsIHR5cGU6IDJ9CiAgbV9NZXNoOiB7ZmlsZUlEOiA0MzAwMDAwLCBndWlkOiBhMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAyYiwgdHlwZTogM30K"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMzMKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000003c",
+     "pathname": "Assets/Scripts/Mover.cs",
+     "file": {
+      "path": "proj/Assets/Scripts/Mover.cs",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "dXNpbmcgVW5pdHlFbmdpbmU7CnB1YmxpYyBjbGFzcyBNb3ZlciA6IE1vbm9CZWhhdmlvdXIgeyB9Cg=="
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM2MKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000002b",
+     "pathname": "Assets/AssetHub/Models/Hat.fbx",
+     "file": {
+      "path": "proj/Assets/Art/Models/Hat.fbx",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "S2F5ZGFyYSBGQlggQmluYXJ5ICAAGgDoHAAAUmVsYXRpdmVGaWxlbmFtZQBoZXJvX2FsYmVkby5wbmcABQ=="
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMmIKTW9kZWxJbXBvcnRlcjoKICBleHRlcm5hbE9iamVjdHM6IHt9CiAgdXNlckRhdGE6IAogIGFzc2V0QnVuZGxlTmFtZTogCiAgYXNzZXRCdW5kbGVWYXJpYW50OiAK"
+      }
+     }
+    },
+    {
+     "guid": "a0000000000000000000000000000035",
+     "pathname": "Assets/AssetHub/Prefabs/Burst.prefab",
+     "file": {
+      "path": "proj/Assets/Prefabs/Fx/Burst.prefab",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "len": 1265,
+       "file": "da751b4eedfdd929dbdf.bin"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMzUKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a0000000000000000000000000000016",
+     "pathname": "Assets/AssetHub/Materials/Fx_Portal.mat",
+     "file": {
+      "path": "proj/Assets/Art/Mats/Fx_Portal.mat",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "JVlBTUwgMS4xCiVUQUcgIXUhIHRhZzp1bml0eTNkLmNvbSwyMDExOgotLS0gIXUhMjEgJjIxMDAwMDAKTWF0ZXJpYWw6CiAgc2VyaWFsaXplZFZlcnNpb246IDYKICBtX09iamVjdEhpZGVGbGFnczogMAogIG1fTmFtZTogRnhfUG9ydGFsCiAgbV9TaGFkZXI6IHtmaWxlSUQ6IDQ4MDAwMDAsIGd1aWQ6IGEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDFlLCB0eXBlOiAzfQogIG1fU2hhZGVyS2V5d29yZHM6IEZFQVRVUkUwX09OIEZFQVRVUkUxX09OIEZFQVRVUkUyX09OIEZFQVRVUkUzX09OIEZFQVRVUkU0X09OIEZFQVRVUkU1X09OIEZFQVRVUkU2X09OIEZFQVRVUkU3X09OIEZFQVRVUkU4X09OIEZFQVRVUkU5X09OIEZFQVRVUkUxMF9PTiBGRUFUVVJFMTFfT04KICAgIEdMT1dfT04gU0hBUEUxRElTVE9SVF9PTgogIG1fTGlnaHRtYXBGbGFnczogNAogIG1fU2F2ZWRQcm9wZXJ0aWVzOgogICAgc2VyaWFsaXplZFZlcnNpb246IDMKICAgIG1fVGV4RW52czoKICAgIC0gX01haW5UZXg6CiAgICAgICAgbV9UZXh0dXJlOiB7ZmlsZUlEOiAyODAwMDAwLCBndWlkOiBhMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwZCwgdHlwZTogM30KICAgICAgICBtX1NjYWxlOiB7eDogMSwgeTogMX0KICAgICAgICBtX09mZnNldDoge3g6IDAsIHk6IDB9CiAgICAtIF9NYXNrVGV4OgogICAgICAgIG1fVGV4dHVyZToge2ZpbGVJRDogMH0KICAgICAgICBtX1NjYWxlOiB7eDogMSwgeTogMX0KICAgICAgICBtX09mZnNldDoge3g6IDAsIHk6IDB9CiAgICBtX0Zsb2F0czoKICAgIC0gX1NyY01vZGU6IDUKICAgIC0gX0RzdE1vZGU6IDEKICAgIC0gX1NoYXBlRGlzdG9ydEFtb3VudDogMC41CiAgICBtX0NvbG9yczoKICAgIC0gX0dsb3dDb2xvcjoge3I6IDIsIGc6IDEsIGI6IDAuNSwgYTogMX0K"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMTYKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000001e",
+     "pathname": "Assets/AssetHub/Shaders/Shaders/AllIn1Vfx.shader",
+     "file": {
+      "path": "proj/Assets/Shaders/AllIn1Vfx.shader",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "U2hhZGVyICJBbGxJbjFWZngvQWxsSW4xVmZ4Igp7CiAgICBQcm9wZXJ0aWVzCiAgICB7CiAgICAgICAgX1NyY01vZGUoIlNyY01vZGUiLCBmbG9hdCkgPSA1CiAgICAgICAgW0hEUl0gX0dsb3dDb2xvcigiR2xvdyBDb2xvciIsIENvbG9yKSA9ICgxLDEsMSwxKQogICAgICAgIFtOb1NjYWxlT2Zmc2V0XSBfTWFpblRleCgiU2hhcGUgVGV4dHVyZSIsIDJEKSA9ICJ3aGl0ZSIge30KICAgIH0KICAgIFN1YlNoYWRlcgogICAgewogICAgICAgIEJsZW5kIFtfU3JjTW9kZV0gW19Ec3RNb2RlXQogICAgICAgIFBhc3MgeyBDR1BST0dSQU0KICAgICAgICAgICAgI2luY2x1ZGUgIlVuaXR5Q0cuY2dpbmMiCiAgICAgICAgICAgICNpbmNsdWRlICJBbGxJbjFJbmNsdWRlLmNnaW5jIgogICAgICAgICAgICBFTkRDRyB9CiAgICB9Cn0K"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMWUKU2hhZGVySW1wb3J0ZXI6CiAgZXh0ZXJuYWxPYmplY3RzOiB7fQogIHVzZXJEYXRhOiAKICBhc3NldEJ1bmRsZU5hbWU6IAogIGFzc2V0QnVuZGxlVmFyaWFudDogCg=="
+      }
+     }
+    },
+    {
+     "guid": "a000000000000000000000000000001f",
+     "pathname": "Assets/AssetHub/Shaders/Shaders/AllIn1Include.cginc",
+     "file": {
+      "path": "proj/Assets/Shaders/AllIn1Include.cginc",
+      "asset": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "Ly8gc2hhcmVkIGhlbHBlcnMKZmxvYXQ0IFRpbnQoZmxvYXQ0IGMpIHsgcmV0dXJuIGM7IH0K"
+      },
+      "meta": {
+       "$": "bytes",
+       "type": "Uint8Array",
+       "b64": "ZmlsZUZvcm1hdFZlcnNpb246IDIKZ3VpZDogYTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMWYKRGVmYXVsdEltcG9ydGVyOgogIGV4dGVybmFsT2JqZWN0czoge30KICB1c2VyRGF0YTogCiAgYXNzZXRCdW5kbGVOYW1lOiAKICBhc3NldEJ1bmRsZVZhcmlhbnQ6IAo="
+      }
+     }
+    }
+   ],
+   "skipped": [
+    {
+     "path": "proj/Assets/Other/Copy.mat",
+     "reason": "duplicateGuid"
+    },
+    {
+     "path": "proj/Assets/Other/NoMeta.txt",
+     "reason": "noGuid"
+    }
+   ]
+  }
+ ],
+ "result": {
+  "$": "bytes",
+  "type": "Uint8Array",
+  "len": 57856,
+  "file": "1d691e0d3d05be69c2c5.bin"
+ }
+}

@@ -1,0 +1,36 @@
+{
+ "source": {
+  "path": "src/core/checks/playable.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "ae8f6549b0f582de4891649e02a10091cf71fa9a017acb2e7ba84ce220276aee"
+ },
+ "case": "newerCard-8aa4c5c5",
+ "fn": "newerCard",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "triangles": 1000,
+   "vertices": 1500,
+   "bones": 0,
+   "clips": 0,
+   "materials": 1,
+   "fileBytes": 100000,
+   "textureBytes": 200000,
+   "maxTextureSize": 512,
+   "source": "thumb",
+   "modelThumb": 2
+  },
+  {
+   "triangles": 1000,
+   "vertices": 1500,
+   "bones": 0,
+   "clips": 0,
+   "materials": 1,
+   "fileBytes": 100000,
+   "textureBytes": 200000,
+   "maxTextureSize": 512,
+   "source": "thumb"
+  }
+ ],
+ "result": true
+}

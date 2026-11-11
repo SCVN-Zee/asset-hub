@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-audio-built-bytes"
+description = "Enables the audio_built_bytes command without any pre-configured scope."
+commands.allow = ["audio_built_bytes"]
+
+[[permission]]
+identifier = "deny-audio-built-bytes"
+description = "Denies the audio_built_bytes command without any pre-configured scope."
+commands.deny = ["audio_built_bytes"]

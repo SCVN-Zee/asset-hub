@@ -1,0 +1,132 @@
+{
+ "source": {
+  "path": "src/core/registry.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "8de0fcf942b5f5e7dac8cf05026d4b53a5b1917832171a0e2d7b671033e31147"
+ },
+ "case": "createDefaultRegistry.descriptors",
+ "fn": "createDefaultRegistry",
+ "origin": "synthetic",
+ "result": [
+  {
+   "id": "fbx",
+   "labelKey": "assetTypes.fbx",
+   "badge": "FBX",
+   "previewKind": "three",
+   "hidden": false,
+   "delivery": "unitypackage",
+   "facts": null,
+   "materialsFromPrefabs": true,
+   "usesGuids": true,
+   "resolver": "resolveFbxDependencies"
+  },
+  {
+   "id": "texture",
+   "labelKey": "assetTypes.texture",
+   "badge": "TEX",
+   "previewKind": "image",
+   "hidden": false,
+   "delivery": "file",
+   "facts": null,
+   "materialsFromPrefabs": false,
+   "usesGuids": false,
+   "resolver": "resolveSelf"
+  },
+  {
+   "id": "sprite",
+   "labelKey": "assetTypes.sprite",
+   "badge": "SPR",
+   "previewKind": "image",
+   "hidden": false,
+   "delivery": "unitypackage",
+   "facts": "sprites",
+   "materialsFromPrefabs": false,
+   "usesGuids": true,
+   "resolver": null
+  },
+  {
+   "id": "material",
+   "labelKey": "assetTypes.material",
+   "badge": "MAT",
+   "previewKind": "material",
+   "hidden": false,
+   "delivery": "unitypackage",
+   "facts": null,
+   "materialsFromPrefabs": false,
+   "usesGuids": true,
+   "resolver": "resolveMaterialDependencies"
+  },
+  {
+   "id": "audio",
+   "labelKey": "assetTypes.audio",
+   "badge": "AUD",
+   "previewKind": "audio",
+   "hidden": false,
+   "delivery": "file",
+   "facts": null,
+   "materialsFromPrefabs": false,
+   "usesGuids": false,
+   "resolver": "resolveSelf"
+  },
+  {
+   "id": "prefab",
+   "labelKey": "assetTypes.prefab",
+   "badge": "PFB",
+   "previewKind": "prefab",
+   "hidden": false,
+   "delivery": "unitypackage",
+   "facts": null,
+   "materialsFromPrefabs": false,
+   "usesGuids": true,
+   "resolver": "resolvePrefabDependencies"
+  },
+  {
+   "id": "vfx",
+   "labelKey": "assetTypes.vfx",
+   "badge": "VFX",
+   "previewKind": "prefab",
+   "hidden": false,
+   "delivery": "unitypackage",
+   "facts": "effects",
+   "materialsFromPrefabs": false,
+   "usesGuids": true,
+   "resolver": null
+  },
+  {
+   "id": "animation",
+   "labelKey": "assetTypes.animation",
+   "badge": "ANIM",
+   "previewKind": "animation",
+   "hidden": false,
+   "delivery": "unitypackage",
+   "facts": null,
+   "materialsFromPrefabs": false,
+   "usesGuids": true,
+   "resolver": "resolveAnimationDependencies"
+  },
+  {
+   "id": "font",
+   "labelKey": "assetTypes.font",
+   "badge": "FONT",
+   "previewKind": "font",
+   "hidden": false,
+   "delivery": "unitypackage",
+   "facts": "tmpFonts",
+   "materialsFromPrefabs": false,
+   "usesGuids": false,
+   "resolver": "resolveSelf"
+  },
+  {
+   "id": "tmpFont",
+   "labelKey": "assetTypes.tmpFont",
+   "badge": "TMP",
+   "previewKind": "tmpfont",
+   "hidden": true,
+   "delivery": "unitypackage",
+   "facts": null,
+   "materialsFromPrefabs": false,
+   "usesGuids": true,
+   "resolver": "resolveTmpFontDependencies"
+  }
+ ]
+}

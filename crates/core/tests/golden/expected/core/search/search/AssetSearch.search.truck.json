@@ -1,0 +1,54 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.truck",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "truck"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Vehicles/Pickup Truck.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Vehicles/Pickup Truck.fbx",
+    "name": "Pickup Truck.fbx",
+    "sha": "dc7503259a004386aeab9c1203f963a9654fe040",
+    "size": 3600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Vehicles/Truck.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Vehicles/Truck.fbx",
+    "name": "Truck.fbx",
+    "sha": "4ecd55355c2998fc31183c2b7cd0fab220aab344",
+    "size": 2900,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/Vehicles/Pickup Truck.fbx",
+     100
+    ],
+    [
+     "Assets/Art/Vehicles/Truck.fbx",
+     100
+    ]
+   ]
+  }
+ }
+}

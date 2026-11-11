@@ -1,0 +1,25 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseSpriteMeta-e3c17337",
+ "fn": "parseSpriteMeta",
+ "origin": "unit-test-input",
+ "args": [
+  "TextureImporter:\r\n  textureType: 8\r\n  spriteMode: 1\r\n  spritePixelsToUnits: 32\r\n  spriteBorder: {x: 27, y: 20, z: 27, w: 20}\r\n  spriteSheet:\r\n    serializedVersion: 2\r\n    sprites: []\r\n    outline: []\r\n  spritePackingTag: UI\r\n"
+ ],
+ "result": {
+  "mode": 1,
+  "pixelsPerUnit": 32,
+  "border": {
+   "left": 27,
+   "bottom": 20,
+   "right": 27,
+   "top": 20
+  },
+  "sprites": [],
+  "packingTag": "UI"
+ }
+}

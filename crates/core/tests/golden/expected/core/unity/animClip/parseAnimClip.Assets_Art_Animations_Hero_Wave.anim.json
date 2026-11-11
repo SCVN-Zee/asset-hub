@@ -1,0 +1,97 @@
+{
+ "source": {
+  "path": "src/core/unity/animClip.ts",
+  "commit": "6aff18b0040ac8c53aed195473567c641cea85a8",
+  "sha256": "6484dc8047e017e7dd6a3151aa02d79f5bac580da59603e8095ee007c1b86b1c"
+ },
+ "case": "parseAnimClip.Assets_Art_Animations_Hero_Wave.anim",
+ "fn": "parseAnimClip",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Animations/Hero_Wave.anim"
+  }
+ ],
+ "result": {
+  "name": "Hero_Wave",
+  "length": 1,
+  "sampleRate": 30,
+  "loop": true,
+  "legacy": false,
+  "compressed": false,
+  "kind": "humanoid",
+  "transformCurves": [],
+  "floatCurves": [
+   {
+    "path": "",
+    "attribute": "LeftHand Q.x",
+    "classID": 95,
+    "keys": [
+     {
+      "t": 0,
+      "v": [
+       0
+      ],
+      "inS": [
+       0
+      ],
+      "outS": [
+       0
+      ]
+     },
+     {
+      "t": 0.5,
+      "v": [
+       1
+      ],
+      "inS": [
+       0
+      ],
+      "outS": [
+       0
+      ]
+     }
+    ]
+   },
+   {
+    "path": "",
+    "attribute": "Spine Front-Back",
+    "classID": 95,
+    "keys": [
+     {
+      "t": 0,
+      "v": [
+       0
+      ],
+      "inS": [
+       0
+      ],
+      "outS": [
+       0
+      ]
+     },
+     {
+      "t": 0.5,
+      "v": [
+       1
+      ],
+      "inS": [
+       0
+      ],
+      "outS": [
+       0
+      ]
+     }
+    ]
+   }
+  ],
+  "spriteCurves": 0,
+  "spriteGuids": [],
+  "events": 0,
+  "paths": [
+   ""
+  ],
+  "keyframes": 4
+ }
+}

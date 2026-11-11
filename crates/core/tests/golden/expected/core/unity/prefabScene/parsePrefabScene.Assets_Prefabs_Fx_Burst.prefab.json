@@ -1,0 +1,59 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "parsePrefabScene.Assets_Prefabs_Fx_Burst.prefab",
+ "fn": "parsePrefabScene",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/Fx/Burst.prefab"
+  }
+ ],
+ "result": {
+  "nodes": {
+   "$": "map",
+   "v": [
+    [
+     "201",
+     {
+      "id": "201",
+      "name": "Burst",
+      "position": [
+       0,
+       0,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "active": true
+     }
+    ]
+   ]
+  },
+  "meshes": [],
+  "instances": [],
+  "scripts": [],
+  "particleSystems": 1,
+  "particleMaterials": [
+   "a0000000000000000000000000000016"
+  ],
+  "particleMeshes": [],
+  "uiElements": 0,
+  "guids": [
+   "a0000000000000000000000000000016"
+  ]
+ }
+}

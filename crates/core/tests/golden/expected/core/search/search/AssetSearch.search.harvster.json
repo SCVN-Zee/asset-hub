@@ -1,0 +1,56 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.harvster",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "harvster"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Vehicles/Combine_Harvester.prefab",
+    "type": "prefab",
+    "path": "Assets/Art/Vehicles/Combine_Harvester.prefab",
+    "name": "Combine_Harvester.prefab",
+    "sha": "e3954b3bb8d069440f334219a8b48105cefba852",
+    "size": 4400,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Vehicles/Harvester.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Vehicles/Harvester.fbx",
+    "name": "Harvester.fbx",
+    "sha": "02a9ecd423f8063adf5264e516b1381868a07f2c",
+    "size": 3300,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [
+   "harvester"
+  ],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/Vehicles/Combine_Harvester.prefab",
+     20
+    ],
+    [
+     "Assets/Art/Vehicles/Harvester.fbx",
+     20
+    ]
+   ]
+  }
+ }
+}

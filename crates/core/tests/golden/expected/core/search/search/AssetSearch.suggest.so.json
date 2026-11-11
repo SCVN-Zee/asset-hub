@@ -1,0 +1,27 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.suggest.so",
+ "fn": "AssetSearch.suggest",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "so",
+  8
+ ],
+ "result": [
+  {
+   "text": "sói",
+   "count": 1,
+   "examples": [
+    "wolf"
+   ]
+  }
+ ]
+}

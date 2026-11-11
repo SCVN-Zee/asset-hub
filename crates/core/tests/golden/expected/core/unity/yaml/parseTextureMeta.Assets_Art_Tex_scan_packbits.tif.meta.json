@@ -1,0 +1,28 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseTextureMeta.Assets_Art_Tex_scan_packbits.tif.meta",
+ "fn": "parseTextureMeta",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Tex/scan_packbits.tif.meta"
+  }
+ ],
+ "result": {
+  "textureType": 0,
+  "maxTextureSize": 2048,
+  "sRGB": true,
+  "mipmaps": true,
+  "overrides": [
+   {
+    "target": "WebGL",
+    "maxTextureSize": 512
+   }
+  ]
+ }
+}

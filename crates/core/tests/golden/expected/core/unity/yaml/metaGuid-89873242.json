@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "metaGuid-89873242",
+ "fn": "metaGuid",
+ "origin": "unit-test-input",
+ "args": [
+  "guid: 0000000000000000000000000000000a\n"
+ ],
+ "result": "0000000000000000000000000000000a"
+}

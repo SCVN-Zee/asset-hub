@@ -1,0 +1,22 @@
+{
+ "source": {
+  "path": "src/core/unity/prefab.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "e03c1149880d5d2964d7ecc8d776dd02738417eb812bfda4ec1a84639cf9b495"
+ },
+ "case": "modelMaterials.Assets_Prefabs_Hero.prefab",
+ "fn": "modelMaterials",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/Hero.prefab"
+  }
+ ],
+ "result": {
+  "a0000000000000000000000000000028": [
+   "a0000000000000000000000000000014",
+   "a0000000000000000000000000000015"
+  ]
+ }
+}

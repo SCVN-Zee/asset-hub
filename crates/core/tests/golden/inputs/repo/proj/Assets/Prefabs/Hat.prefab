@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5001
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5002}
+  - component: {fileID: 5003}
+  m_Name: Hat
+  m_IsActive: 1
+--- !u!4 &5002
+Transform:
+  m_GameObject: {fileID: 5001}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+--- !u!137 &5003
+SkinnedMeshRenderer:
+  m_GameObject: {fileID: 5001}
+  m_Enabled: 1
+  m_Materials:
+  - {fileID: 2100000, guid: a0000000000000000000000000000018, type: 2}
+  m_Mesh: {fileID: 4300000, guid: a000000000000000000000000000002b, type: 3}

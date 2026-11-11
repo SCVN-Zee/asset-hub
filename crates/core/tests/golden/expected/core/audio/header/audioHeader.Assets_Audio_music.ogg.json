@@ -1,0 +1,21 @@
+{
+ "source": {
+  "path": "src/core/audio/header.ts",
+  "commit": "7994728f3a12774c7258b7b986c0315cef845d31",
+  "sha256": "13bfe60d4d16673e1992a0558dbb5fdb581db62fe8edaa95d457ea07073f81a5"
+ },
+ "case": "audioHeader.Assets_Audio_music.ogg",
+ "fn": "audioHeader",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Audio/music.ogg"
+  }
+ ],
+ "result": {
+  "format": "OGG",
+  "channels": 2,
+  "sampleRate": 48000
+ }
+}

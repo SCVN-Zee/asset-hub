@@ -1,0 +1,41 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.나무 01",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "나무 01"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/한국/나무_01.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/한국/나무_01.fbx",
+    "name": "나무_01.fbx",
+    "sha": "56c955692c39e2cb1680007f4c4fca94b768b151",
+    "size": 2300,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/한국/나무_01.fbx",
+     200
+    ]
+   ]
+  }
+ }
+}

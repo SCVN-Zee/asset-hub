@@ -1,0 +1,35 @@
+{
+ "source": {
+  "path": "src/core/checks/playable.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "ae8f6549b0f582de4891649e02a10091cf71fa9a017acb2e7ba84ce220276aee"
+ },
+ "case": "summaryIssues-270a7961",
+ "fn": "summaryIssues",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "triangles": 40000,
+   "vertices": 1500,
+   "bones": 0,
+   "clips": 0,
+   "materials": 1,
+   "fileBytes": 6000000,
+   "textureBytes": 200000,
+   "maxTextureSize": 512,
+   "source": "thumb"
+  }
+ ],
+ "result": [
+  {
+   "key": "triangles",
+   "value": 40000,
+   "limit": 15000
+  },
+  {
+   "key": "fileBytes",
+   "value": 6000000,
+   "limit": 5242880
+  }
+ ]
+}

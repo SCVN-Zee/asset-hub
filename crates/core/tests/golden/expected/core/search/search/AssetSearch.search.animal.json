@@ -1,0 +1,125 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.animal",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "animal"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Animals/Dolphins.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Dolphins.fbx",
+    "name": "Dolphins.fbx",
+    "sha": "b7043e007e8e5a68a985ec5c73380fb0befa21ef",
+    "size": 3100,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Frog_Green.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Frog_Green.fbx",
+    "name": "Frog_Green.fbx",
+    "sha": "61a35a55ebc3d396a456d5b25c4f5af34739c247",
+    "size": 3300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Shark.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Shark.fbx",
+    "name": "Shark.fbx",
+    "sha": "148f0061910d648deca6b247620bd19d9a7732fd",
+    "size": 2800,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Anim/Shark@Swim.fbx",
+    "type": "fbx",
+    "path": "Assets/Anim/Shark@Swim.fbx",
+    "name": "Shark@Swim.fbx",
+    "sha": "b7429eba7bd53a707d30d3cf61abbebe8fc0f000",
+    "size": 2600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Tuna_A.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Tuna_A.fbx",
+    "name": "Tuna_A.fbx",
+    "sha": "07f848a611efbe8d67196dc1680079347521791c",
+    "size": 2900,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Tuna_B.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Tuna_B.fbx",
+    "name": "Tuna_B.fbx",
+    "sha": "b836d55e29563f05161add00675783a16727fded",
+    "size": 2900,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Wolf.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Wolf.fbx",
+    "name": "Wolf.fbx",
+    "sha": "6a32faa95323f086b0cf998ae6a7479afb558918",
+    "size": 2700,
+    "lfs": false
+   }
+  ],
+  "related": [
+   "shark",
+   "tuna",
+   "wolf",
+   "frog",
+   "dolphin"
+  ],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/Animals/Dolphins.fbx",
+     60
+    ],
+    [
+     "Assets/Art/Animals/Frog_Green.fbx",
+     60
+    ],
+    [
+     "Assets/Art/Animals/Shark.fbx",
+     60
+    ],
+    [
+     "Assets/Anim/Shark@Swim.fbx",
+     60
+    ],
+    [
+     "Assets/Art/Animals/Tuna_A.fbx",
+     60
+    ],
+    [
+     "Assets/Art/Animals/Tuna_B.fbx",
+     60
+    ],
+    [
+     "Assets/Art/Animals/Wolf.fbx",
+     60
+    ]
+   ]
+  }
+ }
+}

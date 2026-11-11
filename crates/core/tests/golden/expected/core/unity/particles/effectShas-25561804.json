@@ -1,0 +1,54 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "effectShas-25561804",
+ "fn": "effectShas",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "$": "map",
+   "v": [
+    [
+     "fx",
+     "1"
+    ],
+    [
+     "variant",
+     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    [
+     "variant2",
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    ],
+    [
+     "plain",
+     ""
+    ]
+   ]
+  },
+  {
+   "$": "map",
+   "v": [
+    [
+     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "fx"
+    ],
+    [
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+     "variant"
+    ]
+   ]
+  }
+ ],
+ "result": {
+  "$": "set",
+  "v": [
+   "fx",
+   "variant",
+   "variant2"
+  ]
+ }
+}

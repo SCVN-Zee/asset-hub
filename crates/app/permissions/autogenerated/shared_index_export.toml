@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shared-index-export"
+description = "Enables the shared_index_export command without any pre-configured scope."
+commands.allow = ["shared_index_export"]
+
+[[permission]]
+identifier = "deny-shared-index-export"
+description = "Denies the shared_index_export command without any pre-configured scope."
+commands.deny = ["shared_index_export"]

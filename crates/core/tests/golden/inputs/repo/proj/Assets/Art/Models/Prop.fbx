@@ -1,0 +1,9 @@
+; FBX 7.4.0 project file
+FBXHeaderExtension:  {
+	FBXHeaderVersion: 1003
+}
+Objects:  {
+	Texture: 1, "Texture::hero_albedo", "" {
+		RelativeFilename: "..\Tex\hero_albedo.png"
+	}
+}

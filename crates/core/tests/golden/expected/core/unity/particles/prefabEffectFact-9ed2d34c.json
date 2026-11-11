@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "prefabEffectFact-9ed2d34c",
+ "fn": "prefabEffectFact",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: Additive GameObjects\n--- !u!4 &4\nTransform:\n  m_GameObject: {fileID: 1}\n--- !u!1001 &5\nPrefabInstance:\n  m_Modification:\n    m_TransformParent: {fileID: 4}\n  m_SourcePrefab: {fileID: 100100000, guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, type: 3}\n"
+ ],
+ "result": ""
+}

@@ -1,0 +1,25 @@
+{
+ "source": {
+  "path": "src/main/unityEditors.ts",
+  "commit": "cc67fc6fdbe6d380127d6da9aa506d83e6546a05",
+  "sha256": "f52be77fd53459942bdeaf90608f9131a01d5f7644ee6aae9000bc101da36dab"
+ },
+ "case": "parseUnityProcesses-59f11ed1",
+ "fn": "parseUnityProcesses",
+ "origin": "unit-test-input",
+ "args": [
+  "  812 /Applications/Unity/Hub/Editor/2022.3.19f1/Unity.app/Contents/MacOS/Unity -projectpath /Users/a/Projects/Luna Pizza -useHub -hubIPC -cloudEnvironment production\n 9001 /Applications/Unity/Hub/Editor/6000.0.1f1/Unity.app/Contents/MacOS/Unity -projectPath \"/Users/a/Crab Life/\"\n  77 /Applications/Unity Hub.app/Contents/MacOS/Unity Hub\n  78 /Applications/Unity/Hub/Editor/2022.3.19f1/Unity.app/Contents/MacOS/Unity -batchmode\n  80 /Applications/Unity/Hub/Editor/2022.3.19f1/Unity.app/Contents/MacOS/Unity -adb2 -batchMode -noUpm -name AssetImportWorker0 -projectPath /Users/a/Projects/Luna Pizza -logFile Logs/AssetImportWorker0.log\n  79 /bin/zsh -c grep Unity.app/Contents/MacOS/Unity"
+ ],
+ "result": [
+  {
+   "pid": 812,
+   "projectPath": "/Users/a/Projects/Luna Pizza",
+   "version": "2022.3.19f1"
+  },
+  {
+   "pid": 9001,
+   "projectPath": "/Users/a/Crab Life",
+   "version": "6000.0.1f1"
+  }
+ ]
+}

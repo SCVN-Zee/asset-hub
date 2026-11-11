@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/unity/tmpFont.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "c9792fd3b780fcc42c46130e3deab3b7ff736c9df151d164edbf3295583757c9"
+ },
+ "case": "isTmpFontAsset-661d4521",
+ "fn": "isTmpFontAsset",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!117 &11700000\nTexture3D:\n  m_Name: uni_shield_dir_SDF\n"
+ ],
+ "result": false
+}

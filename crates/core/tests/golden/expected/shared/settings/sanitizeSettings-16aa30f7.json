@@ -1,0 +1,29 @@
+{
+ "source": {
+  "path": "src/shared/settings.ts",
+  "commit": "02e24f3ef2ef1ee23aa4792e9c3d495df2c5e993",
+  "sha256": "23484091c67f6098e08e8fbc0d35b29f6900f61bc7497b7205ac5f33cc94d749"
+ },
+ "case": "sanitizeSettings-16aa30f7",
+ "fn": "sanitizeSettings",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "exportLayout": "flat"
+  },
+  {
+   "language": "en",
+   "cacheDir": "/cache",
+   "excludedFolders": [
+    "_ThirdParty"
+   ]
+  }
+ ],
+ "result": {
+  "language": "en",
+  "cacheDir": "/cache",
+  "excludedFolders": [
+   "_ThirdParty"
+  ]
+ }
+}

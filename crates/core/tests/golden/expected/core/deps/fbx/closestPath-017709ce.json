@@ -1,0 +1,17 @@
+{
+ "source": {
+  "path": "src/core/deps/fbx.ts",
+  "commit": "6eb64be82e321450da11f2c8751638d1e6570fbc",
+  "sha256": "548b00631ca717a37017c93e88fe41aa0b37a3c64bf18939355d4ac1e3f65440"
+ },
+ "case": "closestPath-017709ce",
+ "fn": "closestPath",
+ "origin": "unit-test-input",
+ "args": [
+  [],
+  "p/Assets/Hero.fbx"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

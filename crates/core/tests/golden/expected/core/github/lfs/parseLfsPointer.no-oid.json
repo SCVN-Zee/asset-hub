@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/core/github/lfs.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "4b3ed8c41aa3b1ba18ede49fe821285d963c34830849fdf44d7508d186bdb9e7"
+ },
+ "case": "parseLfsPointer.no-oid",
+ "fn": "parseLfsPointer",
+ "origin": "synthetic",
+ "args": [
+  "version https://git-lfs.github.com/spec/v1\nsize 10\n"
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

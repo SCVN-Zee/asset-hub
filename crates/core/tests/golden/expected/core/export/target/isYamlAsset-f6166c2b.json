@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "isYamlAsset-f6166c2b",
+ "fn": "isYamlAsset",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "JVlBTUwgMS4xCiAgICAtIF9CYXNlTWFwOgogICAgICAgIG1fVGV4dHVyZToge2ZpbGVJRDogMjgwMDAwMCwgZ3VpZDogY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2MsIHR5cGU6IDN9CiAgICAtIF9CdW1wTWFwOgogICAgICAgIG1fVGV4dHVyZToge2ZpbGVJRDogMjgwMDAwMCwgZ3VpZDogZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmYsIHR5cGU6IDN9Cg=="
+  }
+ ],
+ "result": true
+}

@@ -1,0 +1,23 @@
+{
+ "source": {
+  "path": "src/core/audio/header.ts",
+  "commit": "7994728f3a12774c7258b7b986c0315cef845d31",
+  "sha256": "13bfe60d4d16673e1992a0558dbb5fdb581db62fe8edaa95d457ea07073f81a5"
+ },
+ "case": "audioHeader-da33ffb5",
+ "fn": "audioHeader",
+ "origin": "unit-test-input",
+ "args": [
+  "a.wav",
+  {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "UklGRgAAAABXQVZFZm10IBAAAAAAAAIAgLsAAAAAAAAAAAAAAAAAAAAAAAA="
+  }
+ ],
+ "result": {
+  "format": "WAV",
+  "channels": 2,
+  "sampleRate": 48000
+ }
+}

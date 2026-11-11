@@ -1,0 +1,87 @@
+{
+ "source": {
+  "path": "src/main/sharedIndex.ts",
+  "commit": "aabe84c355d266588b392547a16d30e4718099dc",
+  "sha256": "5940c0253fe0353abcede0a0079977586d5d12510830e3a772f14afb1474a607"
+ },
+ "case": "exportIndex.two-repos",
+ "fn": "exportIndex",
+ "origin": "synthetic",
+ "args": [
+  "<folder>",
+  "machine-a",
+  "tester",
+  "fbx,prefab"
+ ],
+ "result": {
+  "commits": 2,
+  "facts": 3,
+  "stats": 2,
+  "thumbs": 2
+ },
+ "manifest": {
+  "format": 1,
+  "exportedAt": "2026-11-09T09:00:00.000Z",
+  "exportedBy": "tester",
+  "types": "fbx,prefab",
+  "repos": [
+   {
+    "repo": "org/hero",
+    "branches": 2,
+    "commits": 2
+   }
+  ],
+  "thumbs": 2,
+  "stats": 2
+ },
+ "importedByAnotherMachine": {
+  "commits": 2,
+  "facts": 3,
+  "stats": 2,
+  "thumbs": 2
+ },
+ "catalogFiles": [
+  {
+   "path": "org__hero.json",
+   "bytes": 334,
+   "sha256": "c999658221391dd641308a04ecee7f1f0fe061d5b588b9b4d827c72c5ff0c606"
+  }
+ ],
+ "files": [
+  {
+   "path": "catalog/org__hero.json.gz",
+   "bytes": 223,
+   "sha256": "66e4a2b825ecb9621128313fcd8fd3d0a542ef56b2857458889d9b507a480b2b"
+  },
+  {
+   "path": "facts/prefabfx3/org__hero.json.gz",
+   "bytes": 67,
+   "sha256": "be558c1cc9e31ad2bcd31943aac246a613152bd53431cebd4dc2a75dec14ba93"
+  },
+  {
+   "path": "facts/prefabfx3/org__other.json.gz",
+   "bytes": 57,
+   "sha256": "197ff83f88ee45ef3fb505e3e6374462c0fe290ff21b05ec92fa00783080988c"
+  },
+  {
+   "path": "manifest.json",
+   "bytes": 237,
+   "sha256": "e7f5d48c622278a26657be43cbea07f3f7aa7d20f8b63d1feb8596f9abf72fb8"
+  },
+  {
+   "path": "stats.json.gz",
+   "bytes": 145,
+   "sha256": "5fbd7668ef6628ad86dcf90fc026a8901acd089d0c5e5340167eadd2bad6c4ab"
+  },
+  {
+   "path": "thumbs/fish.fx.img",
+   "bytes": 34,
+   "sha256": "86be52bdb7547413cafb3ed175a806a798c65de98b40849e0b974c47d187de65"
+  },
+  {
+   "path": "thumbs/fish.img",
+   "bytes": 136,
+   "sha256": "f35d6fa122a88cf1be6eb070857634273f3ef0adba9d3022c85b19f41db06fce"
+  }
+ ]
+}

@@ -1,7 +1,21 @@
 node_modules/
-out/
 dist/
 .DS_Store
 *.log
 release/
 /usage-report*.html
+/target/
+crates/app/gen/
+crates/app/binaries/
+*.key
+*.key.pub
+/build/
+coverage/
+*.tsbuildinfo
+
+# Secrets and signing material
+.env
+.env.*
+*.pem
+*.p12
+*.cer

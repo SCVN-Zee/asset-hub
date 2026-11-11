@@ -1,0 +1,17 @@
+{
+ "source": {
+  "path": "src/core/export/unitypackage.ts",
+  "commit": "102c376a1bc41e0561c95ba830151cd3b4ceb116",
+  "sha256": "d838a4ec50d900a9419ff32e99736f3846d789f2e9ee1dff7030ac2c157806db"
+ },
+ "case": "packagePathname.Assets_Shaders_Inc_x_hlsl.grouped",
+ "fn": "packagePathname",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Shaders/Inc/x.hlsl",
+  "proj/",
+  "grouped",
+  "My Repo!"
+ ],
+ "result": "Assets/AssetHub/My_Repo_/Shaders/Inc/x.hlsl"
+}

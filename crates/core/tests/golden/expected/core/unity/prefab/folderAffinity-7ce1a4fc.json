@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/core/unity/prefab.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "e03c1149880d5d2964d7ecc8d776dd02738417eb812bfda4ec1a84639cf9b495"
+ },
+ "case": "folderAffinity-7ce1a4fc",
+ "fn": "folderAffinity",
+ "origin": "unit-test-input",
+ "args": [
+  "p/Assets/Game/Models/ASMR-Fish/Fish.fbx",
+  "p/Assets/Game/Prefabs/ASMR-Fish/FishModel.prefab",
+  "p/"
+ ],
+ "result": 1
+}

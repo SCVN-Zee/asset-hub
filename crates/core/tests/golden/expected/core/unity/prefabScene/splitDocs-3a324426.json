@@ -1,0 +1,45 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "splitDocs-3a324426",
+ "fn": "splitDocs",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: FX_Aura\n--- !u!4 &4\nTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n--- !u!1 &2\nGameObject:\n  m_Name: Glow\n--- !u!4 &5\nTransform:\n  m_GameObject: {fileID: 2}\n  m_Father: {fileID: 4}\n--- !u!198 &198\nParticleSystem:\n  m_GameObject: {fileID: 2}\n"
+ ],
+ "result": [
+  {
+   "cls": "1",
+   "id": "1",
+   "stripped": false,
+   "body": "\nGameObject:\n  m_Name: FX_Aura\n"
+  },
+  {
+   "cls": "4",
+   "id": "4",
+   "stripped": false,
+   "body": "\nTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n"
+  },
+  {
+   "cls": "1",
+   "id": "2",
+   "stripped": false,
+   "body": "\nGameObject:\n  m_Name: Glow\n"
+  },
+  {
+   "cls": "4",
+   "id": "5",
+   "stripped": false,
+   "body": "\nTransform:\n  m_GameObject: {fileID: 2}\n  m_Father: {fileID: 4}\n"
+  },
+  {
+   "cls": "198",
+   "id": "198",
+   "stripped": false,
+   "body": "\nParticleSystem:\n  m_GameObject: {fileID: 2}\n"
+  }
+ ]
+}

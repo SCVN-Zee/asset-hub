@@ -1,0 +1,15 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "urpMismatch.14.0.10-15.0.1",
+ "fn": "urpMismatch",
+ "origin": "synthetic",
+ "args": [
+  "14.0.10",
+  "15.0.1"
+ ],
+ "result": true
+}

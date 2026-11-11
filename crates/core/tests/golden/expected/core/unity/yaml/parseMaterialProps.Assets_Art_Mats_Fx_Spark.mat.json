@@ -1,0 +1,71 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterialProps.Assets_Art_Mats_Fx_Spark.mat",
+ "fn": "parseMaterialProps",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Mats/Fx_Spark.mat"
+  }
+ ],
+ "result": {
+  "keywords": [
+   "_EMISSION"
+  ],
+  "floats": {
+   "_Smoothness": 0.5,
+   "_Metallic": 0,
+   "_Surface": 0,
+   "_Cutoff": 0.5
+  },
+  "colors": {
+   "_BaseColor": {
+    "r": 1,
+    "g": 0.5,
+    "b": 0.25,
+    "a": 1
+   },
+   "_EmissionColor": {
+    "r": 0,
+    "g": 0,
+    "b": 0,
+    "a": 1
+   }
+  },
+  "st": {
+   "_BaseMap": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "_BumpMap": [
+    1,
+    1,
+    0,
+    0
+   ],
+   "_EmissionMap": [
+    1,
+    1,
+    0,
+    0
+   ]
+  },
+  "refs": {
+   "_BaseMap": {
+    "fileID": "2800000",
+    "guid": "a000000000000000000000000000000d"
+   },
+   "_EmissionMap": {
+    "fileID": "2800000",
+    "guid": "a000000000000000000000000000000c"
+   }
+  }
+ }
+}

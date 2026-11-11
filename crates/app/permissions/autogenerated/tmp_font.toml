@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-tmp-font"
+description = "Enables the tmp_font command without any pre-configured scope."
+commands.allow = ["tmp_font"]
+
+[[permission]]
+identifier = "deny-tmp-font"
+description = "Denies the tmp_font command without any pre-configured scope."
+commands.deny = ["tmp_font"]

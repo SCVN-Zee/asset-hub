@@ -1,0 +1,37 @@
+{
+ "source": {
+  "path": "src/core/unity.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "12d9be8d0f567bbb36cd0e34a0c4ec2aafd4b059a3117d9b1d56a5f63275e067"
+ },
+ "case": "projectEntries-b273596c",
+ "fn": "projectEntries",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "path": "unity_project/game/Assets/A/x.fbx",
+    "type": "blob",
+    "sha": "x"
+   },
+   {
+    "path": "unity_project/game/Packages/manifest.json",
+    "type": "blob",
+    "sha": "x"
+   },
+   {
+    "path": "docs/x.fbx",
+    "type": "blob",
+    "sha": "x"
+   }
+  ],
+  "unity_project/game/"
+ ],
+ "result": [
+  {
+   "path": "Assets/A/x.fbx",
+   "type": "blob",
+   "sha": "x"
+  }
+ ]
+}

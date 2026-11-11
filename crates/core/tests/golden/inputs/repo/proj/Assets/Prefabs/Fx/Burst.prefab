@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &200
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 201}
+  - component: {fileID: 202}
+  - component: {fileID: 203}
+  m_Name: Burst
+  m_IsActive: 1
+--- !u!4 &201
+Transform:
+  m_GameObject: {fileID: 200}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+--- !u!198 &202
+ParticleSystem:
+  m_GameObject: {fileID: 200}
+  serializedVersion: 8
+  lengthInSec: 2
+  looping: 0
+  prewarm: 0
+  InitialModule:
+    enabled: 1
+    startLifetime:
+      scalar: 1.5
+      minMaxState: 0
+    startSpeed:
+      scalar: 4
+      minMaxState: 0
+    startSize:
+      scalar: 0.3
+      minMaxState: 0
+    maxNumParticles: 200
+  EmissionModule:
+    enabled: 1
+    rateOverTime:
+      scalar: 20
+      minMaxState: 0
+    m_Bursts:
+    - serializedVersion: 2
+      time: 0
+      countCurve:
+        scalar: 30
+        minMaxState: 0
+      cycleCount: 1
+  ShapeModule:
+    enabled: 1
+    type: 4
+--- !u!199 &203
+ParticleSystemRenderer:
+  m_GameObject: {fileID: 200}
+  m_Enabled: 1
+  m_Materials:
+  - {fileID: 2100000, guid: a0000000000000000000000000000016, type: 2}
+  m_RenderMode: 0

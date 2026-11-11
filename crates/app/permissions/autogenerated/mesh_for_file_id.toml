@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-mesh-for-file-id"
+description = "Enables the mesh_for_file_id command without any pre-configured scope."
+commands.allow = ["mesh_for_file_id"]
+
+[[permission]]
+identifier = "deny-mesh-for-file-id"
+description = "Denies the mesh_for_file_id command without any pre-configured scope."
+commands.deny = ["mesh_for_file_id"]

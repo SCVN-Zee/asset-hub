@@ -1,0 +1,20 @@
+{
+ "source": {
+  "path": "src/core/checks/playable.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "ae8f6549b0f582de4891649e02a10091cf71fa9a017acb2e7ba84ce220276aee"
+ },
+ "case": "imageSize.Assets_Art_Tex_paint_rle.psd",
+ "fn": "imageSize",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Tex/paint_rle.psd"
+  }
+ ],
+ "result": {
+  "width": 4,
+  "height": 2
+ }
+}

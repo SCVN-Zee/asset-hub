@@ -1,0 +1,142 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "planAgainstTarget-be297853",
+ "fn": "planAgainstTarget",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "path": "p/Assets/Rock.fbx",
+    "guid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "pathname": "Assets/AssetHub/Models/Rock.fbx",
+    "hash": "h-fbx"
+   },
+   {
+    "path": "p/Assets/Rock.mat",
+    "guid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "pathname": "Assets/AssetHub/Materials/Rock.mat",
+    "hash": "h-new-mat"
+   },
+   {
+    "path": "p/Assets/rock_d.png",
+    "guid": "cccccccccccccccccccccccccccccccc",
+    "pathname": "Assets/AssetHub/Textures/rock_d.png",
+    "hash": "h-tex"
+   },
+   {
+    "path": "p/Assets/Tree.fbx",
+    "guid": "dddddddddddddddddddddddddddddddd",
+    "pathname": "Assets/AssetHub/Models/Tree.fbx",
+    "hash": "h-tree"
+   },
+   {
+    "path": "p/Assets/Bush.fbx",
+    "guid": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "pathname": "Assets/AssetHub/Models/Bush.fbx",
+    "hash": "h-bush"
+   }
+  ],
+  {
+   "byGuid": {
+    "$": "map",
+    "v": [
+     [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "Assets/Art/Rock.fbx"
+     ],
+     [
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "Assets/Art/Rock.mat"
+     ]
+    ]
+   },
+   "byHash": {
+    "$": "map",
+    "v": [
+     [
+      "h-tex",
+      {
+       "path": "Assets/Shared/rock_d.png",
+       "guid": "99999999999999999999999999999999"
+      }
+     ]
+    ]
+   },
+   "hashOf": {
+    "$": "map",
+    "v": [
+     [
+      "Assets/Art/Rock.fbx",
+      "h-fbx"
+     ],
+     [
+      "Assets/Art/Rock.mat",
+      "h-old-mat"
+     ]
+    ]
+   },
+   "paths": {
+    "$": "set",
+    "v": [
+     "assets/assethub/models/tree.fbx"
+    ]
+   }
+  },
+  true
+ ],
+ "result": {
+  "decisions": {
+   "$": "map",
+   "v": [
+    [
+     "p/Assets/Rock.fbx",
+     {
+      "action": "same",
+      "existing": "Assets/Art/Rock.fbx"
+     }
+    ],
+    [
+     "p/Assets/Rock.mat",
+     {
+      "action": "overwrite",
+      "existing": "Assets/Art/Rock.mat"
+     }
+    ],
+    [
+     "p/Assets/rock_d.png",
+     {
+      "action": "reuse",
+      "existing": "Assets/Shared/rock_d.png",
+      "guid": "99999999999999999999999999999999"
+     }
+    ],
+    [
+     "p/Assets/Tree.fbx",
+     {
+      "action": "rename",
+      "existing": "Assets/AssetHub/Models/Tree.fbx"
+     }
+    ],
+    [
+     "p/Assets/Bush.fbx",
+     {
+      "action": "add"
+     }
+    ]
+   ]
+  },
+  "remap": {
+   "$": "map",
+   "v": [
+    [
+     "cccccccccccccccccccccccccccccccc",
+     "99999999999999999999999999999999"
+    ]
+   ]
+  }
+ }
+}

@@ -1,21 +1,48 @@
--- "Install Asset Hub": the small installer in the web .dmg (npm run dist:web). It downloads the newest
--- build for this Mac from the public release repo, checks it against its SHA-256, installs it into
--- Applications and opens it. Downloaded with curl, the app carries no quarantine flag, so macOS
--- opens it without the "unidentified developer" step. {{BASE_URL}} is filled in by the build script.
+-- "Install Asset Hub": the small installer in the web .dmg (bun run dist:web). It downloads the build of
+-- one release from the public release repo, checks it against the SHA-256 baked in below, installs it
+-- into Applications and opens it. Any Asset Hub 1.x it finds is moved to the Trash first. Downloaded with
+-- curl, the app carries no quarantine flag, so macOS opens it without the "unidentified developer" step.
+-- {{BASE_URL}}, {{VERSION}} and {{SHA256}} are filled in by the build script (make-web-installer.mjs).
+-- The checks that need no dialog (version below 2, checksum) are in installer-helpers.sh, which the
+-- build script copies into this app's Resources.
 
 property baseURL : "{{BASE_URL}}"
+property appVersion : "{{VERSION}}"
+property expectedSHA : "{{SHA256}}"
+property archiveName : "Asset.Hub.app.tar.gz"
 property appName : "Asset Hub"
+
+-- Asks the app at appPath to quit, when it is running (a quit sent to an app that is closed could open it).
+on quitApp(appPath)
+	try
+		do shell script "pgrep -f " & quoted form of (appPath & "/Contents/MacOS/") & " > /dev/null"
+	on error
+		return
+	end try
+	do shell script "osascript -e " & quoted form of ("tell application \"" & appPath & "\" to quit") & " > /dev/null 2>&1; true"
+	delay 1
+end quitApp
+
+-- Moves the 1.x app at appPath to the Trash through Finder (so it can be put back); leaves anything else.
+on trashLegacyApp(helpers, appPath)
+	try
+		do shell script ". " & quoted form of helpers & "; is_legacy_app " & quoted form of appPath
+	on error
+		return
+	end try
+	my quitApp(appPath)
+	tell application "Finder" to delete (POSIX file appPath as alias)
+end trashLegacyApp
 
 on run
 	set work to ""
 	try
-		-- Built for Apple Silicon (M1–M4) only.
+		-- Built for Apple Silicon (M1–M4) only, and for macOS 14 or later.
 		if (do shell script "uname -m") is not "arm64" then error "Asset Hub runs on Macs with Apple silicon (M1, M2, M3, M4). This Mac has an Intel chip."
-		-- The .tar.xz (about 30% smaller) when the release has one, else the .zip every release has.
-		set zipName to "Asset-Hub-arm64.tar.xz"
-		set packed to "xz"
+		if (do shell script "sw_vers -productVersion | cut -d. -f1") as integer < 14 then error "Asset Hub needs macOS 14 (Sonoma) or later."
+		set helpers to POSIX path of (path to resource "installer-helpers.sh")
 
-		display dialog "This installer downloads the latest Asset Hub (about 60 MB) from GitHub and installs it in your Applications folder." buttons {"Cancel", "Install"} default button "Install" cancel button "Cancel" with title "Install Asset Hub" with icon note
+		display dialog "This installer downloads Asset Hub " & appVersion & " (about 20 MB) from GitHub and installs it in your Applications folder. Asset Hub 1.x, if you have it, is moved to the Trash. Asset Hub 2 starts fresh: it does not use the data of 1.x." buttons {"Cancel", "Install"} default button "Install" cancel button "Cancel" with title "Install Asset Hub" with icon note
 
 		set work to do shell script "mktemp -d -t assethub"
 
@@ -24,17 +51,13 @@ on run
 		set progress completed steps to 0
 		set progress description to "Connecting to GitHub…"
 		set sizeOf to " | awk 'tolower($1)==\"content-length:\" {n=$2} END {gsub(/\\r/,\"\",n); print n+0}'"
+		set zipURL to baseURL & archiveName
 		set total to 0
 		try
-			set total to (do shell script "curl -fsIL " & quoted form of (baseURL & zipName) & sizeOf) as integer
+			set total to (do shell script "curl -fsIL " & quoted form of zipURL & sizeOf) as integer
 		end try
-		if total is 0 then
-			set zipName to "Asset-Hub-arm64.zip"
-			set packed to "zip"
-			set total to (do shell script "curl -fsIL " & quoted form of (baseURL & zipName) & sizeOf) as integer
-		end if
-		set zipURL to baseURL & zipName
-		set zipPath to work & "/" & zipName
+		if total is 0 then error "Asset Hub " & appVersion & " could not be found on GitHub. Check your internet connection and try again."
+		set zipPath to work & "/" & archiveName
 		-- A dropped connection is retried up to 3 times, resuming where it stopped (-C -). curl's own
 		-- message goes to curl.log; the exit code is written aside and renamed into place, so "status"
 		-- never exists half-written.
@@ -54,35 +77,45 @@ on run
 			error "Asset Hub could not be downloaded from GitHub (error " & curlStatus & "). Check your internet connection and try again." & return & return & detail
 		end if
 
-		-- Only a build that matches the checksum published next to it gets installed.
+		-- Only a build that matches the checksum baked into this installer gets installed.
 		set progress description to "Checking the download…"
 		set progress additional description to ""
-		set expected to do shell script "curl -fsSL " & quoted form of (zipURL & ".sha256") & " | awk '{print $1}'"
-		set actual to do shell script "shasum -a 256 " & quoted form of zipPath & " | awk '{print $1}'"
-		if expected is "" or expected is not actual then error "The download does not match its checksum, so it was not installed. Please try again later."
+		try
+			do shell script ". " & quoted form of helpers & "; sha256_matches " & quoted form of zipPath & " " & quoted form of expectedSHA
+		on error
+			error "The download does not match its checksum, so it was not installed. Please try again later."
+		end try
+
+		-- Unpacked aside first: the installed app is only touched once the new one is complete.
+		set progress description to "Installing into Applications…"
+		set unpacked to work & "/unpacked"
+		do shell script "mkdir " & quoted form of unpacked & " && tar -xzf " & quoted form of zipPath & " -C " & quoted form of unpacked
+		if (do shell script "test -d " & quoted form of (unpacked & "/" & appName & ".app") & " && echo yes || echo no") is not "yes" then error "The download does not contain " & appName & ".app, so it was not installed."
 
 		-- Applications if this account may write there (admins can), else the user's own Applications.
-		set progress description to "Installing into Applications…"
+		set home to POSIX path of (path to home folder)
 		set dest to "/Applications"
 		try
 			do shell script "test -w /Applications"
 		on error
-			set dest to (POSIX path of (path to home folder)) & "Applications"
+			set dest to home & "Applications"
 			do shell script "mkdir -p " & quoted form of dest
 		end try
 		set appPath to dest & "/" & appName & ".app"
-		do shell script "osascript -e 'tell application \"" & appName & "\" to quit' > /dev/null 2>&1; true"
-		if packed is "xz" then
-			do shell script "rm -rf " & quoted form of appPath & " && tar -xJf " & quoted form of zipPath & " -C " & quoted form of dest
-		else
-			do shell script "rm -rf " & quoted form of appPath & " && ditto -x -k " & quoted form of zipPath & " " & quoted form of dest
-		end if
+
+		-- Asset Hub 1.x goes to the Trash, from either Applications folder. Its data folder is never touched.
+		my trashLegacyApp(helpers, "/Applications/" & appName & ".app")
+		my trashLegacyApp(helpers, home & "Applications/" & appName & ".app")
+
+		-- An existing 2.x copy is replaced in place.
+		my quitApp(appPath)
+		do shell script "rm -rf " & quoted form of appPath & " && mv " & quoted form of (unpacked & "/" & appName & ".app") & " " & quoted form of appPath
 		do shell script "xattr -dr com.apple.quarantine " & quoted form of appPath & " 2>/dev/null; true"
 		do shell script "rm -rf " & quoted form of work
 		set progress completed steps to 100
 
 		do shell script "open " & quoted form of appPath
-		display dialog "Asset Hub is installed in " & dest & ". From now on, open it like any other app (you can delete this installer)." buttons {"Done"} default button "Done" with title "Install Asset Hub" with icon note giving up after 10
+		display dialog "Asset Hub " & appVersion & " is installed in " & dest & ". Asset Hub 2 starts fresh: sign in again (the GitHub CLI option is recommended) and recreate your collections. From now on, open it like any other app (you can delete this installer)." buttons {"Done"} default button "Done" with title "Install Asset Hub" with icon note giving up after 20
 	on error message number code
 		if work is not "" then do shell script "rm -rf " & quoted form of work
 		if code is not -128 then display dialog message buttons {"Close"} default button "Close" with title "Install Asset Hub" with icon stop

@@ -1,0 +1,43 @@
+{
+ "source": {
+  "path": "src/main/caches.ts",
+  "commit": "aabe84c355d266588b392547a16d30e4718099dc",
+  "sha256": "eff604f4a485dc822d4e53ed54f26da0a60f9d9c21fcc150cf29468580a7fe56"
+ },
+ "case": "StatsStore.stats-json",
+ "fn": "StatsStore",
+ "origin": "synthetic",
+ "readBack": {
+  "fish": {
+   "triangles": 500,
+   "vertices": 10,
+   "bones": 0,
+   "clips": 0,
+   "materials": 1,
+   "fileBytes": 1,
+   "textureBytes": 1,
+   "maxTextureSize": 1,
+   "source": "viewer",
+   "fxThumb": 1,
+   "modelThumb": 2
+  },
+  "tree": {
+   "triangles": 90,
+   "vertices": 70,
+   "bones": 0,
+   "clips": 0,
+   "materials": 1,
+   "fileBytes": 1,
+   "textureBytes": 1,
+   "maxTextureSize": 1,
+   "source": "thumb"
+  }
+ },
+ "files": [
+  {
+   "path": "stats.json",
+   "bytes": 308,
+   "sha256": "b78ab9ee3d8c66449d8934ea99858f88f78e4689c011d9b15f8d35704fcc7db5"
+  }
+ ]
+}

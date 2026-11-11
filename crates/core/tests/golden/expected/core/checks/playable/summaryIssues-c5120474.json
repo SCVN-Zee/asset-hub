@@ -1,0 +1,36 @@
+{
+ "source": {
+  "path": "src/core/checks/playable.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "ae8f6549b0f582de4891649e02a10091cf71fa9a017acb2e7ba84ce220276aee"
+ },
+ "case": "summaryIssues-c5120474",
+ "fn": "summaryIssues",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "triangles": 0,
+   "vertices": 0,
+   "bones": 0,
+   "clips": 0,
+   "materials": 0,
+   "textureBytes": 0,
+   "maxTextureSize": 0,
+   "source": "viewer",
+   "fileBytes": 2000000,
+   "duration": 90
+  }
+ ],
+ "result": [
+  {
+   "key": "audioBytes",
+   "value": 2000000,
+   "limit": 1048576
+  },
+  {
+   "key": "audioLength",
+   "value": 90,
+   "limit": 60
+  }
+ ]
+}

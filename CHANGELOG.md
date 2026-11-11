@@ -1,6 +1,18 @@
 # Changelog
 
-What changed in each release of Asset Hub. `npm run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
+What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
+
+## [2.0.0] — 2026-11-11
+
+Asset Hub 2 is a new app, rebuilt on Tauri with a Rust backend. It keeps the features of 1.0.5. It is a **fresh install**: run the new installer, which moves Asset Hub 1.x to the Trash.
+
+### Changed
+- **New app shell:** Tauri v2 and Rust replace Electron. GitHub access, caches, the catalog, export, sign-in and the assistant run in Rust; the page keeps the 3D viewers and the interface. The app is much smaller (about 20 MB to download instead of about 60 MB).
+- **Needs macOS 14 (Sonoma) or later** on Apple silicon.
+- **Starts fresh:** 2.0 keeps its data in `~/Library/Application Support/vn.supercent.assethub` and does not read 1.x's folder. Sign in again (the GitHub CLI option is recommended) and recreate your collections. The 1.x folder is never touched, so 1.x opens as before if you restore it from the Trash.
+- **New installer:** it downloads one fixed release, checks it against a checksum built into the installer, and moves Asset Hub 1.x (in `/Applications` or `~/Applications`) to the Trash through Finder.
+- **Signed updates:** 2.x updates itself with the Tauri updater from a separate release repo. Every update is signed with a key only the maintainer holds, and the app refuses an update whose signature does not match. A copy that is not in a writable folder or sits behind a symlink opens the release page instead.
+- **Personal access tokens** live in the Keychain; macOS asks for permission once after each update.
 
 ## [1.0.5] — 2026-11-06
 

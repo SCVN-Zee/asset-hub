@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-embedded-texture"
+description = "Enables the embedded_texture command without any pre-configured scope."
+commands.allow = ["embedded_texture"]
+
+[[permission]]
+identifier = "deny-embedded-texture"
+description = "Denies the embedded_texture command without any pre-configured scope."
+commands.deny = ["embedded_texture"]

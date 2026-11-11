@@ -1,0 +1,46 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "effectiveAudioImport-cdac8412",
+ "fn": "effectiveAudioImport",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "loadType": 0,
+   "compressionFormat": 1,
+   "quality": 0.7,
+   "sampleRateSetting": 0,
+   "sampleRateOverride": 44100,
+   "forceToMono": true,
+   "preload": true,
+   "loadInBackground": false,
+   "overrides": [
+    {
+     "target": "Standalone",
+     "loadType": 2,
+     "compressionFormat": 0,
+     "quality": 1
+    },
+    {
+     "target": "WebGL",
+     "loadType": 1,
+     "compressionFormat": 2,
+     "quality": 1,
+     "sampleRateSetting": 2,
+     "sampleRateOverride": 22050
+    }
+   ]
+  }
+ ],
+ "result": {
+  "target": "WebGL",
+  "loadType": 1,
+  "compressionFormat": 2,
+  "quality": 1,
+  "sampleRateSetting": 2,
+  "sampleRateOverride": 22050
+ }
+}

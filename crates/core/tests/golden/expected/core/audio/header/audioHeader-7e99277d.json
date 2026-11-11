@@ -1,0 +1,23 @@
+{
+ "source": {
+  "path": "src/core/audio/header.ts",
+  "commit": "7994728f3a12774c7258b7b986c0315cef845d31",
+  "sha256": "13bfe60d4d16673e1992a0558dbb5fdb581db62fe8edaa95d457ea07073f81a5"
+ },
+ "case": "audioHeader-7e99277d",
+ "fn": "audioHeader",
+ "origin": "unit-test-input",
+ "args": [
+  "a.ogg",
+  {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "T2dnUwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAF2b3JiaXMAAAAAASJWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+  }
+ ],
+ "result": {
+  "format": "OGG",
+  "channels": 1,
+  "sampleRate": 22050
+ }
+}

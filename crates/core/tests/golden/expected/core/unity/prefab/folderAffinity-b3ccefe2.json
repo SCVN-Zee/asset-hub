@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/core/unity/prefab.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "e03c1149880d5d2964d7ecc8d776dd02738417eb812bfda4ec1a84639cf9b495"
+ },
+ "case": "folderAffinity-b3ccefe2",
+ "fn": "folderAffinity",
+ "origin": "unit-test-input",
+ "args": [
+  "p/Assets/Game/Models/Fish/Fish.fbx",
+  "p/Assets/Other/Level.prefab",
+  "p/"
+ ],
+ "result": 0
+}

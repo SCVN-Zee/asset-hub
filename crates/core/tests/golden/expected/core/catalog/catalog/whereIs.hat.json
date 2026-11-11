@@ -1,0 +1,24 @@
+{
+ "source": {
+  "path": "src/core/catalog/catalog.ts",
+  "commit": "b72ffbeca5323939d8c04c34624eceaccb1cc8e8",
+  "sha256": "70f66279ec081de4bc815670d19830fd992cb3a6e4bdd6996aafa0c62c3d0e77"
+ },
+ "case": "whereIs.hat",
+ "fn": "whereIs",
+ "origin": "synthetic",
+ "args": [
+  "org/hero + org/other",
+  "e6686cd3e66a844a36fe7993433ba26d9365647a"
+ ],
+ "result": [
+  {
+   "repo": "org/hero",
+   "path": "proj/Assets/Art/Models/Hat.fbx",
+   "branches": [
+    "main",
+    "feature/x"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,60 @@
+{
+ "source": {
+  "path": "src/core/deps/material.ts",
+  "commit": "70875fe237d0b2ccde16808da33d2a50ff8bbdef",
+  "sha256": "a8db094759944fdd770da284b23c43d3ff3e203cbb2985472c5f1fa127caf550"
+ },
+ "case": "resolveMaterialDependencies.material.Assets_Art_Mats_Fx_Portal.mat",
+ "fn": "resolveMaterialDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Art/Mats/Fx_Portal.mat",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "A",
+  "materials": [
+   {
+    "name": "Fx_Portal",
+    "guid": "a0000000000000000000000000000016",
+    "path": "proj/Assets/Art/Mats/Fx_Portal.mat",
+    "missing": false,
+    "shader": {
+     "guid": "a000000000000000000000000000001e",
+     "kind": "project",
+     "label": "AllIn1Vfx.shader",
+     "path": "proj/Assets/Shaders/AllIn1Vfx.shader"
+    },
+    "textures": [
+     {
+      "prop": "_MainTex",
+      "guid": "a000000000000000000000000000000d",
+      "path": "proj/Assets/Art/Tex/sheet.png",
+      "name": "sheet.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 200
+     }
+    ]
+   }
+  ],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [
+   "customShader"
+  ],
+  "files": [
+   "proj/Assets/Art/Mats/Fx_Portal.mat",
+   "proj/Assets/Art/Mats/Fx_Portal.mat.meta",
+   "proj/Assets/Shaders/AllIn1Vfx.shader",
+   "proj/Assets/Shaders/AllIn1Vfx.shader.meta",
+   "proj/Assets/Art/Tex/sheet.png",
+   "proj/Assets/Art/Tex/sheet.png.meta",
+   "proj/Assets/Shaders/AllIn1Include.cginc",
+   "proj/Assets/Shaders/AllIn1Include.cginc.meta"
+  ]
+ }
+}

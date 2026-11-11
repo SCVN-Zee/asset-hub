@@ -1,0 +1,54 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.fire",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "fire"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Fx/Fx_Fire_01.prefab",
+    "type": "prefab",
+    "path": "Assets/Fx/Fx_Fire_01.prefab",
+    "name": "Fx_Fire_01.prefab",
+    "sha": "b84c6dd0e5eb87b4619bee85b7ada55cbfcd8786",
+    "size": 2700,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Fx/Fx_Fire_02.prefab",
+    "type": "prefab",
+    "path": "Assets/Fx/Fx_Fire_02.prefab",
+    "name": "Fx_Fire_02.prefab",
+    "sha": "81cb88bf5ce328076fd89f7f0bd6d380cbbe0918",
+    "size": 2700,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Fx/Fx_Fire_01.prefab",
+     100
+    ],
+    [
+     "Assets/Fx/Fx_Fire_02.prefab",
+     100
+    ]
+   ]
+  }
+ }
+}

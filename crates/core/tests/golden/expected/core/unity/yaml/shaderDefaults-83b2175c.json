@@ -1,0 +1,27 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "shaderDefaults-83b2175c",
+ "fn": "shaderDefaults",
+ "origin": "unit-test-input",
+ "args": [
+  "Shader \"AllIn1Vfx/AllIn1Vfx\"\n{\n    Properties\n    {\n        _SrcMode(\"SrcMode\", float) = 5 // 0\n        [HDR] _GlowColor(\"Glow Color\", Color) = (1,1,1,1) // 3\n        _ShapeContrast(\"Shape Contrast\", Range (0, 10)) = 1 // 7\n        [NoScaleOffset] _MainTex(\"Shape Texture\", 2D) = \"white\" {} // 8\n    }\n    SubShader { }\n}\n"
+ ],
+ "result": {
+  "floats": {
+   "_SrcMode": 5,
+   "_ShapeContrast": 1
+  },
+  "colors": {
+   "_GlowColor": {
+    "r": 1,
+    "g": 1,
+    "b": 1,
+    "a": 1
+   }
+  }
+ }
+}

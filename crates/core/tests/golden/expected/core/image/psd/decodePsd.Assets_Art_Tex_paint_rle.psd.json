@@ -1,0 +1,25 @@
+{
+ "source": {
+  "path": "src/core/image/psd.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "1685cc9c7990bc79b38678d4d8a5d487c48c69298408ceccd7e909ba749814fc"
+ },
+ "case": "decodePsd.Assets_Art_Tex_paint_rle.psd",
+ "fn": "decodePsd",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Tex/paint_rle.psd"
+  }
+ ],
+ "result": {
+  "width": 4,
+  "height": 2,
+  "data": {
+   "$": "bytes",
+   "type": "Uint8ClampedArray",
+   "b64": "AABa/yUlWv9KSlr/b29a/5SUWv+5uVr/3t5a/wMDWv8="
+  }
+ }
+}

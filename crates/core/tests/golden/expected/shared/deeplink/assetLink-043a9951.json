@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/shared/deeplink.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "3f2f5b6a73731b3c6cc2a55e702dc323adbd951a67c9df2a5c5d6f3247296a24"
+ },
+ "case": "assetLink-043a9951",
+ "fn": "assetLink",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "repo": "supercent-io/hb_creative_xp_hero",
+   "branch": "vn/asmr-fish",
+   "path": "unity_project/Assets/FX/6(C)_ Crocodile Green.fbx"
+  }
+ ],
+ "result": "assethub://open?repo=supercent-io%2Fhb_creative_xp_hero&branch=vn%2Fasmr-fish&path=unity_project%2FAssets%2FFX%2F6%28C%29_+Crocodile+Green.fbx"
+}

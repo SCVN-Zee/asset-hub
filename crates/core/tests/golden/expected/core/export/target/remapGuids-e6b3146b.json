@@ -1,0 +1,23 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "remapGuids-e6b3146b",
+ "fn": "remapGuids",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n    - _BaseMap:\n        m_Texture: {fileID: 2800000, guid: cccccccccccccccccccccccccccccccc, type: 3}\n    - _BumpMap:\n        m_Texture: {fileID: 2800000, guid: ffffffffffffffffffffffffffffffff, type: 3}\n",
+  {
+   "$": "map",
+   "v": [
+    [
+     "cccccccccccccccccccccccccccccccc",
+     "99999999999999999999999999999999"
+    ]
+   ]
+  }
+ ],
+ "result": "%YAML 1.1\n    - _BaseMap:\n        m_Texture: {fileID: 2800000, guid: 99999999999999999999999999999999, type: 3}\n    - _BumpMap:\n        m_Texture: {fileID: 2800000, guid: ffffffffffffffffffffffffffffffff, type: 3}\n"
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-decoded-image"
+description = "Enables the decoded_image command without any pre-configured scope."
+commands.allow = ["decoded_image"]
+
+[[permission]]
+identifier = "deny-decoded-image"
+description = "Denies the decoded_image command without any pre-configured scope."
+commands.deny = ["decoded_image"]

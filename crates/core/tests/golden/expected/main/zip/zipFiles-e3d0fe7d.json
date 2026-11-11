@@ -1,0 +1,40 @@
+{
+ "source": {
+  "path": "src/main/zip.ts",
+  "commit": "78cead60bcf0a25966ae44a7d3f0879863714df0",
+  "sha256": "c6faa2af46aaffce4eef15bc491e5c40b6fd9bbdb719163e7c8e0986e509a6cf"
+ },
+ "case": "zipFiles-e3d0fe7d",
+ "fn": "zipFiles",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "name": "Tên có dấu.txt",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "len": 2000,
+     "file": "0f5b6bded5efa1fdb3a4.bin"
+    }
+   },
+   {
+    "name": "b.bin",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "AQID"
+    }
+   }
+  ],
+  {
+   "$": "date",
+   "v": "2026-11-05T14:30:20.000Z"
+  }
+ ],
+ "result": {
+  "$": "bytes",
+  "type": "Uint8Array",
+  "b64": "UEsDBBQAAAgIAMpzZV3384e6HQAAANAHAAASAAAAVMOqbiBjw7MgZOG6pXUudHh0q8jMU0jOOLwgX6FilDXKGmWNskZZo6xR1hBlAQBQSwMEFAAACAAAynNlXR2AvFUDAAAAAwAAAAUAAABiLmJpbgECA1BLAQIUABQAAAgIAMpzZV3384e6HQAAANAHAAASAAAAAAAAAAAAAAAAAAAAAABUw6puIGPDsyBk4bqldS50eHRQSwECFAAUAAAIAADKc2VdHYC8VQMAAAADAAAABQAAAAAAAAAAAAAAAABNAAAAYi5iaW5QSwUGAAAAAAIAAgBzAAAAcwAAAAAA"
+ }
+}

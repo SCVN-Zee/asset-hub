@@ -1,0 +1,116 @@
+{
+ "source": {
+  "path": "src/core/export/modelBundle.ts",
+  "commit": "cc945012fe29f4ca5479f86546a3c0fc7c5cf978",
+  "sha256": "4fc765f7d9a82a5784ecd365204e9c0115d6dd540090ff31ca0748ec38e2dd55"
+ },
+ "case": "modelBundleMaterials-78b08c0e",
+ "fn": "modelBundleMaterials",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "kind": "A",
+   "materials": [
+    {
+     "name": "Body_URP",
+     "missing": false,
+     "textures": [
+      {
+       "prop": "_BaseMap",
+       "path": "a/base.png",
+       "name": "a/base.png",
+       "matchedBy": "guid",
+       "missing": false
+      },
+      {
+       "prop": "_MaskMap",
+       "path": "a/m.png",
+       "name": "a/m.png",
+       "matchedBy": "guid",
+       "missing": false
+      },
+      {
+       "prop": "_Weird",
+       "path": "a/w.asset",
+       "name": "a/w.asset",
+       "matchedBy": "guid",
+       "missing": false
+      }
+     ],
+     "sourceName": "Body",
+     "path": "a/Body_URP.mat",
+     "shader": {
+      "guid": "x",
+      "label": "Universal Render Pipeline/Lit",
+      "kind": "package"
+     }
+    }
+   ],
+   "embeddedTextures": [],
+   "warnings": [],
+   "suggested": [],
+   "files": []
+  },
+  {
+   "name": "Skin",
+   "missing": false,
+   "textures": [
+    {
+     "prop": "_MainTex",
+     "path": "t/skin.png",
+     "name": "t/skin.png",
+     "matchedBy": "guid",
+     "missing": false
+    }
+   ],
+   "path": "t/Skin.mat"
+  },
+  [
+   "t/hero_diffuse.png",
+   "t/hero_normal.png",
+   "t/hero_rough.png"
+  ]
+ ],
+ "result": [
+  {
+   "target": "Body",
+   "name": "Body_URP",
+   "mat": "a/Body_URP.mat",
+   "shader": "Universal Render Pipeline/Lit",
+   "textures": [
+    {
+     "prop": "_BaseMap",
+     "path": "a/base.png"
+    },
+    {
+     "prop": "_MaskMap",
+     "path": "a/m.png"
+    }
+   ]
+  },
+  {
+   "target": "*",
+   "name": "Skin",
+   "mat": "t/Skin.mat",
+   "textures": [
+    {
+     "prop": "_MainTex",
+     "path": "t/skin.png"
+    }
+   ]
+  },
+  {
+   "target": "?",
+   "textures": [
+    {
+     "prop": "_MainTex",
+     "path": "t/hero_diffuse.png"
+    },
+    {
+     "prop": "_BumpMap",
+     "path": "t/hero_normal.png"
+    }
+   ]
+  }
+ ]
+}

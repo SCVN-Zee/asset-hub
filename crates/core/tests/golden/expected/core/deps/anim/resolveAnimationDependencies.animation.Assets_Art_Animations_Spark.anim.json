@@ -1,0 +1,42 @@
+{
+ "source": {
+  "path": "src/core/deps/anim.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "3ac28b2260d637d64c9c3af3f99e7b8a62edb50df584b809ca3f501d321d1cd3"
+ },
+ "case": "resolveAnimationDependencies.animation.Assets_Art_Animations_Spark.anim",
+ "fn": "resolveAnimationDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Art/Animations/Spark.anim",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "none",
+  "materials": [],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [],
+  "files": [
+   "proj/Assets/Art/Animations/Spark.anim",
+   "proj/Assets/Art/Animations/Spark.anim.meta",
+   "proj/Assets/Art/Tex/sheet.png",
+   "proj/Assets/Art/Tex/sheet.png.meta"
+  ],
+  "parts": [
+   {
+    "kind": "other",
+    "guid": "a000000000000000000000000000000d",
+    "name": "sheet.png",
+    "path": "proj/Assets/Art/Tex/sheet.png",
+    "missing": false,
+    "size": 200,
+    "uses": 1
+   }
+  ],
+  "rigs": []
+ }
+}

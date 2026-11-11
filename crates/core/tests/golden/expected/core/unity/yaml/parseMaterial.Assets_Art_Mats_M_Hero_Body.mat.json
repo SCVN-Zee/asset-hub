@@ -1,0 +1,37 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterial.Assets_Art_Mats_M_Hero_Body.mat",
+ "fn": "parseMaterial",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Mats/M_Hero_Body.mat"
+  }
+ ],
+ "result": {
+  "name": "M_Hero_Body",
+  "shader": {
+   "fileID": "46",
+   "guid": "0000000000000000f000000000000000"
+  },
+  "textures": [
+   {
+    "prop": "_MainTex",
+    "guid": "a000000000000000000000000000000a"
+   },
+   {
+    "prop": "_BumpMap",
+    "guid": "a000000000000000000000000000000b"
+   },
+   {
+    "prop": "_EmissionMap",
+    "guid": "a000000000000000000000000000000c"
+   }
+  ]
+ }
+}

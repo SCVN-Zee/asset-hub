@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-assets-find-by-names"
+description = "Enables the assets_find_by_names command without any pre-configured scope."
+commands.allow = ["assets_find_by_names"]
+
+[[permission]]
+identifier = "deny-assets-find-by-names"
+description = "Denies the assets_find_by_names command without any pre-configured scope."
+commands.deny = ["assets_find_by_names"]

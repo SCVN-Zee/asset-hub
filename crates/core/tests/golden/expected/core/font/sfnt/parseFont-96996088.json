@@ -1,0 +1,20 @@
+{
+ "source": {
+  "path": "src/core/font/sfnt.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "74cd50890fdcf881902cec2f87264fb03313e251cb5e16e1fa2b1fc44a2a723b"
+ },
+ "case": "parseFont-96996088",
+ "fn": "parseFont",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "bm90IGEgZm9udCBhdCBhbGw="
+  }
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

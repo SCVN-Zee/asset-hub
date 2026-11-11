@@ -1,0 +1,64 @@
+{
+ "source": {
+  "path": "src/core/deps/material.ts",
+  "commit": "70875fe237d0b2ccde16808da33d2a50ff8bbdef",
+  "sha256": "a8db094759944fdd770da284b23c43d3ff3e203cbb2985472c5f1fa127caf550"
+ },
+ "case": "resolveMaterialDependencies.material.Assets_Art_Mats_Fx_Spark.mat",
+ "fn": "resolveMaterialDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Art/Mats/Fx_Spark.mat",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "A",
+  "materials": [
+   {
+    "name": "Fx_Spark",
+    "guid": "a0000000000000000000000000000018",
+    "path": "proj/Assets/Art/Mats/Fx_Spark.mat",
+    "missing": false,
+    "shader": {
+     "guid": "0406db5a14f94604a8c57ccfbc9f3b46",
+     "kind": "package",
+     "label": "Universal Render Pipeline/Particles/Unlit"
+    },
+    "textures": [
+     {
+      "prop": "_BaseMap",
+      "guid": "a000000000000000000000000000000d",
+      "path": "proj/Assets/Art/Tex/sheet.png",
+      "name": "sheet.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 200
+     },
+     {
+      "prop": "_EmissionMap",
+      "guid": "a000000000000000000000000000000c",
+      "path": "proj/Assets/Art/Tex/hero_emission.png",
+      "name": "hero_emission.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 86
+     }
+    ]
+   }
+  ],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [],
+  "files": [
+   "proj/Assets/Art/Mats/Fx_Spark.mat",
+   "proj/Assets/Art/Mats/Fx_Spark.mat.meta",
+   "proj/Assets/Art/Tex/sheet.png",
+   "proj/Assets/Art/Tex/sheet.png.meta",
+   "proj/Assets/Art/Tex/hero_emission.png",
+   "proj/Assets/Art/Tex/hero_emission.png.meta"
+  ]
+ }
+}

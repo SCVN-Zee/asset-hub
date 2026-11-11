@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-texture-info"
+description = "Enables the texture_info command without any pre-configured scope."
+commands.allow = ["texture_info"]
+
+[[permission]]
+identifier = "deny-texture-info"
+description = "Denies the texture_info command without any pre-configured scope."
+commands.deny = ["texture_info"]

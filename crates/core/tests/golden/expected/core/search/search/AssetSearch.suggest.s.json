@@ -1,0 +1,67 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.suggest.s",
+ "fn": "AssetSearch.suggest",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "s",
+  8
+ ],
+ "result": [
+  {
+   "text": "sea",
+   "count": 5,
+   "examples": [
+    "shark",
+    "tuna",
+    "dolphins"
+   ]
+  },
+  {
+   "text": "sói",
+   "count": 1,
+   "examples": [
+    "wolf"
+   ]
+  },
+  {
+   "text": "shark",
+   "count": 2,
+   "examples": []
+  },
+  {
+   "text": "skeleton",
+   "count": 1,
+   "examples": []
+  },
+  {
+   "text": "sinh vật biển",
+   "count": 5,
+   "examples": [
+    "shark",
+    "tuna",
+    "dolphins"
+   ]
+  },
+  {
+   "text": "swim",
+   "count": 2
+  },
+  {
+   "text": "slime",
+   "count": 1
+  },
+  {
+   "text": "splash",
+   "count": 1
+  }
+ ]
+}

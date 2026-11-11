@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-material"
+description = "Enables the material command without any pre-configured scope."
+commands.allow = ["material"]
+
+[[permission]]
+identifier = "deny-material"
+description = "Denies the material command without any pre-configured scope."
+commands.deny = ["material"]

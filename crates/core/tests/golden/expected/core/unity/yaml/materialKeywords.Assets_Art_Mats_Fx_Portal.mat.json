@@ -1,0 +1,32 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "materialKeywords.Assets_Art_Mats_Fx_Portal.mat",
+ "fn": "materialKeywords",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Mats/Fx_Portal.mat"
+  }
+ ],
+ "result": [
+  "FEATURE0_ON",
+  "FEATURE1_ON",
+  "FEATURE2_ON",
+  "FEATURE3_ON",
+  "FEATURE4_ON",
+  "FEATURE5_ON",
+  "FEATURE6_ON",
+  "FEATURE7_ON",
+  "FEATURE8_ON",
+  "FEATURE9_ON",
+  "FEATURE10_ON",
+  "FEATURE11_ON",
+  "GLOW_ON",
+  "SHAPE1DISTORT_ON"
+ ]
+}

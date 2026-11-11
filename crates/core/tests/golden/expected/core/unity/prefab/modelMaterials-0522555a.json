@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/unity/prefab.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "e03c1149880d5d2964d7ecc8d776dd02738417eb812bfda4ec1a84639cf9b495"
+ },
+ "case": "modelMaterials-0522555a",
+ "fn": "modelMaterials",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!137 &1\nSkinnedMeshRenderer:\n  m_GameObject: {fileID: 2}\n  m_Materials:\n  - {fileID: 2100000, guid: 0000000000000000000000000000000a, type: 2}\n  m_Mesh: {fileID: 5, guid: 00000000000000000000000000000001, type: 3}\n"
+ ],
+ "result": {
+  "00000000000000000000000000000001": [
+   "0000000000000000000000000000000a"
+  ]
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "source": {
+  "path": "src/core/export/stripScripts.ts",
+  "commit": "debe1dc7a599330cb888fdf1f2c408f885e4d30b",
+  "sha256": "f80fe7c0f6dbc66df28c27e1a18d640d7d0fca82c91550a244ff2b8c07a55b76"
+ },
+ "case": "stripScripts.Assets_Prefabs_Fx_Burst.prefab",
+ "fn": "stripScripts",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/Fx/Burst.prefab"
+  }
+ ],
+ "result": {
+  "text": "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!1 &200\nGameObject:\n  m_ObjectHideFlags: 0\n  serializedVersion: 6\n  m_Component:\n  - component: {fileID: 201}\n  - component: {fileID: 202}\n  - component: {fileID: 203}\n  m_Name: Burst\n  m_IsActive: 1\n--- !u!4 &201\nTransform:\n  m_GameObject: {fileID: 200}\n  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}\n  m_LocalPosition: {x: 0, y: 0, z: 0}\n  m_LocalScale: {x: 1, y: 1, z: 1}\n  m_Children: []\n  m_Father: {fileID: 0}\n--- !u!198 &202\nParticleSystem:\n  m_GameObject: {fileID: 200}\n  serializedVersion: 8\n  lengthInSec: 2\n  looping: 0\n  prewarm: 0\n  InitialModule:\n    enabled: 1\n    startLifetime:\n      scalar: 1.5\n      minMaxState: 0\n    startSpeed:\n      scalar: 4\n      minMaxState: 0\n    startSize:\n      scalar: 0.3\n      minMaxState: 0\n    maxNumParticles: 200\n  EmissionModule:\n    enabled: 1\n    rateOverTime:\n      scalar: 20\n      minMaxState: 0\n    m_Bursts:\n    - serializedVersion: 2\n      time: 0\n      countCurve:\n        scalar: 30\n        minMaxState: 0\n      cycleCount: 1\n  ShapeModule:\n    enabled: 1\n    type: 4\n--- !u!199 &203\nParticleSystemRenderer:\n  m_GameObject: {fileID: 200}\n  m_Enabled: 1\n  m_Materials:\n  - {fileID: 2100000, guid: a0000000000000000000000000000016, type: 2}\n  m_RenderMode: 0\n",
+  "removed": 0
+ }
+}

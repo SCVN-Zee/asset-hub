@@ -1,0 +1,222 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.words.names",
+ "fn": "AssetSearch.words",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  }
+ ],
+ "result": [
+  {
+   "word": "fx",
+   "count": 3
+  },
+  {
+   "word": "button",
+   "count": 2
+  },
+  {
+   "word": "fire",
+   "count": 2
+  },
+  {
+   "word": "harvester",
+   "count": 2
+  },
+  {
+   "word": "hero",
+   "count": 2
+  },
+  {
+   "word": "ng",
+   "count": 2
+  },
+  {
+   "word": "nh",
+   "count": 2
+  },
+  {
+   "word": "shark",
+   "count": 2
+  },
+  {
+   "word": "swim",
+   "count": 2
+  },
+  {
+   "word": "tree",
+   "count": 2
+  },
+  {
+   "word": "truck",
+   "count": 2
+  },
+  {
+   "word": "tuna",
+   "count": 2
+  },
+  {
+   "word": "ui",
+   "count": 2
+  },
+  {
+   "word": "xe",
+   "count": 2
+  },
+  {
+   "word": "attack",
+   "count": 1
+  },
+  {
+   "word": "bite",
+   "count": 1
+  },
+  {
+   "word": "blue",
+   "count": 1
+  },
+  {
+   "word": "boss",
+   "count": 1
+  },
+  {
+   "word": "cactus",
+   "count": 1
+  },
+  {
+   "word": "ch",
+   "count": 1
+  },
+  {
+   "word": "click",
+   "count": 1
+  },
+  {
+   "word": "combine",
+   "count": 1
+  },
+  {
+   "word": "con",
+   "count": 1
+  },
+  {
+   "word": "death",
+   "count": 1
+  },
+  {
+   "word": "dolphins",
+   "count": 1
+  },
+  {
+   "word": "dragon",
+   "count": 1
+  },
+  {
+   "word": "flower",
+   "count": 1
+  },
+  {
+   "word": "frog",
+   "count": 1
+  },
+  {
+   "word": "goblin",
+   "count": 1
+  },
+  {
+   "word": "grass",
+   "count": 1
+  },
+  {
+   "word": "green",
+   "count": 1
+  },
+  {
+   "word": "idle",
+   "count": 1
+  },
+  {
+   "word": "loop",
+   "count": 1
+  },
+  {
+   "word": "melee",
+   "count": 1
+  },
+  {
+   "word": "music",
+   "count": 1
+  },
+  {
+   "word": "oak",
+   "count": 1
+  },
+  {
+   "word": "ph",
+   "count": 1
+  },
+  {
+   "word": "pickup",
+   "count": 1
+  },
+  {
+   "word": "pine",
+   "count": 1
+  },
+  {
+   "word": "red",
+   "count": 1
+  },
+  {
+   "word": "run",
+   "count": 1
+  },
+  {
+   "word": "skeleton",
+   "count": 1
+  },
+  {
+   "word": "slime",
+   "count": 1
+  },
+  {
+   "word": "sparks",
+   "count": 1
+  },
+  {
+   "word": "splash",
+   "count": 1
+  },
+  {
+   "word": "th",
+   "count": 1
+  },
+  {
+   "word": "tile",
+   "count": 1
+  },
+  {
+   "word": "tractor",
+   "count": 1
+  },
+  {
+   "word": "walk",
+   "count": 1
+  },
+  {
+   "word": "water",
+   "count": 1
+  },
+  {
+   "word": "wolf",
+   "count": 1
+  }
+ ]
+}

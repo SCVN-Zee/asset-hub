@@ -1,0 +1,92 @@
+{
+ "source": {
+  "path": "src/core/deps/anim.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "3ac28b2260d637d64c9c3af3f99e7b8a62edb50df584b809ca3f501d321d1cd3"
+ },
+ "case": "rigCandidates-8f5d0c06",
+ "fn": "rigCandidates",
+ "origin": "unit-test-input",
+ "args": [
+  "p/Assets/NetCatch/Animations/ASMR-Fish/Customer_Idle.anim",
+  {
+   "root": "p/",
+   "byPath": {
+    "$": "map",
+    "v": [
+     [
+      "p/Assets/NetCatch/Models/ASMR-Fish/LP.fbx",
+      {
+       "path": "p/Assets/NetCatch/Models/ASMR-Fish/LP.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Models/ASMR-Fish/LP.fbx"
+      }
+     ],
+     [
+      "p/Assets/NetCatch/Models/ASMR-Fish/Belt.fbx",
+      {
+       "path": "p/Assets/NetCatch/Models/ASMR-Fish/Belt.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Models/ASMR-Fish/Belt.fbx"
+      }
+     ],
+     [
+      "p/Assets/NetCatch/Models/ASMR-Fish/Soldier.fbx",
+      {
+       "path": "p/Assets/NetCatch/Models/ASMR-Fish/Soldier.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Models/ASMR-Fish/Soldier.fbx"
+      }
+     ],
+     [
+      "p/Assets/NetCatch/Models/Customers/Customer_Red.fbx",
+      {
+       "path": "p/Assets/NetCatch/Models/Customers/Customer_Red.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Models/Customers/Customer_Red.fbx"
+      }
+     ],
+     [
+      "p/Assets/NetCatch/Models/Customers/The_Bowls.fbx",
+      {
+       "path": "p/Assets/NetCatch/Models/Customers/The_Bowls.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Models/Customers/The_Bowls.fbx"
+      }
+     ],
+     [
+      "p/Assets/NetCatch/Art/CH/Customer.fbx",
+      {
+       "path": "p/Assets/NetCatch/Art/CH/Customer.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Art/CH/Customer.fbx"
+      }
+     ],
+     [
+      "p/Assets/NetCatch/Models/Player/TF_Player.fbx",
+      {
+       "path": "p/Assets/NetCatch/Models/Player/TF_Player.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Models/Player/TF_Player.fbx"
+      }
+     ],
+     [
+      "p/Assets/NetCatch/Models/Weapon/CrossBow.fbx",
+      {
+       "path": "p/Assets/NetCatch/Models/Weapon/CrossBow.fbx",
+       "type": "blob",
+       "sha": "p/Assets/NetCatch/Models/Weapon/CrossBow.fbx"
+      }
+     ]
+    ]
+   }
+  }
+ ],
+ "result": [
+  "p/Assets/NetCatch/Models/ASMR-Fish/LP.fbx",
+  "p/Assets/NetCatch/Art/CH/Customer.fbx",
+  "p/Assets/NetCatch/Models/Customers/Customer_Red.fbx",
+  "p/Assets/NetCatch/Models/ASMR-Fish/Belt.fbx",
+  "p/Assets/NetCatch/Models/ASMR-Fish/Soldier.fbx"
+ ]
+}

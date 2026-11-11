@@ -1,0 +1,16 @@
+{
+ "source": {
+  "path": "src/core/unity/prefab.ts",
+  "commit": "a400f8bba2d6eac481d15434457267a964bb6cee",
+  "sha256": "e03c1149880d5d2964d7ecc8d776dd02738417eb812bfda4ec1a84639cf9b495"
+ },
+ "case": "folderAffinity-e68eb614",
+ "fn": "folderAffinity",
+ "origin": "unit-test-input",
+ "args": [
+  "p/Assets/Supercent/XP Hero/FBXs/Character/Animal/Fish_Dirty.fbx",
+  "p/Assets/Supercent/Creative/XP-Hero/ASMR-Fish/FBXs/Fish/Fish_new.prefab",
+  "p/"
+ ],
+ "result": 2
+}

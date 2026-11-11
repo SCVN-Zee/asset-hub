@@ -1,0 +1,15 @@
+{
+ "source": {
+  "path": "src/core/unity.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "12d9be8d0f567bbb36cd0e34a0c4ec2aafd4b059a3117d9b1d56a5f63275e067"
+ },
+ "case": "isInExcludedFolder-8eb56bbe",
+ "fn": "isInExcludedFolder",
+ "origin": "unit-test-input",
+ "args": [
+  "Assets/Game/Prefabs/Fish/FishModel.prefab",
+  []
+ ],
+ "result": false
+}

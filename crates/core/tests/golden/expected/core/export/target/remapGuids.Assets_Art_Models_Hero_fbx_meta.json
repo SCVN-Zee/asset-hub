@@ -1,0 +1,30 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "remapGuids.Assets_Art_Models_Hero_fbx_meta",
+ "fn": "remapGuids",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Models/Hero.fbx.meta"
+  },
+  {
+   "$": "map",
+   "v": [
+    [
+     "a0000000000000000000000000000014",
+     "c0000000000000000000000000000009"
+    ],
+    [
+     "a0000000000000000000000000000015",
+     "c000000000000000000000000000000a"
+    ]
+   ]
+  }
+ ],
+ "result": "fileFormatVersion: 2\nguid: a0000000000000000000000000000028\nModelImporter:\n  serializedVersion: 22200\n  externalObjects:\n  - first:\n      type: UnityEngine:Material\n      assembly: UnityEngine.CoreModule\n      name: M_Hero_Body\n    second: {fileID: 2100000, guid: c0000000000000000000000000000009, type: 2}\n  - first:\n      type: UnityEngine:Material\n      assembly: UnityEngine.CoreModule\n      name: M_Hero_Urp\n    second: {fileID: 2100000, guid: c000000000000000000000000000000a, type: 2}\n  - first:\n      type: UnityEngine:Material\n      assembly: UnityEngine.CoreModule\n      name: M_Gone\n    second: {fileID: 2100000, guid: a0000000000000000000000000000063, type: 2}\n  materials:\n    materialImportMode: 2\n    materialName: 0\n    materialSearch: 1\n    materialLocation: 1\n  globalScale: 0.01\n  useFileScale: 1\n"
+}

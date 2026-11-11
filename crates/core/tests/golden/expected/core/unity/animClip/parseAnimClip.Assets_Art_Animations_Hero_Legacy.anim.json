@@ -1,0 +1,77 @@
+{
+ "source": {
+  "path": "src/core/unity/animClip.ts",
+  "commit": "6aff18b0040ac8c53aed195473567c641cea85a8",
+  "sha256": "6484dc8047e017e7dd6a3151aa02d79f5bac580da59603e8095ee007c1b86b1c"
+ },
+ "case": "parseAnimClip.Assets_Art_Animations_Hero_Legacy.anim",
+ "fn": "parseAnimClip",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Animations/Hero_Legacy.anim"
+  }
+ ],
+ "result": {
+  "name": "Hero_Legacy",
+  "length": 1,
+  "sampleRate": 30,
+  "loop": true,
+  "legacy": true,
+  "compressed": false,
+  "kind": "legacy",
+  "transformCurves": [
+   {
+    "path": "Hips",
+    "kind": "position",
+    "keys": [
+     {
+      "t": 0,
+      "v": [
+       0,
+       0,
+       0
+      ],
+      "inS": [
+       0,
+       0,
+       0
+      ],
+      "outS": [
+       0,
+       0,
+       0
+      ]
+     },
+     {
+      "t": 1,
+      "v": [
+       0,
+       1,
+       0
+      ],
+      "inS": [
+       0,
+       0,
+       0
+      ],
+      "outS": [
+       0,
+       0,
+       0
+      ]
+     }
+    ]
+   }
+  ],
+  "floatCurves": [],
+  "spriteCurves": 0,
+  "spriteGuids": [],
+  "events": 0,
+  "paths": [
+   "Hips"
+  ],
+  "keyframes": 2
+ }
+}

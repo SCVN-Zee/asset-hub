@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/export/shaderMapping.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "9ed930c5b527512de2f7367b32f4ff7bbc5be038b3a7ce78b4dce1618ebb407e"
+ },
+ "case": "materialShader-e3ff9e42",
+ "fn": "materialShader",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!21 &2100000\nMaterial:\n  serializedVersion: 8\n  m_Name: Wall\n  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}\n  m_ValidKeywords: []\n  m_InvalidKeywords: []\n  m_LightmapFlags: 4\n  m_CustomRenderQueue: -1\n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs:\n    - _BaseMap:\n        m_Texture: {fileID: 2800000, guid: ed0c2c8a99e92e14ba740ac8aa428288, type: 3}\n        m_Scale: {x: 1.5, y: 4.5}\n        m_Offset: {x: 0, y: 0}\n    m_Ints: []\n    m_Floats:\n    - _Surface: 0\n    - _AlphaClip: 1\n    m_Colors:\n    - _BaseColor: {r: 1, g: 0.5, b: 0.25, a: 1}\n  m_BuildTextureStacks: []\n"
+ ],
+ "result": {
+  "fileID": "4800000",
+  "guid": "933532a4fcc9baf4fa0491de14d08ed7",
+  "type": "3"
+ }
+}

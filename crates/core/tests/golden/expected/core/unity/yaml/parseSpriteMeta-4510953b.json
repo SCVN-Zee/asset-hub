@@ -1,0 +1,39 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseSpriteMeta-4510953b",
+ "fn": "parseSpriteMeta",
+ "origin": "unit-test-input",
+ "args": [
+  "fileFormatVersion: 2\nguid: 0123456789abcdef0123456789abcdef\nTextureImporter:\n  textureType: 8\n  spriteMode: 2\n  spritePixelsToUnits: 100\n  spriteBorder: {x: 0, y: 0, z: 0, w: 0}\n  spriteSheet:\n    serializedVersion: 2\n    sprites:\n    - serializedVersion: 2\n      name: UI_Atlas_01_0\n      rect:\n        serializedVersion: 2\n        x: 0\n        y: 768\n        width: 256\n        height: 256\n      alignment: 0\n      pivot: {x: 0, y: 0}\n      border: {x: 0, y: 0, z: 0, w: 0}\n      outline:\n      - - {x: 1, y: 2}\n        - {x: 3, y: 4}\n      physicsShape: []\n    - serializedVersion: 2\n      name: UI_Button\n      rect:\n        serializedVersion: 2\n        x: 256\n        y: 768\n        width: 128\n        height: 64\n      border: {x: 12, y: 10, z: 12, w: 10}\n    outline: []\n    physicsShape: []\n  spritePackingTag: \n"
+ ],
+ "result": {
+  "mode": 2,
+  "pixelsPerUnit": 100,
+  "sprites": [
+   {
+    "name": "UI_Atlas_01_0",
+    "x": 0,
+    "y": 768,
+    "width": 256,
+    "height": 256
+   },
+   {
+    "name": "UI_Button",
+    "x": 256,
+    "y": 768,
+    "width": 128,
+    "height": 64,
+    "border": {
+     "left": 12,
+     "bottom": 10,
+     "right": 12,
+     "top": 10
+    }
+   }
+  ]
+ }
+}

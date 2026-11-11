@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "exportedAt": "2026-11-09T09:00:00.000Z",
+  "exportedBy": "tester",
+  "types": "fbx,prefab",
+  "repos": [
+    {
+      "repo": "org/hero",
+      "branches": 2,
+      "commits": 2
+    }
+  ],
+  "thumbs": 2,
+  "stats": 2
+}

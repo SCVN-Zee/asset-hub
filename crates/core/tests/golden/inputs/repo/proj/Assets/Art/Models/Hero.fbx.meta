@@ -1,0 +1,27 @@
+fileFormatVersion: 2
+guid: a0000000000000000000000000000028
+ModelImporter:
+  serializedVersion: 22200
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Hero_Body
+    second: {fileID: 2100000, guid: a0000000000000000000000000000014, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Hero_Urp
+    second: {fileID: 2100000, guid: a0000000000000000000000000000015, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Gone
+    second: {fileID: 2100000, guid: a0000000000000000000000000000063, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  globalScale: 0.01
+  useFileScale: 1

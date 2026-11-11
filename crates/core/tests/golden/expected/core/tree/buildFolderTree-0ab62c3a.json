@@ -1,0 +1,79 @@
+{
+ "source": {
+  "path": "src/core/tree.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "a251b716bb6605ba726e3215f11c25eb93fd1b348b51d53661f6e48fe16e8ea2"
+ },
+ "case": "buildFolderTree-0ab62c3a",
+ "fn": "buildFolderTree",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "id": "Assets/B/x.fbx",
+    "type": "fbx",
+    "path": "Assets/B/x.fbx",
+    "name": "x.fbx",
+    "sha": "x",
+    "lfs": false
+   },
+   {
+    "id": "Assets/A/y.fbx",
+    "type": "fbx",
+    "path": "Assets/A/y.fbx",
+    "name": "y.fbx",
+    "sha": "x",
+    "lfs": false
+   },
+   {
+    "id": "Assets/A/Deep/z.fbx",
+    "type": "fbx",
+    "path": "Assets/A/Deep/z.fbx",
+    "name": "z.fbx",
+    "sha": "x",
+    "lfs": false
+   },
+   {
+    "id": "top.fbx",
+    "type": "fbx",
+    "path": "top.fbx",
+    "name": "top.fbx",
+    "sha": "x",
+    "lfs": false
+   }
+  ]
+ ],
+ "result": {
+  "name": "",
+  "path": "",
+  "children": [
+   {
+    "name": "Assets",
+    "path": "Assets",
+    "children": [
+     {
+      "name": "A",
+      "path": "Assets/A",
+      "children": [
+       {
+        "name": "Deep",
+        "path": "Assets/A/Deep",
+        "children": [],
+        "assetCount": 1
+       }
+      ],
+      "assetCount": 2
+     },
+     {
+      "name": "B",
+      "path": "Assets/B",
+      "children": [],
+      "assetCount": 1
+     }
+    ],
+    "assetCount": 3
+   }
+  ],
+  "assetCount": 4
+ }
+}

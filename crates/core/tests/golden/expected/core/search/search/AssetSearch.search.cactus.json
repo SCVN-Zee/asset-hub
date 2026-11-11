@@ -1,0 +1,41 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.cactus",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "cactus"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Plants/Cactus.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Plants/Cactus.fbx",
+    "name": "Cactus.fbx",
+    "sha": "1cb4f528d49d1ddd17c5667cf5e9b87a99c9fd73",
+    "size": 2800,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/Plants/Cactus.fbx",
+     100
+    ]
+   ]
+  }
+ }
+}

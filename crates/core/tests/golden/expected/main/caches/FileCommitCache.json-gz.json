@@ -1,0 +1,92 @@
+{
+ "source": {
+  "path": "src/main/caches.ts",
+  "commit": "aabe84c355d266588b392547a16d30e4718099dc",
+  "sha256": "eff604f4a485dc822d4e53ed54f26da0a60f9d9c21fcc150cf29468580a7fe56"
+ },
+ "case": "FileCommitCache.json-gz",
+ "fn": "FileCommitCache",
+ "origin": "synthetic",
+ "calls": [
+  [
+   "set",
+   "tree",
+   "org/hero",
+   "c0ffee00",
+   [
+    {
+     "path": "Assets/Hero.fbx",
+     "type": "blob",
+     "sha": "aa11",
+     "size": 120
+    },
+    {
+     "path": "Assets/Big.fbx",
+     "type": "blob",
+     "sha": "bb22",
+     "lfs": true,
+     "lfsSize": 9999
+    }
+   ]
+  ],
+  [
+   "set",
+   "guids",
+   "org/hero repo",
+   "c0ffee01",
+   "object with a non-ASCII key"
+  ],
+  [
+   "get after legacy plain .json written by an older version",
+   "tree",
+   "org/legacy",
+   "deadbeef"
+  ]
+ ],
+ "readBack": {
+  "tree": [
+   {
+    "path": "Assets/Hero.fbx",
+    "type": "blob",
+    "sha": "aa11",
+    "size": 120
+   },
+   {
+    "path": "Assets/Big.fbx",
+    "type": "blob",
+    "sha": "bb22",
+    "lfs": true,
+    "lfsSize": 9999
+   }
+  ],
+  "migrated": [
+   {
+    "path": "Assets/Old.fbx",
+    "type": "blob",
+    "sha": "cc33",
+    "size": 5
+   }
+  ],
+  "repos": [
+   "org/hero",
+   "org/legacy"
+  ]
+ },
+ "files": [
+  {
+   "path": "guids/org__hero_repo/c0ffee01.json.gz",
+   "bytes": 60,
+   "sha256": "738863b0beb8007bac5fa9258b84349af5cc620346868f1394d8a37e9d6a2e79"
+  },
+  {
+   "path": "tree/org__hero/c0ffee00.json.gz",
+   "bytes": 116,
+   "sha256": "aa9676293264388b5e083d2b20a77fc74f6140d07f6847755301110bbfdfb32d"
+  },
+  {
+   "path": "tree/org__legacy/deadbeef.json.gz",
+   "bytes": 80,
+   "sha256": "40e99de1b00213633ce774a72d8864a14b05ab981d3c03bd5e27d7c8e9f3b0d2"
+  }
+ ]
+}

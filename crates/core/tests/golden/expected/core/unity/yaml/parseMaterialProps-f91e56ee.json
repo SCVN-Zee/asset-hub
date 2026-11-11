@@ -1,0 +1,24 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterialProps-f91e56ee",
+ "fn": "parseMaterialProps",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!21 &2100000\nMaterial:\n  m_Name: M\n  m_ShaderKeywords: \n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs: []\n    m_Floats:\n    - _Smoothness: 0.3\n    - _Metallic: 1\n    - _Surface: 1\n    m_Colors:\n\n"
+ ],
+ "result": {
+  "keywords": [],
+  "floats": {
+   "_Smoothness": 0.3,
+   "_Metallic": 1,
+   "_Surface": 1
+  },
+  "colors": {},
+  "st": {},
+  "refs": {}
+ }
+}

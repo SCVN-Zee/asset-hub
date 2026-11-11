@@ -1,0 +1,42 @@
+{
+ "source": {
+  "path": "src/core/export/modelBundle.ts",
+  "commit": "cc945012fe29f4ca5479f86546a3c0fc7c5cf978",
+  "sha256": "4fc765f7d9a82a5784ecd365204e9c0115d6dd540090ff31ca0748ec38e2dd55"
+ },
+ "case": "prefabBundleMaterials-9a8402d7",
+ "fn": "prefabBundleMaterials",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "kind": "A",
+   "materials": [
+    {
+     "name": "A",
+     "missing": false,
+     "textures": [],
+     "guid": "g1",
+     "path": "A.mat"
+    },
+    {
+     "name": "B",
+     "missing": true,
+     "textures": [],
+     "guid": "g2"
+    }
+   ],
+   "embeddedTextures": [],
+   "warnings": [],
+   "suggested": [],
+   "files": []
+  }
+ ],
+ "result": [
+  {
+   "target": "g1",
+   "name": "A",
+   "mat": "A.mat",
+   "textures": []
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterialLook-3252ad11",
+ "fn": "parseMaterialLook",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!21 &2100000\nMaterial:\n  m_Name: M\n  m_ShaderKeywords: \n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs: []\n    m_Floats:\n    - _SmoothnessTextureChannel: 1\n    - _GlossMapScale: 0.6\n    - _Glossiness: 0.2\n    m_Colors:\n    - _EmissionColor: {r: 1, g: 0, b: 0, a: 1}\n"
+ ],
+ "result": {
+  "surface": "opaque",
+  "smoothness": 0.2
+ }
+}

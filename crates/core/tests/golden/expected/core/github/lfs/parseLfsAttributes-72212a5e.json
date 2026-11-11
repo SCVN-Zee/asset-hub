@@ -1,0 +1,47 @@
+{
+ "source": {
+  "path": "src/core/github/lfs.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "4b3ed8c41aa3b1ba18ede49fe821285d963c34830849fdf44d7508d186bdb9e7"
+ },
+ "case": "parseLfsAttributes-72212a5e",
+ "fn": "parseLfsAttributes",
+ "origin": "unit-test-input",
+ "args": [
+  "# comment\n*.fbx filter=lfs diff=lfs merge=lfs -text\n*.[pP][nN][gG] filter=lfs\nAssets/Raw/** filter=lfs\n/Assets/Raw/keep.txt -filter\n*.cs text"
+ ],
+ "result": [
+  {
+   "re": {
+    "$": "regexp",
+    "source": "(?:^|\\/)[^/]*\\.fbx$",
+    "flags": ""
+   },
+   "lfs": true
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "(?:^|\\/)[^/]*\\.[pP][nN][gG]$",
+    "flags": ""
+   },
+   "lfs": true
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "^Assets\\/Raw\\/.*$",
+    "flags": ""
+   },
+   "lfs": true
+  },
+  {
+   "re": {
+    "$": "regexp",
+    "source": "^Assets\\/Raw\\/keep\\.txt$",
+    "flags": ""
+   },
+   "lfs": false
+  }
+ ]
+}

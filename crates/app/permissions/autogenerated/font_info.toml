@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-font-info"
+description = "Enables the font_info command without any pre-configured scope."
+commands.allow = ["font_info"]
+
+[[permission]]
+identifier = "deny-font-info"
+description = "Denies the font_info command without any pre-configured scope."
+commands.deny = ["font_info"]

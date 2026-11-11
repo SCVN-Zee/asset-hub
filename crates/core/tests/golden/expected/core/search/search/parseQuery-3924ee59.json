@@ -1,0 +1,58 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "parseQuery-3924ee59",
+ "fn": "parseQuery",
+ "origin": "unit-test-input",
+ "args": [
+  "red fish"
+ ],
+ "result": [
+  {
+   "text": "red",
+   "related": {
+    "$": "set",
+    "v": []
+   }
+  },
+  {
+   "text": "fish",
+   "related": {
+    "$": "set",
+    "v": [
+     "fish",
+     "shark",
+     "dolphin",
+     "tuna",
+     "salmon",
+     "whale",
+     "octopus",
+     "kraken",
+     "squid",
+     "crab",
+     "shrimp",
+     "lobster",
+     "jellyfish",
+     "starfish",
+     "eel",
+     "seahorse",
+     "turtle",
+     "coral",
+     "tentacles",
+     "carp",
+     "koi",
+     "piranha",
+     "orca",
+     "ca",
+     "sea",
+     "ocean",
+     "marine",
+     "bien"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "source": {
+  "path": "src/core/checks/playable.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "ae8f6549b0f582de4891649e02a10091cf71fa9a017acb2e7ba84ce220276aee"
+ },
+ "case": "budgetFor-60e669bb",
+ "fn": "budgetFor",
+ "origin": "unit-test-input",
+ "args": [
+  "custom",
+  {
+   "triangles": 5000
+  }
+ ],
+ "result": {
+  "triangles": 5000,
+  "textureSize": 1024,
+  "textureBytes": 4194304,
+  "fileBytes": 5242880,
+  "bones": 60,
+  "audioBytes": 1048576,
+  "audioSeconds": 60,
+  "fontBytes": 1048576,
+  "particles": 1000
+ }
+}

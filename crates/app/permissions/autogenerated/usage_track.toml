@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-usage-track"
+description = "Enables the usage_track command without any pre-configured scope."
+commands.allow = ["usage_track"]
+
+[[permission]]
+identifier = "deny-usage-track"
+description = "Denies the usage_track command without any pre-configured scope."
+commands.deny = ["usage_track"]

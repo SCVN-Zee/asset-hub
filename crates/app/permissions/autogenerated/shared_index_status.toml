@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shared-index-status"
+description = "Enables the shared_index_status command without any pre-configured scope."
+commands.allow = ["shared_index_status"]
+
+[[permission]]
+identifier = "deny-shared-index-status"
+description = "Denies the shared_index_status command without any pre-configured scope."
+commands.deny = ["shared_index_status"]

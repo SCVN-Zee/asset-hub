@@ -15,10 +15,9 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@core/*": ["src/core/*"],
-      "@shared/*": ["src/shared/*"],
-      "@renderer/*": ["src/renderer/src/*"]
+      "@shared/*": ["ui/shared/*"],
+      "@renderer/*": ["ui/src/*"]
     }
   },
-  "include": ["src", "electron.vite.config.ts", "vitest.config.ts"]
+  "include": ["ui", "vite.config.ts", "vitest.config.ts"]
 }

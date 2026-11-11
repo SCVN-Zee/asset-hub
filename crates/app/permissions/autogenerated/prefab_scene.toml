@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-prefab-scene"
+description = "Enables the prefab_scene command without any pre-configured scope."
+commands.allow = ["prefab_scene"]
+
+[[permission]]
+identifier = "deny-prefab-scene"
+description = "Denies the prefab_scene command without any pre-configured scope."
+commands.deny = ["prefab_scene"]

@@ -1,0 +1,19 @@
+{
+ "source": {
+  "path": "src/core/unity/tmpFont.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "c9792fd3b780fcc42c46130e3deab3b7ff736c9df151d164edbf3295583757c9"
+ },
+ "case": "tmpAtlas.Assets_Fonts_Pixel_SDF.asset",
+ "fn": "tmpAtlas",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Fonts/Pixel SDF.asset"
+  }
+ ],
+ "result": {
+  "$": "undefined"
+ }
+}

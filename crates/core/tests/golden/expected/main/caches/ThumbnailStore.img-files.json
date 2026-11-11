@@ -1,0 +1,124 @@
+{
+ "source": {
+  "path": "src/main/caches.ts",
+  "commit": "aabe84c355d266588b392547a16d30e4718099dc",
+  "sha256": "eff604f4a485dc822d4e53ed54f26da0a60f9d9c21fcc150cf29468580a7fe56"
+ },
+ "case": "ThumbnailStore.img-files",
+ "fn": "ThumbnailStore",
+ "origin": "synthetic",
+ "calls": [
+  [
+   "save",
+   "hero_png",
+   "data:image/png;base64,…"
+  ],
+  [
+   "save",
+   "hero_webp",
+   "data:image/webp;base64,…"
+  ],
+  [
+   "save",
+   "hero_jpeg",
+   "data:image/jpeg;base64,…"
+  ],
+  [
+   "save",
+   "weird key/with chars",
+   "png"
+  ],
+  [
+   "save",
+   "rejected",
+   "a gif data URL (not stored)"
+  ],
+  [
+   "read",
+   "legacy_entry",
+   "a .txt data URL written by an older version: converted to .img"
+  ],
+  [
+   "read",
+   "../etc"
+  ],
+  [
+   "read",
+   "nothing"
+  ]
+ ],
+ "readBack": {
+  "png": {
+   "bytes": {
+    "$": "bytes",
+    "type": "Uint8Array",
+    "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAT0lEQVR4AQFEALv/AAAAgP88AID/eACA/7QAgP8AADyA/zw8gP94PID/tDyA/wAAeID/PHiA/3h4gP+0eID/AAC0gP88tID/eLSA/7S0gP85yCMxddvVaAAAAABJRU5ErkJggg=="
+   },
+   "type": "image/png"
+  },
+  "webp": {
+   "bytes": {
+    "$": "bytes",
+    "type": "Uint8Array",
+    "b64": "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=="
+   },
+   "type": "image/webp"
+  },
+  "jpeg": {
+   "bytes": {
+    "$": "bytes",
+    "type": "Uint8Array",
+    "b64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2Q=="
+   },
+   "type": "image/jpeg"
+  },
+  "legacy": {
+   "bytes": {
+    "$": "bytes",
+    "type": "Uint8Array",
+    "b64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2Q=="
+   },
+   "type": "image/jpeg"
+  },
+  "bad": null,
+  "missing": null
+ },
+ "names": [
+  "hero_jpeg",
+  "hero_png",
+  "hero_webp",
+  "weird_key_with_chars"
+ ],
+ "urls": {
+  "hero_png": "assethub-thumb://t/hero_png?v=1794214800000",
+  "hero_webp": "assethub-thumb://t/hero_webp?v=1794214800000",
+  "weird key/with chars": "assethub-thumb://t/weird_key_with_chars?v=1794214800000"
+ },
+ "files": [
+  {
+   "path": "thumbs/hero_jpeg.img",
+   "bytes": 22,
+   "sha256": "d20f6ffd523b78a86cd2f916fa34af5d1918d75f7b142237c752ad6b254213ab"
+  },
+  {
+   "path": "thumbs/hero_png.img",
+   "bytes": 136,
+   "sha256": "f35d6fa122a88cf1be6eb070857634273f3ef0adba9d3022c85b19f41db06fce"
+  },
+  {
+   "path": "thumbs/hero_webp.img",
+   "bytes": 34,
+   "sha256": "86be52bdb7547413cafb3ed175a806a798c65de98b40849e0b974c47d187de65"
+  },
+  {
+   "path": "thumbs/legacy_entry.img",
+   "bytes": 22,
+   "sha256": "d20f6ffd523b78a86cd2f916fa34af5d1918d75f7b142237c752ad6b254213ab"
+  },
+  {
+   "path": "thumbs/weird_key_with_chars.img",
+   "bytes": 136,
+   "sha256": "f35d6fa122a88cf1be6eb070857634273f3ef0adba9d3022c85b19f41db06fce"
+  }
+ ]
+}

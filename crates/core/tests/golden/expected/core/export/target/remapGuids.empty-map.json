@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/export/target.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "61755d6e3c6041991b3a375d131fa49b871799d11419026c454764897c27e505"
+ },
+ "case": "remapGuids.empty-map",
+ "fn": "remapGuids",
+ "origin": "synthetic",
+ "args": [
+  "guid: a0000000000000000000000000000014",
+  {
+   "$": "map",
+   "v": []
+  }
+ ],
+ "result": "guid: a0000000000000000000000000000014"
+}

@@ -1,0 +1,27 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "splitDocs-58122cf4",
+ "fn": "splitDocs",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1001 &5\nPrefabInstance:\n  m_Modification:\n    m_TransformParent: {fileID: 0}\n  m_SourcePrefab: {fileID: 100100000, guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, type: 3}\n--- !u!198 &77 stripped\nParticleSystem:\n"
+ ],
+ "result": [
+  {
+   "cls": "1001",
+   "id": "5",
+   "stripped": false,
+   "body": "\nPrefabInstance:\n  m_Modification:\n    m_TransformParent: {fileID: 0}\n  m_SourcePrefab: {fileID: 100100000, guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, type: 3}\n"
+  },
+  {
+   "cls": "198",
+   "id": "77",
+   "stripped": true,
+   "body": "\nParticleSystem:\n"
+  }
+ ]
+}

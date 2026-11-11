@@ -1,0 +1,28 @@
+{
+ "source": {
+  "path": "src/core/export/shaderMapping.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "9ed930c5b527512de2f7367b32f4ff7bbc5be038b3a7ce78b4dce1618ebb407e"
+ },
+ "case": "parseShaderMapping.bad-entry",
+ "fn": "parseShaderMapping",
+ "origin": "synthetic",
+ "args": [
+  "{\"mappings\":[{\"from\":\"a\"},{\"from\":\"a\",\"to\":\"b\",\"props\":{\"x\":1}},{\"from\":\"a\",\"to\":\"b\",\"props\":{\"x\":\"y\"}}]}"
+ ],
+ "result": {
+  "rules": [
+   {
+    "from": "a",
+    "to": "b",
+    "props": {
+     "x": "y"
+    }
+   }
+  ],
+  "errors": [
+   ".assethub/shader-mapping.json: mapping #1 needs \"from\", \"to\" and string \"props\"",
+   ".assethub/shader-mapping.json: mapping #2 needs \"from\", \"to\" and string \"props\""
+  ]
+ }
+}

@@ -1,5 +1,5 @@
 // Builds usage-report.html from the feedback repo (package.json "feedbackRepo"): who uses the app,
-// for how long, what they do, what breaks, and the feedback sent from it (see src/shared/usage.ts).
+// for how long, what they do, what breaks, and the feedback sent from it (see ui/shared/usage.ts).
 // Needs gh signed in with read access to that repo. The page is one file with the data inside:
 // it holds GitHub names, so keep it within the team.
 //   node scripts/usage-report.mjs [out.html]   real data

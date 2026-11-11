@@ -1,0 +1,35 @@
+{
+ "source": {
+  "path": "src/core/export/shaderMapping.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "9ed930c5b527512de2f7367b32f4ff7bbc5be038b3a7ce78b4dce1618ebb407e"
+ },
+ "case": "parseShaderMapping-a3dea20e",
+ "fn": "parseShaderMapping",
+ "origin": "unit-test-input",
+ "args": [
+  "{\"mappings\":[{\"from\":\"Custom/Toon\",\"to\":\"Universal Render Pipeline/Lit\",\"props\":{\"_MainTex\":\"_BaseMap\"}},{\"from\":\"builtin:46\",\"to\":\"cccccccccccccccccccccccccccccccc\"},{\"from\":\"Custom/Old\",\"to\":\"Missing/Shader\"}]}"
+ ],
+ "result": {
+  "rules": [
+   {
+    "from": "Custom/Toon",
+    "to": "Universal Render Pipeline/Lit",
+    "props": {
+     "_MainTex": "_BaseMap"
+    }
+   },
+   {
+    "from": "builtin:46",
+    "to": "cccccccccccccccccccccccccccccccc",
+    "props": {}
+   },
+   {
+    "from": "Custom/Old",
+    "to": "Missing/Shader",
+    "props": {}
+   }
+  ],
+  "errors": []
+ }
+}

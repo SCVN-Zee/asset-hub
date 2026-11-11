@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/main/targetProject.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "9c1c0a66754fc7ee89645b318cdbdf6cffcee22cf9fdcce2870d4ce6d1e6e24b"
+ },
+ "case": "contentHash-58398cf3",
+ "fn": "contentHash",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "$": "bytes",
+   "type": "Uint8Array",
+   "b64": "UE5HREFUQQ=="
+  }
+ ],
+ "result": "11ab96b2f4a4288197b05c308989e55638c14061"
+}

@@ -1,0 +1,56 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.ca map",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "ca map"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Animals/Shark.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Shark.fbx",
+    "name": "Shark.fbx",
+    "sha": "148f0061910d648deca6b247620bd19d9a7732fd",
+    "size": 2800,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Anim/Shark@Swim.fbx",
+    "type": "fbx",
+    "path": "Assets/Anim/Shark@Swim.fbx",
+    "name": "Shark@Swim.fbx",
+    "sha": "b7429eba7bd53a707d30d3cf61abbebe8fc0f000",
+    "size": 2600,
+    "lfs": false
+   }
+  ],
+  "related": [
+   "shark"
+  ],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/Animals/Shark.fbx",
+     60
+    ],
+    [
+     "Assets/Anim/Shark@Swim.fbx",
+     60
+    ]
+   ]
+  }
+ }
+}

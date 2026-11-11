@@ -1,0 +1,28 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseTextureMeta-f3a5a686",
+ "fn": "parseTextureMeta",
+ "origin": "unit-test-input",
+ "args": [
+  "fileFormatVersion: 2\nguid: 0123456789abcdef0123456789abcdef\nTextureImporter:\r\n  mipmaps:\n    mipMapMode: 0\n    enableMipMap: 1\n    sRGBTexture: 1\n  maxTextureSize: 2048\n  textureType: 8\n  alphaUsage: 2\n  platformSettings:\n  - serializedVersion: 3\n    buildTarget: DefaultTexturePlatform\n    maxTextureSize: 2048\n    textureCompression: 1\n    overridden: 0\n  - serializedVersion: 3\n    buildTarget: Android\n    maxTextureSize: 512\n    textureCompression: 1\n    overridden: 1\n  - serializedVersion: 3\n    buildTarget: Standalone\n    maxTextureSize: 4096\n    overridden: 0\n"
+ ],
+ "result": {
+  "textureType": 8,
+  "maxTextureSize": 2048,
+  "compression": 1,
+  "sRGB": true,
+  "mipmaps": true,
+  "alphaSource": "gray",
+  "overrides": [
+   {
+    "target": "Android",
+    "maxTextureSize": 512,
+    "compression": 1
+   }
+  ]
+ }
+}

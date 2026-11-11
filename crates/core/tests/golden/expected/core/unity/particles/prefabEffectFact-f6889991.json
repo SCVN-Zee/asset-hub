@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "prefabEffectFact-f6889991",
+ "fn": "prefabEffectFact",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: FX_Hit\n--- !u!4 &4\nTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n--- !u!198 &198\nParticleSystem:\n  m_GameObject: {fileID: 1}\n--- !u!1 &2\nGameObject:\n  m_Name: Ring\n--- !u!4 &5\nTransform:\n  m_GameObject: {fileID: 2}\n  m_Father: {fileID: 4}\n--- !u!23 &23\nMeshRenderer:\n  m_GameObject: {fileID: 2}\n"
+ ],
+ "result": "1"
+}

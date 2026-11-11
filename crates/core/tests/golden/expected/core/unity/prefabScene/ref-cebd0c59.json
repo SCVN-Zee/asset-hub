@@ -1,0 +1,15 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "ref-cebd0c59",
+ "fn": "ref",
+ "origin": "unit-test-input",
+ "args": [
+  "\nParticleSystem:\n  m_GameObject: {fileID: 200}\n  serializedVersion: 8\n  lengthInSec: 2\n  looping: 1\n  prewarm: 0\n  startDelay:\n    serializedVersion: 2\n    minMaxState: 0\n    scalar: 0\n    minScalar: 0\n    maxCurve:\n      serializedVersion: 2\n      m_Curve: []\n  InitialModule:\n    serializedVersion: 3\n    enabled: 1\n    startLifetime:\n      serializedVersion: 2\n      minMaxState: 3\n      scalar: 0.5\n      minScalar: 0.8\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    startSpeed:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 4\n      minScalar: 4\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    startSize:\n      serializedVersion: 2\n      minMaxState: 1\n      scalar: 0.3\n      minScalar: 0.3\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    maxNumParticles: 200\n  ShapeModule:\n    serializedVersion: 6\n    enabled: 1\n    type: 4\n  EmissionModule:\n    enabled: 1\n    serializedVersion: 4\n    rateOverTime:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 20\n      minScalar: 20\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    rateOverDistance:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 0\n      minScalar: 0\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    m_BurstCount: 1\n    m_Bursts: []\n  UVModule:\n    serializedVersion: 2\n    enabled: 0\n    tilesX: 4\n    tilesY: 2\n  NoiseModule:\n    enabled: 0\n  CollisionModule:\n    enabled: 0\n    type: 0\n  SubModule:\n    serializedVersion: 2\n    enabled: 0\n    subEmitters:\n    - serializedVersion: 3\n      emitter: {fileID: 0}\n  TrailModule:\n    enabled: 0\n",
+  "m_GameObject"
+ ],
+ "result": "200"
+}

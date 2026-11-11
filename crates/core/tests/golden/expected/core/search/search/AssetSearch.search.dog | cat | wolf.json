@@ -1,0 +1,41 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.dog | cat | wolf",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "dog | cat | wolf"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Animals/Wolf.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Wolf.fbx",
+    "name": "Wolf.fbx",
+    "sha": "6a32faa95323f086b0cf998ae6a7479afb558918",
+    "size": 2700,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/Animals/Wolf.fbx",
+     100
+    ]
+   ]
+  }
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseMaterial.Assets_Art_Mats_M_Hero_Urp.mat",
+ "fn": "parseMaterial",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Mats/M_Hero_Urp.mat"
+  }
+ ],
+ "result": {
+  "name": "M_Hero_Urp",
+  "shader": {
+   "fileID": "4800000",
+   "guid": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "textures": [
+   {
+    "prop": "_BaseMap",
+    "guid": "a000000000000000000000000000000a"
+   },
+   {
+    "prop": "_EmissionMap",
+    "guid": "a000000000000000000000000000000c"
+   }
+  ]
+ }
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-tools-install-gh"
+description = "Enables the tools_install_gh command without any pre-configured scope."
+commands.allow = ["tools_install_gh"]
+
+[[permission]]
+identifier = "deny-tools-install-gh"
+description = "Denies the tools_install_gh command without any pre-configured scope."
+commands.deny = ["tools_install_gh"]

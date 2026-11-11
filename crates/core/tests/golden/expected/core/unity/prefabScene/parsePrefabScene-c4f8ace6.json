@@ -1,0 +1,64 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "parsePrefabScene-c4f8ace6",
+ "fn": "parsePrefabScene",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: Chimney\n--- !u!4 &4\nTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n--- !u!33 &33\nMeshFilter:\n  m_GameObject: {fileID: 1}\n  m_Mesh: {fileID: 4300002, guid: a0000000000000000000000000000001, type: 3}\n--- !u!198 &198\nParticleSystem:\n  m_GameObject: {fileID: 1}\n"
+ ],
+ "result": {
+  "nodes": {
+   "$": "map",
+   "v": [
+    [
+     "4",
+     {
+      "id": "4",
+      "name": "Chimney",
+      "position": [
+       0,
+       0,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0,
+       1
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "active": true
+     }
+    ]
+   ]
+  },
+  "meshes": [
+   {
+    "node": "4",
+    "mesh": {
+     "fileID": "4300002",
+     "guid": "a0000000000000000000000000000001"
+    },
+    "materials": [],
+    "skinned": false
+   }
+  ],
+  "instances": [],
+  "scripts": [],
+  "particleSystems": 1,
+  "particleMaterials": [],
+  "particleMeshes": [],
+  "uiElements": 0,
+  "guids": [
+   "a0000000000000000000000000000001"
+  ]
+ }
+}

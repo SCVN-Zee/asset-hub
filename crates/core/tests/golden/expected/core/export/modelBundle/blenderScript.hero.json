@@ -1,0 +1,88 @@
+{
+ "source": {
+  "path": "src/core/export/modelBundle.ts",
+  "commit": "cc945012fe29f4ca5479f86546a3c0fc7c5cf978",
+  "sha256": "4fc765f7d9a82a5784ecd365204e9c0115d6dd540090ff31ca0748ec38e2dd55"
+ },
+ "case": "blenderScript.hero",
+ "fn": "blenderScript",
+ "origin": "synthetic",
+ "args": [
+  "Hero.fbx",
+  [
+   {
+    "target": "M_Hero_Body",
+    "name": "M_Hero_Body",
+    "color": [
+     0.6038273388553378,
+     0.44798841244188325,
+     0.31854677812509186,
+     1
+    ],
+    "colorMap": "hero_albedo.png",
+    "normalMap": "hero_normal.png",
+    "normalScale": 1,
+    "occlusionStrength": 1,
+    "metallic": 0.1,
+    "smoothness": 0.35,
+    "smoothnessFrom": "value",
+    "emission": [
+     0.033104766570885055,
+     0.010022825574869039,
+     0
+    ],
+    "emissionMap": "hero_emission.png",
+    "surface": "opaque",
+    "cutoff": 0.5,
+    "unlit": false
+   },
+   {
+    "target": "M_Hero_Urp",
+    "name": "M_Hero_Urp",
+    "color": [
+     1,
+     0.21404114048223255,
+     0.05087608817155679,
+     1
+    ],
+    "colorMap": "hero_albedo.png",
+    "normalScale": 1,
+    "occlusionStrength": 1,
+    "metallic": 0,
+    "smoothness": 0.5,
+    "smoothnessFrom": "value",
+    "emission": [
+     0,
+     0,
+     0
+    ],
+    "emissionMap": "hero_emission.png",
+    "surface": "opaque",
+    "cutoff": 0.5,
+    "unlit": false
+   },
+   {
+    "target": "?",
+    "color": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "colorMap": "hero_albedo.png",
+    "normalScale": 1,
+    "occlusionStrength": 1,
+    "metallic": 0,
+    "smoothness": 0.5,
+    "smoothnessFrom": "value",
+    "surface": "opaque",
+    "cutoff": 0.5,
+    "unlit": false
+   }
+  ],
+  {
+   "cleanup": true
+  }
+ ],
+ "result": "# Asset Hub: imports Hero.fbx with its Unity materials.\n# In Blender: Scripting > Open > this file > Run Script, or: blender --python open_in_blender.py\nimport bpy, json, os, re, shutil\n\nHERE = os.path.dirname(os.path.abspath(__file__))\nDATA = json.loads(\"{\\\"model\\\":\\\"Hero.fbx\\\",\\\"materials\\\":[{\\\"target\\\":\\\"M_Hero_Body\\\",\\\"name\\\":\\\"M_Hero_Body\\\",\\\"color\\\":[0.6038273388553378,0.44798841244188325,0.31854677812509186,1],\\\"colorMap\\\":\\\"hero_albedo.png\\\",\\\"normalMap\\\":\\\"hero_normal.png\\\",\\\"normalScale\\\":1,\\\"occlusionStrength\\\":1,\\\"metallic\\\":0.1,\\\"smoothness\\\":0.35,\\\"smoothnessFrom\\\":\\\"value\\\",\\\"emission\\\":[0.033104766570885055,0.010022825574869039,0],\\\"emissionMap\\\":\\\"hero_emission.png\\\",\\\"surface\\\":\\\"opaque\\\",\\\"cutoff\\\":0.5,\\\"unlit\\\":false},{\\\"target\\\":\\\"M_Hero_Urp\\\",\\\"name\\\":\\\"M_Hero_Urp\\\",\\\"color\\\":[1,0.21404114048223255,0.05087608817155679,1],\\\"colorMap\\\":\\\"hero_albedo.png\\\",\\\"normalScale\\\":1,\\\"occlusionStrength\\\":1,\\\"metallic\\\":0,\\\"smoothness\\\":0.5,\\\"smoothnessFrom\\\":\\\"value\\\",\\\"emission\\\":[0,0,0],\\\"emissionMap\\\":\\\"hero_emission.png\\\",\\\"surface\\\":\\\"opaque\\\",\\\"cutoff\\\":0.5,\\\"unlit\\\":false},{\\\"target\\\":\\\"?\\\",\\\"color\\\":[1,1,1,1],\\\"colorMap\\\":\\\"hero_albedo.png\\\",\\\"normalScale\\\":1,\\\"occlusionStrength\\\":1,\\\"metallic\\\":0,\\\"smoothness\\\":0.5,\\\"smoothnessFrom\\\":\\\"value\\\",\\\"surface\\\":\\\"opaque\\\",\\\"cutoff\\\":0.5,\\\"unlit\\\":false}],\\\"cleanup\\\":true}\")\n\n# An empty scene (no default cube, camera or light).\nfor o in list(bpy.data.objects):\n    bpy.data.objects.remove(o, do_unlink=True)\n\nbefore = set(bpy.data.materials)\npath = os.path.join(HERE, DATA[\"model\"])\nif path.lower().endswith((\".glb\", \".gltf\")):\n    bpy.ops.import_scene.gltf(filepath=path)\nelse:\n    bpy.ops.import_scene.fbx(filepath=path)\n\n\ndef base_name(name):\n    return re.sub(r\"\\.\\d{3}$\", \"\", name)\n\n\ndef socket(node, *names):\n    for n in names:\n        s = node.inputs.get(n)\n        if s is not None:\n            return s\n    return None\n\n\ndef build(mat, spec):\n    if mat.node_tree is None:\n        mat.use_nodes = True\n    tree = mat.node_tree\n    nodes, links = tree.nodes, tree.links\n    bsdf = next((n for n in nodes if n.type == \"BSDF_PRINCIPLED\"), None)\n    if bsdf is None:\n        bsdf = nodes.new(\"ShaderNodeBsdfPrincipled\")\n        out = next((n for n in nodes if n.type == \"OUTPUT_MATERIAL\"), None) or nodes.new(\"ShaderNodeOutputMaterial\")\n        links.new(bsdf.outputs[0], out.inputs[\"Surface\"])\n    x = bsdf.location.x - 700\n    y = [bsdf.location.y + 300]\n\n    def place(node, dx=0):\n        node.location = (x + dx, y[0])\n        y[0] -= 280\n        return node\n\n    def image(file, data):\n        img = bpy.data.images.load(os.path.join(HERE, file), check_existing=True)\n        if data:\n            img.colorspace_settings.name = \"Non-Color\"\n        n = place(nodes.new(\"ShaderNodeTexImage\"))\n        n.image = img\n        return n\n\n    def math(op, a, b, c=None):\n        n = nodes.new(\"ShaderNodeMath\")\n        n.operation = op\n        n.location = (x + 350, y[0] + 140)\n        for i, v in enumerate((a, b) if c is None else (a, b, c)):\n            if isinstance(v, (int, float)):\n                n.inputs[i].default_value = v\n            else:\n                links.new(v, n.inputs[i])\n        return n.outputs[0]\n\n    def vmul(a, b):\n        n = nodes.new(\"ShaderNodeVectorMath\")\n        n.operation = \"MULTIPLY\"\n        n.location = (x + 350, y[0] + 140)\n        links.new(a, n.inputs[0])\n        if isinstance(b, (tuple, list)):\n            n.inputs[1].default_value = b\n        else:\n            links.new(b, n.inputs[1])\n        return n.outputs[0]\n\n    def separate(img):\n        n = nodes.new(\"ShaderNodeSeparateColor\") if hasattr(bpy.types, \"ShaderNodeSeparateColor\") else nodes.new(\"ShaderNodeSeparateRGB\")\n        n.location = (x + 300, y[0] + 280)\n        links.new(img.outputs[\"Color\"], n.inputs[0])\n        return n.outputs\n\n    r, g, b, a = spec[\"color\"]\n    color = alpha = color_img = None\n    if spec.get(\"colorMap\"):\n        img = color_img = image(spec[\"colorMap\"], False)\n        color = img.outputs[\"Color\"]\n        alpha = img.outputs[\"Alpha\"]\n        if (r, g, b) != (1, 1, 1):\n            color = vmul(color, (r, g, b))\n        if a != 1:\n            alpha = math(\"MULTIPLY\", alpha, a)\n\n    # Occlusion darkens the colour (Principled has no input of its own): 1 + strength * (ao - 1).\n    ao = None\n    if spec.get(\"occlusionMap\"):\n        ao = separate(image(spec[\"occlusionMap\"], True))[1]\n    mask_img = image(spec[\"maskMap\"], True) if spec.get(\"maskMap\") else None\n    mask = separate(mask_img) if mask_img else None\n    if mask and ao is None:\n        ao = mask[1]\n    if ao is not None:\n        k = spec[\"occlusionStrength\"]\n        ao = math(\"MULTIPLY_ADD\", ao, k, 1 - k)\n        color = vmul(color, ao) if color is not None else None\n        if color is None:\n            n = nodes.new(\"ShaderNodeCombineXYZ\")\n            n.location = (x + 350, y[0])\n            for i in range(3):\n                links.new(math(\"MULTIPLY\", ao, (r, g, b)[i]), n.inputs[i])\n            color = n.outputs[0]\n    base = socket(bsdf, \"Base Color\")\n    if color is not None:\n        links.new(color, base)\n    else:\n        base.default_value = (r, g, b, 1)\n\n    # Metallic and smoothness: a map's R and A, else the numbers. Roughness = 1 - smoothness.\n    metal_img = image(spec[\"metallicMap\"], True) if spec.get(\"metallicMap\") else mask_img\n    s = spec[\"smoothness\"]\n    if metal_img is not None:\n        links.new(separate(metal_img)[0], socket(bsdf, \"Metallic\"))\n    else:\n        socket(bsdf, \"Metallic\").default_value = spec[\"metallic\"]\n    gloss = None\n    if spec[\"smoothnessFrom\"] == \"map\" and metal_img is not None:\n        gloss = metal_img.outputs[\"Alpha\"]\n    elif spec[\"smoothnessFrom\"] == \"albedo\" and color_img is not None:\n        gloss = color_img.outputs[\"Alpha\"]\n    if gloss is not None:\n        links.new(math(\"MULTIPLY_ADD\", gloss, -s, 1), socket(bsdf, \"Roughness\"))\n    else:\n        socket(bsdf, \"Roughness\").default_value = 1 - s\n\n    if spec.get(\"normalMap\"):\n        nmap = nodes.new(\"ShaderNodeNormalMap\")\n        img = image(spec[\"normalMap\"], True)\n        nmap.location = (x + 350, y[0] + 280)\n        nmap.inputs[\"Strength\"].default_value = spec[\"normalScale\"]\n        links.new(img.outputs[\"Color\"], nmap.inputs[\"Color\"])\n        links.new(nmap.outputs[\"Normal\"], bsdf.inputs[\"Normal\"])\n\n    emit = socket(bsdf, \"Emission Color\", \"Emission\")\n    strength = socket(bsdf, \"Emission Strength\")\n    if spec.get(\"emission\"):\n        e = spec[\"emission\"]\n        if spec.get(\"emissionMap\"):\n            links.new(vmul(image(spec[\"emissionMap\"], False).outputs[\"Color\"], tuple(e)), emit)\n        else:\n            emit.default_value = (e[0], e[1], e[2], 1)\n        if strength is not None:\n            strength.default_value = 1.0\n\n    # Unlit shaders: the colour as it is, lit by nothing.\n    if spec[\"unlit\"]:\n        if color is not None:\n            links.new(color, emit)\n        else:\n            emit.default_value = (r, g, b, 1)\n        if strength is not None:\n            strength.default_value = 1.0\n        socket(bsdf, \"Roughness\").default_value = 1\n        spec_in = socket(bsdf, \"Specular IOR Level\", \"Specular\")\n        if spec_in is not None:\n            spec_in.default_value = 0\n\n    if spec[\"surface\"] != \"opaque\":\n        al = alpha if alpha is not None else a\n        if spec[\"surface\"] == \"cutout\" and alpha is not None:\n            al = math(\"GREATER_THAN\", alpha, spec[\"cutoff\"])\n        if isinstance(al, (int, float)):\n            socket(bsdf, \"Alpha\").default_value = al\n        else:\n            links.new(al, socket(bsdf, \"Alpha\"))\n        if hasattr(mat, \"surface_render_method\"):\n            mat.surface_render_method = \"BLENDED\" if spec[\"surface\"] == \"transparent\" else \"DITHERED\"\n        elif hasattr(mat, \"blend_method\"):\n            mat.blend_method = \"BLEND\" if spec[\"surface\"] == \"transparent\" else \"HASHED\"\n\n    if spec.get(\"name\"):\n        mat.name = spec[\"name\"]\n\n\nspecs = DATA[\"materials\"]\nfor mat in [m for m in bpy.data.materials if m not in before]:\n    textured = mat.node_tree is not None and any(n.type == \"TEX_IMAGE\" for n in mat.node_tree.nodes)\n    name = base_name(mat.name)\n    spec = next((s for s in specs if s[\"target\"] == name), None) or next((s for s in specs if s[\"target\"] == \"*\"), None)\n    if spec is None and not textured:\n        spec = next((s for s in specs if s[\"target\"] == \"?\"), None)\n    if spec is not None:\n        build(mat, spec)\n\n# Textures go inside the .blend when it is saved, so it does not depend on this folder.\ntry:\n    bpy.ops.file.pack_all()\nexcept Exception:\n    pass\n\n# A temporary copy (opened by Asset Hub): everything is in Blender now.\nif DATA.get(\"cleanup\"):\n    shutil.rmtree(HERE, ignore_errors=True)\n"
+}

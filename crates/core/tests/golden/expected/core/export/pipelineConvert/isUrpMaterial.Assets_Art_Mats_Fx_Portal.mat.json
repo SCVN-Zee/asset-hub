@@ -1,0 +1,17 @@
+{
+ "source": {
+  "path": "src/core/export/pipelineConvert.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "45a6e8b593c197e1bf3b7a7c00167e9c942faad4fa8fdd4bc8c2d8c5793801f9"
+ },
+ "case": "isUrpMaterial.Assets_Art_Mats_Fx_Portal.mat",
+ "fn": "isUrpMaterial",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Art/Mats/Fx_Portal.mat"
+  }
+ ],
+ "result": false
+}

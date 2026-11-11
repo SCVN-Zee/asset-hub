@@ -1,0 +1,56 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.xe tai",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "xe tai"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Việt/Xe Tải Nhỏ.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Xe Tải Nhỏ.fbx",
+    "name": "Xe Tải Nhỏ.fbx",
+    "sha": "12a27f1e0201a264820ba516058a471ad3cbe00d",
+    "size": 3000,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Xe_Tải.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Xe_Tải.fbx",
+    "name": "Xe_Tải.fbx",
+    "sha": "80128c055f946cb4b7fb2782bfcd22b18472e478",
+    "size": 2600,
+    "lfs": false
+   }
+  ],
+  "related": [
+   "xe"
+  ],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/Việt/Xe Tải Nhỏ.fbx",
+     160
+    ],
+    [
+     "Assets/Art/Việt/Xe_Tải.fbx",
+     160
+    ]
+   ]
+  }
+ }
+}

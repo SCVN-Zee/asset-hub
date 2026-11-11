@@ -1,0 +1,14 @@
+{
+ "source": {
+  "path": "src/core/registry.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "8de0fcf942b5f5e7dac8cf05026d4b53a5b1917832171a0e2d7b671033e31147"
+ },
+ "case": "dirName-3b1de781",
+ "fn": "dirName",
+ "origin": "unit-test-input",
+ "args": [
+  "p/Assets/NetCatch/Art/CH/Customer.fbx"
+ ],
+ "result": "p/Assets/NetCatch/Art/CH"
+}

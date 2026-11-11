@@ -1,0 +1,103 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "parseParticleSystems-e5b873f9",
+ "fn": "parseParticleSystems",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: Sparks\n--- !u!198 &198\nParticleSystem:\n  m_GameObject: {fileID: 1}\n  lengthInSec: 1\n  looping: 0\n--- !u!199 &199\nParticleSystemRenderer:\n  m_GameObject: {fileID: 1}\n  m_Enabled: 1\n  m_Materials:\n  - {fileID: 2100000, guid: a0000000000000000000000000000028, type: 2}\n  m_RenderMode: 0\n"
+ ],
+ "result": [
+  {
+   "id": "198",
+   "name": "Sparks",
+   "duration": 1,
+   "looping": false,
+   "prewarm": false,
+   "lifetime": 0,
+   "speed": 0,
+   "size": 0,
+   "maxParticles": 1000,
+   "rate": 0,
+   "bursts": 0,
+   "peak": 0,
+   "renderMode": "billboard",
+   "material": "a0000000000000000000000000000028",
+   "modules": [],
+   "subEmitters": 0,
+   "sim": {
+    "duration": 1,
+    "looping": false,
+    "prewarm": false,
+    "worldSpace": false,
+    "simulationSpeed": 1,
+    "startDelay": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startLifetime": {
+     "mode": 0,
+     "scalar": 5,
+     "min": 5
+    },
+    "startSpeed": {
+     "mode": 0,
+     "scalar": 5,
+     "min": 5
+    },
+    "startSize": {
+     "mode": 0,
+     "scalar": 1,
+     "min": 1
+    },
+    "startRotation": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startColor": {
+     "mode": 0,
+     "max": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "min": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    "gravity": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "maxParticles": 1000,
+    "rate": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "bursts": [],
+    "lengthScale": 2,
+    "velocityScale": 0,
+    "pivot": [
+     0,
+     0,
+     0
+    ],
+    "maxScreenSize": 0.5,
+    "sortingOrder": 0,
+    "sortingFudge": 0,
+    "alignment": "view"
+   }
+  }
+ ]
+}

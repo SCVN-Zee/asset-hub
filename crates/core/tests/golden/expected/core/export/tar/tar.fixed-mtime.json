@@ -1,0 +1,46 @@
+{
+ "source": {
+  "path": "src/core/export/tar.ts",
+  "commit": "86b50a93a1fa404384ec39d57a6b635a60aefc10",
+  "sha256": "91c3a517fb59da51ec181e3d32bd3a6358ad0f2017aa1f048fd0bd20206da6d0"
+ },
+ "case": "tar.fixed-mtime",
+ "fn": "tar",
+ "origin": "synthetic",
+ "args": [
+  [
+   {
+    "name": "a/asset",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "aGVsbG8="
+    }
+   },
+   {
+    "name": "a/pathname",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": ""
+    }
+   },
+   {
+    "name": "big",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "len": 1500,
+     "file": "d80b9e14a3113a07facc.bin"
+    }
+   }
+  ],
+  1700000000
+ ],
+ "result": {
+  "$": "bytes",
+  "type": "Uint8Array",
+  "len": 4608,
+  "file": "23bce641316fda7da58e.bin"
+ }
+}

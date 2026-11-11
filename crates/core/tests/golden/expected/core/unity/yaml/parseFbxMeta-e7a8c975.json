@@ -1,0 +1,27 @@
+{
+ "source": {
+  "path": "src/core/unity/yaml.ts",
+  "commit": "f30e9c5f2e4352c4aa333a2d44c614d5f49ecbec",
+  "sha256": "e6a4f0e6a6d8f3db212c917e364f1ced93c637e2e772ce851de40b6ab46e382c"
+ },
+ "case": "parseFbxMeta-e7a8c975",
+ "fn": "parseFbxMeta",
+ "origin": "unit-test-input",
+ "args": [
+  "fileFormatVersion: 2\nguid: 00000000000000000000000000000001\nModelImporter:\n  serializedVersion: 22200\n  externalObjects:\n  - first:\n      type: UnityEngine:Material\n      assembly: UnityEngine.CoreModule\n      name: M_Body\n    second: {fileID: 2100000, guid: 00000000000000000000000000000002, type: 2}\n  - first:\n      type: UnityEngine:Material\n      assembly: UnityEngine.CoreModule\n      name: M_Gone\n    second: {fileID: 2100000, guid: 00000000000000000000000000000062, type: 2}\n  materials:\n    materialImportMode: 2\n    materialName: 0\n    materialSearch: 1\n    materialLocation: 1\n"
+ ],
+ "result": {
+  "externalMaterials": [
+   {
+    "name": "M_Body",
+    "guid": "00000000000000000000000000000002"
+   },
+   {
+    "name": "M_Gone",
+    "guid": "00000000000000000000000000000062"
+   }
+  ],
+  "materialImportMode": 2,
+  "materialLocation": 1
+ }
+}

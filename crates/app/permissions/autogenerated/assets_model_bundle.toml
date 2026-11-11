@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-assets-model-bundle"
+description = "Enables the assets_model_bundle command without any pre-configured scope."
+commands.allow = ["assets_model_bundle"]
+
+[[permission]]
+identifier = "deny-assets-model-bundle"
+description = "Denies the assets_model_bundle command without any pre-configured scope."
+commands.deny = ["assets_model_bundle"]

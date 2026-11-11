@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-unity-mesh"
+description = "Enables the unity_mesh command without any pre-configured scope."
+commands.allow = ["unity_mesh"]
+
+[[permission]]
+identifier = "deny-unity-mesh"
+description = "Denies the unity_mesh command without any pre-configured scope."
+commands.deny = ["unity_mesh"]

@@ -1,0 +1,18 @@
+{
+ "source": {
+  "path": "src/core/export/shaderMapping.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "9ed930c5b527512de2f7367b32f4ff7bbc5be038b3a7ce78b4dce1618ebb407e"
+ },
+ "case": "materialShader-e39a17e5",
+ "fn": "materialShader",
+ "origin": "unit-test-input",
+ "args": [
+  "%YAML 1.1\n--- !u!21 &2100000\nMaterial:\n  m_Name: Rock\n  m_Shader: {fileID: -6465566751694194690, guid: cccccccccccccccccccccccccccccccc, type: 3}\n  m_SavedProperties:\n    serializedVersion: 3\n    m_TexEnvs:\n    - _BaseMap:\n        m_Texture: {fileID: 0}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n    - _MainTex:\n        m_Texture: {fileID: 2800000, guid: tttttttttttttttttttttttttttttttt, type: 3}\n        m_Scale: {x: 2, y: 2}\n        m_Offset: {x: 0, y: 0}\n    m_Ints: []\n    m_Floats:\n    - _Glossiness: 0.5\n    m_Colors:\n    - _Color: {r: 1, g: 0, b: 0, a: 1}\n  m_BuildTextureStacks: []\n"
+ ],
+ "result": {
+  "fileID": "-6465566751694194690",
+  "guid": "cccccccccccccccccccccccccccccccc",
+  "type": "3"
+ }
+}

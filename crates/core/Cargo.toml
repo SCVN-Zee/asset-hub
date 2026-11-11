@@ -1,0 +1,25 @@
+[package]
+name = "asset_hub_core"
+description = "Pure domain logic of Asset Hub: no Tauri dependency."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+base64 = "0.22"
+futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+miniz_oxide = "0.8"
+regress = "=0.12.0"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
+thiserror = "2"
+unicode-normalization = "0.1"
+
+[dev-dependencies]
+futures = { version = "0.3", features = ["executor"] }
+sha1 = "0.10"
+regex = "1"
+
+[[bench]]
+name = "core_bench"
+harness = false

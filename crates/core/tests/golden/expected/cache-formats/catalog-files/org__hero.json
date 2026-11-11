@@ -1,0 +1,1 @@
+{"version":1,"repo":"org/hero","types":"fbx,prefab","branches":[{"name":"main","commit":"c1","date":"2026-10-01T00:00:00Z"},{"name":"dev","commit":"c2","date":"2026-11-01T00:00:00Z"}],"paths":["Fish.fbx","Big.fbx"],"blobs":[["fish",5],["big",-1]],"commits":{"c1":[0,0,1,1],"c2":[0,0]},"defaultBranch":"main","checkedAt":1700000000000}

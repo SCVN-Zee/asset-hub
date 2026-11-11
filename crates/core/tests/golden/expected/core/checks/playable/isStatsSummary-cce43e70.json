@@ -1,0 +1,27 @@
+{
+ "source": {
+  "path": "src/core/checks/playable.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "ae8f6549b0f582de4891649e02a10091cf71fa9a017acb2e7ba84ce220276aee"
+ },
+ "case": "isStatsSummary-cce43e70",
+ "fn": "isStatsSummary",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "triangles": 1,
+   "vertices": 3,
+   "bones": 20,
+   "clips": 2,
+   "clipNames": [
+    1
+   ],
+   "materials": 1,
+   "fileBytes": 10,
+   "textureBytes": 0,
+   "maxTextureSize": 0,
+   "source": "thumb"
+  }
+ ],
+ "result": false
+}

@@ -1,0 +1,103 @@
+{
+ "source": {
+  "path": "src/core/unity/particles.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "b8e5af1a919bed81779312161b5766a890453e9450c657bc9ee897c9c8e7537b"
+ },
+ "case": "parseParticleSystems-c4f8ace6",
+ "fn": "parseParticleSystems",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: Chimney\n--- !u!4 &4\nTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n--- !u!33 &33\nMeshFilter:\n  m_GameObject: {fileID: 1}\n  m_Mesh: {fileID: 4300002, guid: a0000000000000000000000000000001, type: 3}\n--- !u!198 &198\nParticleSystem:\n  m_GameObject: {fileID: 1}\n"
+ ],
+ "result": [
+  {
+   "id": "198",
+   "name": "Chimney",
+   "duration": 5,
+   "looping": false,
+   "prewarm": false,
+   "lifetime": 0,
+   "speed": 0,
+   "size": 0,
+   "maxParticles": 1000,
+   "rate": 0,
+   "bursts": 0,
+   "peak": 0,
+   "renderMode": "none",
+   "modules": [],
+   "subEmitters": 0,
+   "node": "4",
+   "sim": {
+    "duration": 5,
+    "looping": false,
+    "prewarm": false,
+    "worldSpace": false,
+    "simulationSpeed": 1,
+    "startDelay": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startLifetime": {
+     "mode": 0,
+     "scalar": 5,
+     "min": 5
+    },
+    "startSpeed": {
+     "mode": 0,
+     "scalar": 5,
+     "min": 5
+    },
+    "startSize": {
+     "mode": 0,
+     "scalar": 1,
+     "min": 1
+    },
+    "startRotation": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "startColor": {
+     "mode": 0,
+     "max": [
+      1,
+      1,
+      1,
+      1
+     ],
+     "min": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    "gravity": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "maxParticles": 1000,
+    "rate": {
+     "mode": 0,
+     "scalar": 0,
+     "min": 0
+    },
+    "bursts": [],
+    "lengthScale": 2,
+    "velocityScale": 0,
+    "pivot": [
+     0,
+     0,
+     0
+    ],
+    "maxScreenSize": 0.5,
+    "sortingOrder": 0,
+    "sortingFudge": 0,
+    "alignment": "view"
+   }
+  }
+ ]
+}

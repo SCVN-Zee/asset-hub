@@ -1,0 +1,40 @@
+{
+ "source": {
+  "path": "src/core/deps/fbx.ts",
+  "commit": "6eb64be82e321450da11f2c8751638d1e6570fbc",
+  "sha256": "548b00631ca717a37017c93e88fe41aa0b37a3c64bf18939355d4ac1e3f65440"
+ },
+ "case": "resolveFbxDependencies.fbx.Assets_Art_Models_Prop.fbx",
+ "fn": "resolveFbxDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Art/Models/Prop.fbx",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "B",
+  "materials": [],
+  "embeddedTextures": [
+   {
+    "name": "hero_albedo.png",
+    "path": "proj/Assets/Art/Tex/hero_albedo.png",
+    "matchedBy": "name",
+    "missing": false,
+    "size": 136
+   }
+  ],
+  "suggested": [],
+  "warnings": [
+   "textureByName"
+  ],
+  "files": [
+   "proj/Assets/Art/Models/Prop.fbx",
+   "proj/Assets/Art/Models/Prop.fbx.meta",
+   "proj/Assets/Art/Tex/hero_albedo.png",
+   "proj/Assets/Art/Tex/hero_albedo.png.meta"
+  ]
+ }
+}

@@ -1,0 +1,195 @@
+{
+ "source": {
+  "path": "src/core/deps/prefab.ts",
+  "commit": "10c147906334b8ed9c83702ac305896aa66810af",
+  "sha256": "823c6e8856f3e4c5d13d7dda13d2e3df998f3809b1d230a0bf45b57c896101ce"
+ },
+ "case": "resolvePrefabDependencies.prefab.Assets_Prefabs_Fx_Burst.prefab",
+ "fn": "resolvePrefabDependencies",
+ "origin": "synthetic",
+ "args": [
+  "proj/Assets/Prefabs/Fx/Burst.prefab",
+  {
+   "ctx": "inputs/repo",
+   "root": "proj/"
+  }
+ ],
+ "result": {
+  "kind": "A",
+  "materials": [
+   {
+    "name": "Fx_Portal",
+    "guid": "a0000000000000000000000000000016",
+    "path": "proj/Assets/Art/Mats/Fx_Portal.mat",
+    "missing": false,
+    "shader": {
+     "guid": "a000000000000000000000000000001e",
+     "kind": "project",
+     "label": "AllIn1Vfx.shader",
+     "path": "proj/Assets/Shaders/AllIn1Vfx.shader"
+    },
+    "textures": [
+     {
+      "prop": "_MainTex",
+      "guid": "a000000000000000000000000000000d",
+      "path": "proj/Assets/Art/Tex/sheet.png",
+      "name": "sheet.png",
+      "matchedBy": "guid",
+      "missing": false,
+      "size": 200
+     }
+    ]
+   }
+  ],
+  "embeddedTextures": [],
+  "suggested": [],
+  "warnings": [
+   "customShader",
+   "particles"
+  ],
+  "files": [
+   "proj/Assets/Prefabs/Fx/Burst.prefab",
+   "proj/Assets/Prefabs/Fx/Burst.prefab.meta",
+   "proj/Assets/Art/Mats/Fx_Portal.mat",
+   "proj/Assets/Art/Mats/Fx_Portal.mat.meta",
+   "proj/Assets/Shaders/AllIn1Vfx.shader",
+   "proj/Assets/Shaders/AllIn1Vfx.shader.meta",
+   "proj/Assets/Art/Tex/sheet.png",
+   "proj/Assets/Art/Tex/sheet.png.meta",
+   "proj/Assets/Shaders/AllIn1Include.cginc",
+   "proj/Assets/Shaders/AllIn1Include.cginc.meta"
+  ],
+  "parts": [],
+  "guidPaths": {
+   "a0000000000000000000000000000016": "proj/Assets/Art/Mats/Fx_Portal.mat"
+  },
+  "particles": [
+   {
+    "id": "202",
+    "name": "Burst",
+    "duration": 2,
+    "looping": false,
+    "prewarm": false,
+    "lifetime": 1.5,
+    "speed": 4,
+    "size": 0.3,
+    "maxParticles": 200,
+    "rate": 20,
+    "bursts": 30,
+    "peak": 60,
+    "shape": "Cone",
+    "renderMode": "billboard",
+    "material": "a0000000000000000000000000000016",
+    "modules": [],
+    "subEmitters": 0,
+    "node": "201",
+    "sim": {
+     "duration": 2,
+     "looping": false,
+     "prewarm": false,
+     "worldSpace": false,
+     "simulationSpeed": 1,
+     "startDelay": {
+      "mode": 0,
+      "scalar": 0,
+      "min": 0
+     },
+     "startLifetime": {
+      "mode": 0,
+      "scalar": 1.5,
+      "min": 0
+     },
+     "startSpeed": {
+      "mode": 0,
+      "scalar": 4,
+      "min": 0
+     },
+     "startSize": {
+      "mode": 0,
+      "scalar": 0.3,
+      "min": 0
+     },
+     "startRotation": {
+      "mode": 0,
+      "scalar": 0,
+      "min": 0
+     },
+     "startColor": {
+      "mode": 0,
+      "max": [
+       1,
+       1,
+       1,
+       1
+      ],
+      "min": [
+       1,
+       1,
+       1,
+       1
+      ]
+     },
+     "gravity": {
+      "mode": 0,
+      "scalar": 0,
+      "min": 0
+     },
+     "maxParticles": 200,
+     "rate": {
+      "mode": 0,
+      "scalar": 20,
+      "min": 0
+     },
+     "bursts": [
+      {
+       "time": 0,
+       "count": {
+        "mode": 0,
+        "scalar": 30,
+        "min": 0
+       },
+       "cycles": 1,
+       "interval": 0.01,
+       "probability": 1
+      }
+     ],
+     "lengthScale": 2,
+     "velocityScale": 0,
+     "pivot": [
+      0,
+      0,
+      0
+     ],
+     "maxScreenSize": 0.5,
+     "sortingOrder": 0,
+     "sortingFudge": 0,
+     "alignment": "view",
+     "shape": {
+      "type": 4,
+      "radius": 1,
+      "radiusThickness": 1,
+      "angle": 25,
+      "arc": 360,
+      "length": 5,
+      "position": [
+       0,
+       0,
+       0
+      ],
+      "rotation": [
+       0,
+       0,
+       0
+      ],
+      "scale": [
+       1,
+       1,
+       1
+      ],
+      "randomDirection": 0
+     }
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "source": {
+  "path": "src/core/tree.ts",
+  "commit": "a6df2ad6cf24a7f155086daeae0bd8d4674def4e",
+  "sha256": "a251b716bb6605ba726e3215f11c25eb93fd1b348b51d53661f6e48fe16e8ea2"
+ },
+ "case": "isInFolder-34569146",
+ "fn": "isInFolder",
+ "origin": "unit-test-input",
+ "args": [
+  "Assets/A/x.fbx",
+  ""
+ ],
+ "result": true
+}

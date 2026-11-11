@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-assets-blender-installed"
+description = "Enables the assets_blender_installed command without any pre-configured scope."
+commands.allow = ["assets_blender_installed"]
+
+[[permission]]
+identifier = "deny-assets-blender-installed"
+description = "Denies the assets_blender_installed command without any pre-configured scope."
+commands.deny = ["assets_blender_installed"]

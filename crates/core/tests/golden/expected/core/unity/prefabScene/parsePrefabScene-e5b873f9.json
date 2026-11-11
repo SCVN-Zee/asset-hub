@@ -1,0 +1,31 @@
+{
+ "source": {
+  "path": "src/core/unity/prefabScene.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "fcbed7c40858bd462f01f913c972035dd492dea6dcf0476aa989159f96a910c9"
+ },
+ "case": "parsePrefabScene-e5b873f9",
+ "fn": "parsePrefabScene",
+ "origin": "unit-test-input",
+ "args": [
+  "--- !u!1 &1\nGameObject:\n  m_Name: Sparks\n--- !u!198 &198\nParticleSystem:\n  m_GameObject: {fileID: 1}\n  lengthInSec: 1\n  looping: 0\n--- !u!199 &199\nParticleSystemRenderer:\n  m_GameObject: {fileID: 1}\n  m_Enabled: 1\n  m_Materials:\n  - {fileID: 2100000, guid: a0000000000000000000000000000028, type: 2}\n  m_RenderMode: 0\n"
+ ],
+ "result": {
+  "nodes": {
+   "$": "map",
+   "v": []
+  },
+  "meshes": [],
+  "instances": [],
+  "scripts": [],
+  "particleSystems": 1,
+  "particleMaterials": [
+   "a0000000000000000000000000000028"
+  ],
+  "particleMeshes": [],
+  "uiElements": 0,
+  "guids": [
+   "a0000000000000000000000000000028"
+  ]
+ }
+}

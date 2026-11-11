@@ -1,36 +1,33 @@
 {
   "name": "asset-hub",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "private": true,
   "description": "Browse the Unity projects on GitHub, preview their assets and export them as .unitypackage.",
-  "main": "./out/main/index.js",
   "scripts": {
-    "predev": "node scripts/dev-app-name.mjs",
-    "dev": "electron-vite dev --watch",
-    "build": "electron-vite build",
-    "preview": "electron-vite preview",
+    "dev": "ASSETHUB_USER_DATA=\"${ASSETHUB_USER_DATA:-$HOME/Library/Application Support/vn.supercent.assethub-dev}\" tauri dev",
+    "prebuild:cli": "sh scripts/cli-sidecar.sh",
+    "tauri": "tauri",
+    "build": "tauri build",
+    "bindings": "ASSETHUB_EXPORT_ONLY=1 cargo run -p asset-hub",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "postinstall": "node scripts/dev-app-name.mjs",
-    "dist": "electron-vite build && electron-builder --mac dmg",
-    "dist:web": "electron-vite build && electron-builder --mac zip && node scripts/make-update-files.mjs && node scripts/make-web-installer.mjs",
-    "release": "node scripts/publish-release.mjs",
-    "usage": "node scripts/usage-report.mjs"
+    "dist": "tauri build --bundles app,dmg",
+    "dist:web": "tauri build && bun scripts/make-web-installer.mjs",
+    "release": "bun scripts/publish-release.mjs",
+    "usage": "bun scripts/usage-report.mjs"
   },
   "devDependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",
     "@fontsource/chakra-petch": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@tauri-apps/api": "2.12.4",
+    "@tauri-apps/cli": "2.12.4",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.170.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
-    "electron-vite": "^2.3.0",
     "i18next": "^23.16.8",
-    "playwright-core": "^1.48.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^15.1.4",
@@ -39,10 +36,9 @@
     "vite": "^5.4.11",
     "vitest": "^2.1.8"
   },
-  "allowScripts": {
-    "electron@33.4.11": true,
-    "esbuild@0.21.5": true
-  },
+  "trustedDependencies": [
+    "esbuild"
+  ],
   "releaseRepo": "SCVN-Dan/asset-hub-release",
   "feedbackRepo": "supercent-io/asset-hub-feedback"
 }

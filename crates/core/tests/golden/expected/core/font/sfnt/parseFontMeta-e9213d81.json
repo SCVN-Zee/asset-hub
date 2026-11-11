@@ -1,0 +1,22 @@
+{
+ "source": {
+  "path": "src/core/font/sfnt.ts",
+  "commit": "f4283a7ee1f83530e2c3bf93b11f4352ea03b20e",
+  "sha256": "74cd50890fdcf881902cec2f87264fb03313e251cb5e16e1fa2b1fc44a2a723b"
+ },
+ "case": "parseFontMeta-e9213d81",
+ "fn": "parseFontMeta",
+ "origin": "unit-test-input",
+ "args": [
+  "fileFormatVersion: 2\nguid: 0123\nTrueTypeFontImporter:\n  externalObjects: {}\n  serializedVersion: 4\n  fontSize: 16\n  forceTextureCase: -2\n  characterSpacing: 0\n  includeFontData: 0\n  fontNames:\n  - Noto Sans\n  - Arial\n  fallbackFontReferences: []\n  customCharacters:\n  fontRenderingMode: 0\n  ascentCalculationMode: 1\n  fontTextureCase: 0\n"
+ ],
+ "result": {
+  "mode": "ascii",
+  "includeFontData": false,
+  "fontSize": 16,
+  "fallbacks": [
+   "Noto Sans",
+   "Arial"
+  ]
+ }
+}

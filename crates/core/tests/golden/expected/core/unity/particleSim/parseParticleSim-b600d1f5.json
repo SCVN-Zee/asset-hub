@@ -1,0 +1,88 @@
+{
+ "source": {
+  "path": "src/core/unity/particleSim.ts",
+  "commit": "34e6287058447abce532ccdf8b6cc9077c731e42",
+  "sha256": "0c20690fdc90515ccaf64391efc4bf975dab27fbc240392166f5194652492540"
+ },
+ "case": "parseParticleSim-b600d1f5",
+ "fn": "parseParticleSim",
+ "origin": "unit-test-input",
+ "args": [
+  "ParticleSystem:\n  InitialModule:\n    enabled: 1\n    size3D: 0\n    startSize:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 5\n      minScalar: 5\n    startSizeY:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 0.5\n      minScalar: 0.5\n    startSizeZ:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 1\n      minScalar: 1\n  SizeModule:\n    enabled: 1\n    curve:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 1\n      minScalar: 1\n    y:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 0.2\n      minScalar: 0.2\n    z:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 1\n      minScalar: 1\n    separateAxes: 0\n"
+ ],
+ "result": {
+  "duration": 5,
+  "looping": false,
+  "prewarm": false,
+  "worldSpace": false,
+  "simulationSpeed": 1,
+  "startDelay": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startLifetime": {
+   "mode": 0,
+   "scalar": 5,
+   "min": 5
+  },
+  "startSpeed": {
+   "mode": 0,
+   "scalar": 5,
+   "min": 5
+  },
+  "startSize": {
+   "mode": 0,
+   "scalar": 5,
+   "min": 5
+  },
+  "startRotation": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startColor": {
+   "mode": 0,
+   "max": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "min": [
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "gravity": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "maxParticles": 1000,
+  "rate": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "bursts": [],
+  "lengthScale": 2,
+  "velocityScale": 0,
+  "pivot": [
+   0,
+   0,
+   0
+  ],
+  "maxScreenSize": 0.5,
+  "sortingOrder": 0,
+  "sortingFudge": 0,
+  "alignment": "view",
+  "sizeOverLifetime": {
+   "mode": 0,
+   "scalar": 1,
+   "min": 1
+  }
+ }
+}

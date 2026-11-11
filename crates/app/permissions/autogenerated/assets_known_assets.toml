@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-assets-known-assets"
+description = "Enables the assets_known_assets command without any pre-configured scope."
+commands.allow = ["assets_known_assets"]
+
+[[permission]]
+identifier = "deny-assets-known-assets"
+description = "Denies the assets_known_assets command without any pre-configured scope."
+commands.deny = ["assets_known_assets"]

@@ -1,0 +1,41 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.상어",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  "상어"
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/한국/상어.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/한국/상어.fbx",
+    "name": "상어.fbx",
+    "sha": "61750bbeed316a5d33188761923a4567e629d750",
+    "size": 2000,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": [
+    [
+     "Assets/Art/한국/상어.fbx",
+     100
+    ]
+   ]
+  }
+ }
+}

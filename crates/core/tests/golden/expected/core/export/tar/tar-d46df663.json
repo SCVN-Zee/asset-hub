@@ -1,0 +1,36 @@
+{
+ "source": {
+  "path": "src/core/export/tar.ts",
+  "commit": "86b50a93a1fa404384ec39d57a6b635a60aefc10",
+  "sha256": "91c3a517fb59da51ec181e3d32bd3a6358ad0f2017aa1f048fd0bd20206da6d0"
+ },
+ "case": "tar-d46df663",
+ "fn": "tar",
+ "origin": "unit-test-input",
+ "args": [
+  [
+   {
+    "name": "a/asset",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4"
+    }
+   },
+   {
+    "name": "a/pathname",
+    "data": {
+     "$": "bytes",
+     "type": "Uint8Array",
+     "b64": "QXNzZXRzL0EuZmJ4"
+    }
+   }
+  ]
+ ],
+ "result": {
+  "$": "bytes",
+  "type": "Uint8Array",
+  "len": 3584,
+  "file": "048e8afc5eaedc3b7a08.bin"
+ }
+}

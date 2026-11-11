@@ -1,0 +1,15 @@
+{
+ "source": {
+  "path": "src/shared/version.ts",
+  "commit": "debe1dc7a599330cb888fdf1f2c408f885e4d30b",
+  "sha256": "a6d0a545223a2bd1c53139243c9ec88d108bef5ed2d3a1944fd1c57c20fb4f37"
+ },
+ "case": "isNewer-40969389",
+ "fn": "isNewer",
+ "origin": "unit-test-input",
+ "args": [
+  "0.1.0",
+  "0.1.1"
+ ],
+ "result": false
+}

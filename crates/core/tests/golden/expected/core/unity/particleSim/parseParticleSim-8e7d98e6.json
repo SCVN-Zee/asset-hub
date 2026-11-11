@@ -1,0 +1,109 @@
+{
+ "source": {
+  "path": "src/core/unity/particleSim.ts",
+  "commit": "34e6287058447abce532ccdf8b6cc9077c731e42",
+  "sha256": "0c20690fdc90515ccaf64391efc4bf975dab27fbc240392166f5194652492540"
+ },
+ "case": "parseParticleSim-8e7d98e6",
+ "fn": "parseParticleSim",
+ "origin": "unit-test-input",
+ "args": [
+  "\nParticleSystem:\n  m_GameObject: {fileID: 200}\n  serializedVersion: 8\n  lengthInSec: 2\n  looping: 1\n  prewarm: 0\n  startDelay:\n    serializedVersion: 2\n    minMaxState: 0\n    scalar: 0\n    minScalar: 0\n    maxCurve:\n      serializedVersion: 2\n      m_Curve: []\n  InitialModule:\n    serializedVersion: 3\n    enabled: 1\n    startLifetime:\n      serializedVersion: 2\n      minMaxState: 3\n      scalar: 0.5\n      minScalar: 0.8\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    startSpeed:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 4\n      minScalar: 4\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    startSize:\n      serializedVersion: 2\n      minMaxState: 1\n      scalar: 0.3\n      minScalar: 0.3\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    maxNumParticles: 200\n  ShapeModule:\n    serializedVersion: 6\n    enabled: 1\n    type: 4\n  EmissionModule:\n    enabled: 1\n    serializedVersion: 4\n    rateOverTime:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 20\n      minScalar: 20\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    rateOverDistance:\n      serializedVersion: 2\n      minMaxState: 0\n      scalar: 0\n      minScalar: 0\n      maxCurve:\n        serializedVersion: 2\n        m_Curve: []\n    m_BurstCount: 1\n    m_Bursts: []\n  UVModule:\n    serializedVersion: 2\n    enabled: 0\n    tilesX: 4\n    tilesY: 2\n  NoiseModule:\n    enabled: 0\n  CollisionModule:\n    enabled: 0\n    type: 0\n  SubModule:\n    serializedVersion: 2\n    enabled: 0\n    subEmitters:\n    - serializedVersion: 3\n      emitter: {fileID: 0}\n  TrailModule:\n    enabled: 0\n",
+  "\nParticleSystemRenderer:\n  m_GameObject: {fileID: 200}\n  m_Enabled: 1\n  m_Materials:\n  - {fileID: 2100000, guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, type: 2}\n  - {fileID: 2100000, guid: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, type: 2}\n  m_RenderMode: 4\n  m_Mesh: {fileID: 4300000, guid: cccccccccccccccccccccccccccccccc, type: 3}\n"
+ ],
+ "result": {
+  "duration": 2,
+  "looping": true,
+  "prewarm": false,
+  "worldSpace": false,
+  "simulationSpeed": 1,
+  "startDelay": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startLifetime": {
+   "mode": 3,
+   "scalar": 0.5,
+   "min": 0.8
+  },
+  "startSpeed": {
+   "mode": 0,
+   "scalar": 4,
+   "min": 4
+  },
+  "startSize": {
+   "mode": 1,
+   "scalar": 0.3,
+   "min": 0.3,
+   "curve": []
+  },
+  "startRotation": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "startColor": {
+   "mode": 0,
+   "max": [
+    1,
+    1,
+    1,
+    1
+   ],
+   "min": [
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "gravity": {
+   "mode": 0,
+   "scalar": 0,
+   "min": 0
+  },
+  "maxParticles": 200,
+  "rate": {
+   "mode": 0,
+   "scalar": 20,
+   "min": 20
+  },
+  "bursts": [],
+  "lengthScale": 2,
+  "velocityScale": 0,
+  "pivot": [
+   0,
+   0,
+   0
+  ],
+  "maxScreenSize": 0.5,
+  "sortingOrder": 0,
+  "sortingFudge": 0,
+  "alignment": "view",
+  "shape": {
+   "type": 4,
+   "radius": 1,
+   "radiusThickness": 1,
+   "angle": 25,
+   "arc": 360,
+   "length": 5,
+   "position": [
+    0,
+    0,
+    0
+   ],
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ],
+   "randomDirection": 0
+  }
+ }
+}

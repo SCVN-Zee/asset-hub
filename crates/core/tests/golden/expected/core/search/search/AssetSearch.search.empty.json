@@ -1,0 +1,414 @@
+{
+ "source": {
+  "path": "src/core/search/search.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "ca126a8f87b1949440ac1392bbbfc62fa27e3ee3f265ac0f1eea5cf5cd5df06c"
+ },
+ "case": "AssetSearch.search.empty",
+ "fn": "AssetSearch.search",
+ "origin": "synthetic",
+ "args": [
+  {
+   "assets": "scenario AssetSearch.names-input",
+   "extraNames": "same scenario"
+  },
+  ""
+ ],
+ "result": {
+  "assets": [
+   {
+    "id": "Assets/Art/Animals/Shark.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Shark.fbx",
+    "name": "Shark.fbx",
+    "sha": "148f0061910d648deca6b247620bd19d9a7732fd",
+    "size": 2800,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Tuna_A.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Tuna_A.fbx",
+    "name": "Tuna_A.fbx",
+    "sha": "07f848a611efbe8d67196dc1680079347521791c",
+    "size": 2900,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Tuna_B.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Tuna_B.fbx",
+    "name": "Tuna_B.fbx",
+    "sha": "b836d55e29563f05161add00675783a16727fded",
+    "size": 2900,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Wolf.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Wolf.fbx",
+    "name": "Wolf.fbx",
+    "sha": "6a32faa95323f086b0cf998ae6a7479afb558918",
+    "size": 2700,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Frog_Green.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Frog_Green.fbx",
+    "name": "Frog_Green.fbx",
+    "sha": "61a35a55ebc3d396a456d5b25c4f5af34739c247",
+    "size": 3300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Animals/Dolphins.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Animals/Dolphins.fbx",
+    "name": "Dolphins.fbx",
+    "sha": "b7043e007e8e5a68a985ec5c73380fb0befa21ef",
+    "size": 3100,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Vehicles/Truck.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Vehicles/Truck.fbx",
+    "name": "Truck.fbx",
+    "sha": "4ecd55355c2998fc31183c2b7cd0fab220aab344",
+    "size": 2900,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Vehicles/Tractor_01.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Vehicles/Tractor_01.fbx",
+    "name": "Tractor_01.fbx",
+    "sha": "23107ed48321e2f10c1c2c1146076d18652eccae",
+    "size": 3400,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Vehicles/Harvester.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Vehicles/Harvester.fbx",
+    "name": "Harvester.fbx",
+    "sha": "02a9ecd423f8063adf5264e516b1381868a07f2c",
+    "size": 3300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Vehicles/Combine_Harvester.prefab",
+    "type": "prefab",
+    "path": "Assets/Art/Vehicles/Combine_Harvester.prefab",
+    "name": "Combine_Harvester.prefab",
+    "sha": "e3954b3bb8d069440f334219a8b48105cefba852",
+    "size": 4400,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Vehicles/Pickup Truck.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Vehicles/Pickup Truck.fbx",
+    "name": "Pickup Truck.fbx",
+    "sha": "dc7503259a004386aeab9c1203f963a9654fe040",
+    "size": 3600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Plants/Cactus.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Plants/Cactus.fbx",
+    "name": "Cactus.fbx",
+    "sha": "1cb4f528d49d1ddd17c5667cf5e9b87a99c9fd73",
+    "size": 2800,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Plants/Tree_Pine.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Plants/Tree_Pine.fbx",
+    "name": "Tree_Pine.fbx",
+    "sha": "2098a614b6b123657acf9aebae89b7bcb652114a",
+    "size": 3100,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Plants/Tree_Oak_02.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Plants/Tree_Oak_02.fbx",
+    "name": "Tree_Oak_02.fbx",
+    "sha": "99617f7c1c5df9a7e154210f10bcb8d99f76cb9f",
+    "size": 3300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Plants/Flower.prefab",
+    "type": "prefab",
+    "path": "Assets/Art/Plants/Flower.prefab",
+    "name": "Flower.prefab",
+    "sha": "6c06f1b7663bb456eee56127406b33f157ac1aba",
+    "size": 3100,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Monsters/Goblin_Melee.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Monsters/Goblin_Melee.fbx",
+    "name": "Goblin_Melee.fbx",
+    "sha": "2747a11de46bcfd61771456ef5e214875f321bf9",
+    "size": 3600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Monsters/Dragon_Boss.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Monsters/Dragon_Boss.fbx",
+    "name": "Dragon_Boss.fbx",
+    "sha": "573a6d4440070964da946962437eec88d18ec4a8",
+    "size": 3500,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Monsters/Skeleton.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Monsters/Skeleton.fbx",
+    "name": "Skeleton.fbx",
+    "sha": "a89a988f604636778a5b5a7e45df9577f6b7a705",
+    "size": 3200,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Monsters/Slime.prefab",
+    "type": "prefab",
+    "path": "Assets/Art/Monsters/Slime.prefab",
+    "name": "Slime.prefab",
+    "sha": "d50ebcee4631b78ce5e19d7ca6b7ffe381a0a51d",
+    "size": 3200,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Cá_Mập.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Cá_Mập.fbx",
+    "name": "Cá_Mập.fbx",
+    "sha": "de7ed332e9c41ea2c112adf6d531f5070432a0f2",
+    "size": 2600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Xe_Tải.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Xe_Tải.fbx",
+    "name": "Xe_Tải.fbx",
+    "sha": "80128c055f946cb4b7fb2782bfcd22b18472e478",
+    "size": 2600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Xe Tải Nhỏ.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Xe Tải Nhỏ.fbx",
+    "name": "Xe Tải Nhỏ.fbx",
+    "sha": "12a27f1e0201a264820ba516058a471ad3cbe00d",
+    "size": 3000,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Cây_Thông.prefab",
+    "type": "prefab",
+    "path": "Assets/Art/Việt/Cây_Thông.prefab",
+    "name": "Cây_Thông.prefab",
+    "sha": "753d007761d70ea1cec41a3da7317d205abebca9",
+    "size": 3200,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Nhà_Máy.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Nhà_Máy.fbx",
+    "name": "Nhà_Máy.fbx",
+    "sha": "d1b658d06c8560bdca036bb04527353b1bb24aa4",
+    "size": 2700,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Con_Chó.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Con_Chó.fbx",
+    "name": "Con_Chó.fbx",
+    "sha": "ecb56d2b9ea21f4d780323c2cbae3d1b04901ecc",
+    "size": 2700,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/Việt/Đường_Phố.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/Việt/Đường_Phố.fbx",
+    "name": "Đường_Phố.fbx",
+    "sha": "b45bb3d892b32c0e8fcb60dfa5b7788ccc0c2cd8",
+    "size": 2900,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/한국/상어.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/한국/상어.fbx",
+    "name": "상어.fbx",
+    "sha": "61750bbeed316a5d33188761923a4567e629d750",
+    "size": 2000,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/한국/자동차.prefab",
+    "type": "prefab",
+    "path": "Assets/Art/한국/자동차.prefab",
+    "name": "자동차.prefab",
+    "sha": "ffe6998e40b8aade78e28455319f45a0b97feeb1",
+    "size": 2400,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/한국/나무_01.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/한국/나무_01.fbx",
+    "name": "나무_01.fbx",
+    "sha": "56c955692c39e2cb1680007f4c4fca94b768b151",
+    "size": 2300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/한국/나무_02.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/한국/나무_02.fbx",
+    "name": "나무_02.fbx",
+    "sha": "082873e69a333b30f87466009e65e96bca1076de",
+    "size": 2300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Art/한국/고양이.fbx",
+    "type": "fbx",
+    "path": "Assets/Art/한국/고양이.fbx",
+    "name": "고양이.fbx",
+    "sha": "341f84cec0d751af25f3079158a95b9ea6d2046f",
+    "size": 2100,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Fx/Fx_Fire_01.prefab",
+    "type": "prefab",
+    "path": "Assets/Fx/Fx_Fire_01.prefab",
+    "name": "Fx_Fire_01.prefab",
+    "sha": "b84c6dd0e5eb87b4619bee85b7ada55cbfcd8786",
+    "size": 2700,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Fx/Fx_Fire_02.prefab",
+    "type": "prefab",
+    "path": "Assets/Fx/Fx_Fire_02.prefab",
+    "name": "Fx_Fire_02.prefab",
+    "sha": "81cb88bf5ce328076fd89f7f0bd6d380cbbe0918",
+    "size": 2700,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Fx/Fx_Water_Splash.prefab",
+    "type": "prefab",
+    "path": "Assets/Fx/Fx_Water_Splash.prefab",
+    "name": "Fx_Water_Splash.prefab",
+    "sha": "75abd35871fbb08068e57760965157f83993c3b9",
+    "size": 3200,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Fx/Sparks.prefab",
+    "type": "prefab",
+    "path": "Assets/Fx/Sparks.prefab",
+    "name": "Sparks.prefab",
+    "sha": "c050821fd1364d1ccd2a6bfaa0e51da08e029ffc",
+    "size": 2300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Textures/ui_button_red.png",
+    "type": "texture",
+    "path": "Assets/Textures/ui_button_red.png",
+    "name": "ui_button_red.png",
+    "sha": "147ab71476275f175c0dc710b3d57ee6136d8ead",
+    "size": 3300,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Textures/ui_button_blue.png",
+    "type": "texture",
+    "path": "Assets/Textures/ui_button_blue.png",
+    "name": "ui_button_blue.png",
+    "sha": "b07dac838c6b124b810fe10e06910cd9e651886d",
+    "size": 3400,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Textures/grass_tile.png",
+    "type": "texture",
+    "path": "Assets/Textures/grass_tile.png",
+    "name": "grass_tile.png",
+    "sha": "506e157d8d75ce51a00b8a322b43b9aa2f5ef981",
+    "size": 3000,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Audio/click.wav",
+    "type": "audio",
+    "path": "Assets/Audio/click.wav",
+    "name": "click.wav",
+    "sha": "b341316bf4d4bff6d7946fd73bd0498605737b58",
+    "size": 2200,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Audio/music_loop.ogg",
+    "type": "audio",
+    "path": "Assets/Audio/music_loop.ogg",
+    "name": "music_loop.ogg",
+    "sha": "85e2a7f23f2cb900dee3fdfbaa346856bbc6349b",
+    "size": 2700,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Anim/Shark@Swim.fbx",
+    "type": "fbx",
+    "path": "Assets/Anim/Shark@Swim.fbx",
+    "name": "Shark@Swim.fbx",
+    "sha": "b7429eba7bd53a707d30d3cf61abbebe8fc0f000",
+    "size": 2600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Anim/Hero_Idle.anim",
+    "type": "animation",
+    "path": "Assets/Anim/Hero_Idle.anim",
+    "name": "Hero_Idle.anim",
+    "sha": "3cfee736436b0afc38bc5dd564a820d2e82e5455",
+    "size": 2600,
+    "lfs": false
+   },
+   {
+    "id": "Assets/Anim/Hero_Run.anim",
+    "type": "animation",
+    "path": "Assets/Anim/Hero_Run.anim",
+    "name": "Hero_Run.anim",
+    "sha": "33443dd7f463e496737be0a1cefdcfaa5536c95f",
+    "size": 2500,
+    "lfs": false
+   }
+  ],
+  "related": [],
+  "typos": [],
+  "scores": {
+   "$": "map",
+   "v": []
+  }
+ }
+}

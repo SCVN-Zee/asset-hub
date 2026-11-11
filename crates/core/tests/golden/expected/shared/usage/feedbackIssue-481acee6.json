@@ -1,0 +1,31 @@
+{
+ "source": {
+  "path": "src/shared/usage.ts",
+  "commit": "fe262491fc6c9f431f62ae7ef8e6e13c4f767b66",
+  "sha256": "f1a551b3900877494964295ecec4c207d505679855221c65fd65c63d290945f8"
+ },
+ "case": "feedbackIssue-481acee6",
+ "fn": "feedbackIssue",
+ "origin": "unit-test-input",
+ "args": [
+  {
+   "kind": "idea",
+   "title": " Dark\nmode ",
+   "body": "please",
+   "context": {
+    "repo": "org/game",
+    "branch": "main"
+   }
+  },
+  {
+   "login": "dan",
+   "version": "0.1.3",
+   "os": "macOS 15",
+   "language": "vi"
+  }
+ ],
+ "result": {
+  "title": "[Idea] Dark mode",
+  "body": "**From:** @dan · v0.1.3 · macOS 15 · vi\n**Where:** org/game @ main\n\nplease"
+ }
+}

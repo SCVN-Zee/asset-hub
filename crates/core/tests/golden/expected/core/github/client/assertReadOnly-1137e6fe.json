@@ -1,0 +1,21 @@
+{
+ "source": {
+  "path": "src/core/github/client.ts",
+  "commit": "993fd94906b124604c9f97097e4b61d4f917530d",
+  "sha256": "16b8d24027fdd47e36439fe1dccce7a2ba36c61cfe7dbb922096eb937a5fd80d"
+ },
+ "case": "assertReadOnly-1137e6fe",
+ "fn": "assertReadOnly",
+ "origin": "unit-test-input",
+ "args": [
+  "https://api.github.com/repos/a/b/issues",
+  "POST",
+  "{\"title\":\"x\"}"
+ ],
+ "throws": {
+  "$": "error",
+  "name": "SourceError",
+  "message": "Asset Hub is read-only: POST https://api.github.com/repos/a/b/issues was not sent",
+  "code": "readOnly"
+ }
+}

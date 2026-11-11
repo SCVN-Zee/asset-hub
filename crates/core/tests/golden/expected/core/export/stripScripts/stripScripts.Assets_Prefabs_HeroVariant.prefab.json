@@ -1,0 +1,20 @@
+{
+ "source": {
+  "path": "src/core/export/stripScripts.ts",
+  "commit": "debe1dc7a599330cb888fdf1f2c408f885e4d30b",
+  "sha256": "f80fe7c0f6dbc66df28c27e1a18d640d7d0fca82c91550a244ff2b8c07a55b76"
+ },
+ "case": "stripScripts.Assets_Prefabs_HeroVariant.prefab",
+ "fn": "stripScripts",
+ "origin": "synthetic",
+ "args": [
+  {
+   "$": "file",
+   "path": "inputs/repo/proj/Assets/Prefabs/HeroVariant.prefab"
+  }
+ ],
+ "result": {
+  "text": "%YAML 1.1\n%TAG !u! tag:unity3d.com,2011:\n--- !u!1001 &8000\nPrefabInstance:\n  m_ObjectHideFlags: 0\n  serializedVersion: 2\n  m_Modification:\n    m_TransformParent: {fileID: 0}\n    m_Modifications:\n    - target: {fileID: 100, guid: a0000000000000000000000000000032, type: 3}\n      propertyPath: m_Name\n      value: HeroVariant\n      objectReference: {fileID: 0}\n    - target: {fileID: 102, guid: a0000000000000000000000000000032, type: 3}\n      propertyPath: m_Materials.Array.data[0]\n      value: \n      objectReference: {fileID: 2100000, guid: a0000000000000000000000000000017, type: 2}\n    m_RemovedComponents: []\n  m_SourcePrefab: {fileID: 100100000, guid: a0000000000000000000000000000032, type: 3}\n",
+  "removed": 0
+ }
+}
