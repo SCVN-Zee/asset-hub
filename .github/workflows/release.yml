@@ -35,7 +35,8 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version (expected v$version)"
             exit 1
           fi
-          for name in TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD HOMEBREW_TAP_TOKEN; do
+          # The key password may be empty (a key made without one), so it is not checked here.
+          for name in TAURI_SIGNING_PRIVATE_KEY HOMEBREW_TAP_TOKEN; do
             if [ -z "${!name}" ]; then
               echo "::error::Repository secret $name is not set. Add it under Settings > Secrets and variables > Actions, then run the release again."
               exit 1
