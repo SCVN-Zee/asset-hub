@@ -1,4 +1,4 @@
-//! The 14 push channels of `IPC` as typed events. The page listens through the generated
+//! The 10 push channels of `IPC` as typed events. The page listens through the generated
 //! `events` object; the payload types are in [`crate::dto`].
 
 use serde::{Deserialize, Serialize};
@@ -6,9 +6,7 @@ use serde_with::skip_serializing_none;
 use specta::Type;
 use tauri_specta::Event;
 
-use crate::dto::{
-    AiChatEvent, AiStatus, AiToolCall, CatalogStatus, DoneTotal, ExportStage, FactKind, InstallProgress, SharedIndexStatus,
-};
+use crate::dto::{CatalogStatus, DoneTotal, ExportStage, FactKind, InstallProgress, SharedIndexStatus};
 
 /// An `assethub://` link arrived while the app runs: take it with `take_deep_link`.
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
@@ -71,23 +69,3 @@ pub struct CatalogProgress(pub CatalogStatus);
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
 #[serde(transparent)]
 pub struct UpdateProgress(pub InstallProgress);
-
-/// The AI assistant's connection changed.
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
-#[serde(transparent)]
-pub struct AiStatusChanged(pub AiStatus);
-
-/// Download of Codex.
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
-#[serde(transparent)]
-pub struct AiInstallProgress(pub InstallProgress);
-
-/// The assistant's answer streaming into the chat.
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
-#[serde(transparent)]
-pub struct AiChat(pub AiChatEvent);
-
-/// The assistant calls one of the pet's tools.
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
-#[serde(transparent)]
-pub struct AiToolCallEvent(pub AiToolCall);

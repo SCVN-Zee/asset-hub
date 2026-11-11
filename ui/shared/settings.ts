@@ -37,16 +37,12 @@ export interface Settings {
   sharedIndexDir?: string
   /** Favourites and named collections of assets (see shared/collections). */
   collections?: Collection[]
-  /** The AI pet in the corner of the hub (absent: shown once ChatGPT is connected). */
-  aiPet?: boolean
   /** Assets viewed and exported lately, newest first (kept by the app). */
   recent?: RecentLists
   /** Branches the user follows: new assets since `seen` (a commit) are pointed out. */
   watched?: WatchedBranch[]
   /** Usage notes sent to the team's feedback repo (absent: on). */
   usageStats?: boolean
-  /** Signed in from last time: straight into the hub, without the 3D lobby (absent: off). */
-  skipLobby?: boolean
 }
 
 export const EXPORT_LAYOUTS: readonly PackageLayout[] = ['byType', 'grouped', 'source']
@@ -65,7 +61,7 @@ export function isLanguage(value: unknown): value is Language {
 /** Every setting this version knows; anything else in the file was written by another version. */
 export const SETTINGS_KEYS = [
   'language', 'cacheDir', 'cacheLimitGB', 'excludedFolders', 'lastRepo', 'lastBranch', 'budgetPreset', 'customBudget',
-  'exportLayout', 'targetProject', 'sharedIndexDir', 'collections', 'aiPet', 'recent', 'watched', 'usageStats', 'skipLobby'
+  'exportLayout', 'targetProject', 'sharedIndexDir', 'collections', 'recent', 'watched', 'usageStats'
 ] as const satisfies ReadonlyArray<keyof Settings>
 
 /**
@@ -97,9 +93,7 @@ export function sanitizeSettings(raw: unknown, defaults: Settings): Settings {
     ...(typeof input.targetProject === 'string' && input.targetProject.trim() ? { targetProject: input.targetProject } : {}),
     ...(typeof input.sharedIndexDir === 'string' && input.sharedIndexDir.trim() ? { sharedIndexDir: input.sharedIndexDir } : {}),
     ...(sanitizeCollections(input.collections) ? { collections: sanitizeCollections(input.collections) } : {}),
-    ...(typeof input.aiPet === 'boolean' ? { aiPet: input.aiPet } : {}),
     ...(typeof input.usageStats === 'boolean' ? { usageStats: input.usageStats } : {}),
-    ...(typeof input.skipLobby === 'boolean' ? { skipLobby: input.skipLobby } : {}),
     ...(input.recent && typeof input.recent === 'object'
       ? {
           recent: {

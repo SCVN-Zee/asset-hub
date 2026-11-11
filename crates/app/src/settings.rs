@@ -16,7 +16,7 @@ use crate::dto::{BudgetPreset, CollectionItem, Collection, CustomBudget, Languag
 const RECENT_LIMIT: usize = 30;
 
 /// Every setting this version knows; anything else in the file was written by another version.
-pub const SETTINGS_KEYS: [&str; 17] = [
+pub const SETTINGS_KEYS: [&str; 15] = [
     "language",
     "cacheDir",
     "cacheLimitGB",
@@ -29,11 +29,9 @@ pub const SETTINGS_KEYS: [&str; 17] = [
     "targetProject",
     "sharedIndexDir",
     "collections",
-    "aiPet",
     "recent",
     "watched",
     "usageStats",
-    "skipLobby",
 ];
 
 /// Settings this version does not know, as they are in the file: an older and a newer copy of the
@@ -201,11 +199,9 @@ pub fn sanitize_settings(raw: &Value, defaults: &Settings) -> Settings {
         target_project: non_blank_string(input.get("targetProject")),
         shared_index_dir: non_blank_string(input.get("sharedIndexDir")),
         collections: sanitize_collections(input.get("collections")),
-        ai_pet: input.get("aiPet").and_then(Value::as_bool),
         recent,
         watched: input.get("watched").and_then(Value::as_array).map(|list| sanitize_watched(list)),
         usage_stats: input.get("usageStats").and_then(Value::as_bool),
-        skip_lobby: input.get("skipLobby").and_then(Value::as_bool),
     }
 }
 
@@ -290,11 +286,9 @@ pub fn default_settings(cache_dir: &Path) -> Settings {
         target_project: None,
         shared_index_dir: None,
         collections: None,
-        ai_pet: None,
         recent: None,
         watched: None,
         usage_stats: None,
-        skip_lobby: None,
     }
 }
 
@@ -532,8 +526,8 @@ mod tests {
 
     #[test]
     fn keeps_the_flags_that_are_booleans() {
-        let s = sanitize_settings(&json!({ "aiPet": true, "usageStats": false, "skipLobby": "yes", "targetProject": "  ", "sharedIndexDir": "/team" }), &defaults());
-        assert_eq!((s.ai_pet, s.usage_stats, s.skip_lobby), (Some(true), Some(false), None));
+        let s = sanitize_settings(&json!({ "usageStats": false, "targetProject": "  ", "sharedIndexDir": "/team" }), &defaults());
+        assert_eq!(s.usage_stats, Some(false));
         assert_eq!((s.target_project, s.shared_index_dir.as_deref()), (None, Some("/team")));
     }
 

@@ -1,6 +1,5 @@
 import type { BundleMaterial, CatalogListing, CatalogLocation, DependencyReport, FactKind, PrefabMaterialsResult, PrefabScope, RepoRef, SourceErrorCode, StatsSummary, TreeEntry } from './types'
 import type { Settings } from './settings'
-import type { AiToolResult } from './aiTools'
 import type { FeedbackReport, FeedbackResult, UsageEvent } from './usage'
 
 /** Error codes that can cross IPC; the UI shows `errors.<code>`. */
@@ -12,25 +11,6 @@ export type InstallProgress =
   | { stage: 'extract' }
   /** An update the app started by itself failed; the user can try again from the button. */
   | { stage: 'failed'; message: string }
-
-/** The AI assistant's connection to ChatGPT (through Codex, installed by the app). */
-export interface AiStatus {
-  state: 'unsupported' | 'notInstalled' | 'installing' | 'signedOut' | 'connecting' | 'connected' | 'error'
-  /** The ChatGPT account, when connected. */
-  email?: string
-  /** Its plan, e.g. "team". */
-  plan?: string
-  /** Why the last step failed. */
-  error?: string
-}
-
-/** What the assistant's thread streams to the chat: answer text as it is written, then the end of the turn. */
-export type AiChatEvent =
-  | { type: 'delta'; itemId: string; text: string }
-  /** It is using one of the hub's tools. */
-  | { type: 'tool'; tool: string }
-  | { type: 'done'; status: 'completed' | 'interrupted' | 'failed'; error?: string }
-  | { type: 'error'; message: string }
 
 /** This version and, when the release repo has a later one, that one. */
 export interface UpdateInfo {
@@ -322,31 +302,6 @@ export interface AssetHubApi {
     importToUnity(request: ExportRequest, pid: number): Promise<IpcResult<ExportResult & { unity: string }>>
     onProgress(listener: (progress: ExportProgress) => void): () => void
     showInFolder(path: string): Promise<void>
-  }
-  ai: {
-    status(): Promise<AiStatus>
-    /** Downloads the pinned Codex (about 125 MB, checked against its hashes). */
-    install(): Promise<AiStatus>
-    onInstallProgress(listener: (progress: InstallProgress) => void): () => void
-    /** Opens ChatGPT's sign-in page; the status turns `connected` once the user has signed in. */
-    connect(): Promise<AiStatus>
-    cancelConnect(): Promise<AiStatus>
-    disconnect(): Promise<AiStatus>
-    onStatus(listener: (status: AiStatus) => void): () => void
-    /**
-     * Sends a message in the current conversation (`language`: the app's, for the answer), with up to 4 attached
-     * images as data URLs (PNG, JPEG, WebP, GIF); the answer streams through onChat.
-     */
-    chatSend(text: string, language: string, images?: string[]): Promise<{ ok: true } | { ok: false; message: string }>
-    chatStop(): Promise<void>
-    /** Starts a new conversation. */
-    chatReset(): Promise<void>
-    onChat(listener: (event: AiChatEvent) => void): () => void
-    /** The hub runs the pet's tools: a call to act on, answered with toolResult. */
-    onToolCall(listener: (call: { callId: string; tool: string; args: unknown }) => void): () => void
-    toolResult(callId: string, result: AiToolResult): Promise<void>
-    /** A wrong answer, kept on this Mac (userData/ai-feedback) to test the pet against later. */
-    feedback(report: { messages: Array<{ role: string; text: string }>; tools: string[] }): Promise<void>
   }
   update: {
     /** Asks the release repo for its latest version; null when it cannot be reached. */

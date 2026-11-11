@@ -6,7 +6,7 @@
 // bad arguments or a denied permission, or a real `Error`) to an `IpcResult` error.
 
 import { invoke } from '@tauri-apps/api/core'
-import type { AssetHubApi, AiStatus, ExportRequest, IpcError, IpcResult, UpdateInfo } from '@shared/ipc'
+import type { AssetHubApi, ExportRequest, IpcError, IpcResult, UpdateInfo } from '@shared/ipc'
 import { commands, events } from './bindings'
 import type * as Wire from './bindings'
 import type { DependencyReport, FactKind } from '@shared/types'
@@ -54,12 +54,6 @@ async function okMessage(call: Promise<Outcome>): Promise<{ ok: true } | { ok: f
   const r = await result<{ ok: boolean; message?: string }>(call)
   if (!r.ok) return { ok: false, message: r.error.message }
   return r.data.ok ? { ok: true } : { ok: false, message: r.data.message ?? '' }
-}
-
-/** The assistant's status; a call that failed shows as its `error` state. */
-async function aiStatus(call: Promise<Outcome>): Promise<AiStatus> {
-  const r = await result<AiStatus>(call)
-  return r.ok ? r.data : { state: 'error', error: r.error.message }
 }
 
 /**
@@ -183,22 +177,6 @@ export const api: AssetHubApi = {
     importToUnity: (request, pid) => withRequest(request, (wire) => commands.exporterImportToUnity(wire, pid)),
     onProgress: (listener) => on(events.exportProgress, listener),
     showInFolder: (path) => done(commands.exporterShowInFolder(path))
-  },
-  ai: {
-    status: () => aiStatus(commands.aiStatus()),
-    install: () => aiStatus(commands.aiInstall()),
-    onInstallProgress: (listener) => on(events.aiInstallProgress, listener),
-    connect: () => aiStatus(commands.aiConnect()),
-    cancelConnect: () => aiStatus(commands.aiCancelConnect()),
-    disconnect: () => aiStatus(commands.aiDisconnect()),
-    onStatus: (listener) => on(events.aiStatusChanged, listener),
-    chatSend: (text, language, images) => okMessage(commands.aiChatSend(text, language, images ?? null)),
-    chatStop: () => done(commands.aiChatStop()),
-    chatReset: () => done(commands.aiChatReset()),
-    onChat: (listener) => on(events.aiChat, listener),
-    onToolCall: (listener) => on(events.aiToolCallEvent, listener),
-    toolResult: (callId, toolResult) => done(commands.aiToolResult(callId, toolResult.ok ? { ok: true, data: toolResult.data, error: null } : { ok: false, data: null, error: toolResult.error })),
-    feedback: (report) => done(commands.aiFeedback(report))
   },
   update: {
     // `check` answers null when the release repo cannot be reached, so the version badge then shows no update pill.

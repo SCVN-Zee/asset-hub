@@ -119,8 +119,3 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
   const suggest = useCallback((text: string): Promise<Suggestion[]> => (index ? parse.searchSuggest(index.handle, text) : Promise.resolve([])), [index])
   return { found, folders, suggest, settled, failure }
 }
-
-/** Every name word of `assets` and how many assets use it (for the AI tools), through a search built just for this. */
-export async function nameWords(assets: readonly Asset[]): Promise<Array<{ word: string; count: number }>> {
-  return parse.searchWords(await parse.searchBuild(assets))
-}

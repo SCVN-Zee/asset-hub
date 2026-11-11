@@ -1,14 +1,10 @@
 //! Asset Hub: the Tauri shell and the typed contract between the page and the backend.
 
-pub mod ai;
-pub mod ai_tools;
 pub mod auth;
 pub mod blender;
 pub mod bundle;
 pub mod cache;
 pub mod catalog_service;
-pub mod codex_client;
-pub mod codex_installer;
 pub mod command_names;
 pub mod commands;
 pub mod constants;
@@ -76,10 +72,6 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
             e::ExportProgress,
             e::CatalogProgress,
             e::UpdateProgress,
-            e::AiStatusChanged,
-            e::AiInstallProgress,
-            e::AiChat,
-            e::AiToolCallEvent,
         ])
         .constant("LANGUAGES", c::LANGUAGES)
         .constant("DEFAULT_EXCLUDED_FOLDERS", c::DEFAULT_EXCLUDED_FOLDERS)
@@ -87,7 +79,6 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
         .constant("DEFAULT_CACHE_LIMIT_GB", c::DEFAULT_CACHE_LIMIT_GB)
         .constant("EXPORT_LAYOUTS", c::EXPORT_LAYOUTS)
         .constant("DEFAULT_EXPORT_LAYOUT", c::DEFAULT_EXPORT_LAYOUT)
-        .constant("AI_TOOL_NAMES", c::AI_TOOL_NAMES)
         .constant("FEEDBACK_KINDS", c::FEEDBACK_KINDS)
         .constant("BUILTIN_SHADER_GUIDS", c::BUILTIN_SHADER_GUIDS)
         .constant("BUDGET_KEYS", c::BUDGET_KEYS)
@@ -99,7 +90,7 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
 
 /// The contract: every command, every event and the constants Rust owns.
 pub fn contract() -> Builder<tauri::Wry> {
-    use crate::commands::{agent_cli, ai, app, assets, audio, auth, caches, catalog, exporter, parse, services, source};
+    use crate::commands::{agent_cli, app, assets, audio, auth, caches, catalog, exporter, parse, services, source};
 
     event_contract::<tauri::Wry>()
         .commands(collect_commands![
@@ -175,16 +166,6 @@ pub fn contract() -> Builder<tauri::Wry> {
             exporter::exporter_unity_editors,
             exporter::exporter_import_to_unity,
             exporter::exporter_show_in_folder,
-            ai::ai_status,
-            ai::ai_install,
-            ai::ai_connect,
-            ai::ai_cancel_connect,
-            ai::ai_disconnect,
-            ai::ai_chat_send,
-            ai::ai_chat_stop,
-            ai::ai_chat_reset,
-            ai::ai_tool_result,
-            ai::ai_feedback,
             services::update_check,
             services::update_install,
             services::usage_track,
@@ -257,7 +238,6 @@ pub fn run() {
             let mut store = SettingsStore::new(&paths.settings_file, default_settings(&paths.cache_dir));
             fix_cache_dir(&mut store, &paths.user_data, &paths.cache_dir)?;
             app.manage(AppState::new(paths, store));
-            app.state::<AppState>().ai.set_sink(std::sync::Arc::new(commands::ai::PageSink::new(app.handle().clone())));
             app.state::<AppState>().hub.set_emitters(commands::caches::page_emitters(app.handle().clone()));
             // Leftovers and the size limit are dealt with once the app has settled.
             let caches = app.state::<AppState>().caches.clone();
@@ -322,11 +302,10 @@ pub fn run() {
                 }
             }
         }
-        // No gh waiting for the browser, and no Codex, is left behind when the app quits.
+        // No gh waiting for the browser is left behind when the app quits.
         RunEvent::Exit => {
             if let Some(state) = handle.try_state::<AppState>() {
                 tauri::async_runtime::block_on(async {
-                    state.ai.shutdown().await;
                     state.auth.shutdown().await;
                     state.caches.stats.flush().await;
                 });

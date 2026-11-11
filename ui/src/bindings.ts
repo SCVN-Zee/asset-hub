@@ -174,26 +174,6 @@ export const commands = {
 	exporterImportToUnity: (request: ExportRequest_Deserialize, pid: number) => typedError<ExportResult_Serialize, IpcError_Serialize>(__TAURI_INVOKE("exporter_import_to_unity", { request, pid })),
 	/**  Shows a file in Finder. */
 	exporterShowInFolder: (path: string) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("exporter_show_in_folder", { path })),
-	/**  The connection to ChatGPT. */
-	aiStatus: () => typedError<AiStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("ai_status")),
-	/**  Downloads the pinned Codex. */
-	aiInstall: () => typedError<AiStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("ai_install")),
-	/**  Opens ChatGPT's sign-in page. */
-	aiConnect: () => typedError<AiStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("ai_connect")),
-	/**  Stops waiting for the sign-in. */
-	aiCancelConnect: () => typedError<AiStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("ai_cancel_connect")),
-	/**  Signs out of ChatGPT. */
-	aiDisconnect: () => typedError<AiStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("ai_disconnect")),
-	/**  Sends a message in the current conversation, with up to 4 attached images as data URLs; the answer streams through the `AiChat` event. */
-	aiChatSend: (text: string, language: string, images: string[] | null) => typedError<OkMessage_Serialize, IpcError_Serialize>(__TAURI_INVOKE("ai_chat_send", { text, language, images })),
-	/**  Stops the answer. */
-	aiChatStop: () => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("ai_chat_stop")),
-	/**  Starts a new conversation. */
-	aiChatReset: () => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("ai_chat_reset")),
-	/**  Answers a tool call (`AiToolCallEvent`). */
-	aiToolResult: (callId: string, result: AiToolResult_Deserialize) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("ai_tool_result", { callId, result })),
-	/**  Keeps a wrong answer on this Mac to test the pet against later. */
-	aiFeedback: (report: AiFeedbackReport) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("ai_feedback", { report })),
 	/**  Asks the release repo for its latest version; `None` when it cannot be reached. */
 	updateCheck: () => typedError<UpdateInfo_Serialize | null, IpcError_Serialize>(__TAURI_INVOKE("update_check")),
 	/**  Downloads, verifies and installs `version`, then restarts the app (answers only on failure). */
@@ -206,10 +186,6 @@ export const commands = {
 
 /** Events */
 export const events = {
-	aiChat: makeEvent<AiChat_Serialize, AiChat_Deserialize>("ai-chat"),
-	aiInstallProgress: makeEvent<AiInstallProgress, AiInstallProgress>("ai-install-progress"),
-	aiStatusChanged: makeEvent<AiStatusChanged_Serialize, AiStatusChanged_Deserialize>("ai-status-changed"),
-	aiToolCallEvent: makeEvent<AiToolCallEvent, AiToolCallEvent>("ai-tool-call-event"),
 	catalogProgress: makeEvent<CatalogProgress_Serialize, CatalogProgress_Deserialize>("catalog-progress"),
 	deepLink: makeEvent<DeepLink, DeepLink>("deep-link"),
 	exportProgress: makeEvent<ExportProgress, ExportProgress>("export-progress"),
@@ -223,8 +199,6 @@ export const events = {
 };
 
 /* Constants */
-export const AI_TOOL_NAMES = ["name_words","search_assets","open_asset","asset_info","add_to_chest","add_to_collection","offer_choices"] as const;
-
 export const BUDGET_KEYS = ["triangles","textureSize","textureBytes","fileBytes","bones","audioBytes","audioSeconds","fontBytes","particles"] as const;
 
 export const BUDGET_PRESETS = ["off","standard","tight","custom"] as const;
@@ -252,104 +226,6 @@ export const PLAYABLE_BUDGET = {"triangles":15000.0,"textureSize":1024.0,"textur
 export const TIGHT_BUDGET = {"triangles":8000.0,"textureSize":512.0,"textureBytes":1048576.0,"fileBytes":1572864.0,"bones":40.0,"audioBytes":262144.0,"audioSeconds":30.0,"fontBytes":307200.0,"particles":400.0} as const;
 
 /* Types */
-/**  The assistant's answer streaming into the chat. */
-export type AiChat = AiChat_Serialize | AiChat_Deserialize;
-
-/**  What the assistant's thread streams to the chat. */
-export type AiChatEvent = AiChatEvent_Serialize | AiChatEvent_Deserialize;
-
-/**  What the assistant's thread streams to the chat. */
-export type AiChatEvent_Deserialize = { type: "delta"; itemId: string; text: string } | 
-/**  It is using one of the hub's tools. */
-{ type: "tool"; tool: string } | { type: "done"; status: AiTurnStatus; error?: string | null } | { type: "error"; message: string };
-
-/**  What the assistant's thread streams to the chat. */
-export type AiChatEvent_Serialize = { type: "delta"; itemId: string; text: string } | 
-/**  It is using one of the hub's tools. */
-{ type: "tool"; tool: string } | { type: "done"; status: AiTurnStatus; error?: string } | { type: "error"; message: string };
-
-/**  The assistant's answer streaming into the chat. */
-export type AiChat_Deserialize = AiChatEvent_Deserialize;
-
-/**  The assistant's answer streaming into the chat. */
-export type AiChat_Serialize = AiChatEvent_Serialize;
-
-/**  A wrong answer, kept on this Mac to test the pet against later. */
-export type AiFeedbackReport = {
-	messages: AiMessage[],
-	tools: string[],
-};
-
-/**  Download of Codex. */
-export type AiInstallProgress = InstallProgress;
-
-export type AiMessage = {
-	role: string,
-	text: string,
-};
-
-export type AiState = "unsupported" | "notInstalled" | "installing" | "signedOut" | "connecting" | "connected" | "error";
-
-/**  The AI assistant's connection to ChatGPT. */
-export type AiStatus = AiStatus_Serialize | AiStatus_Deserialize;
-
-/**  The AI assistant's connection changed. */
-export type AiStatusChanged = AiStatusChanged_Serialize | AiStatusChanged_Deserialize;
-
-/**  The AI assistant's connection changed. */
-export type AiStatusChanged_Deserialize = AiStatus_Deserialize;
-
-/**  The AI assistant's connection changed. */
-export type AiStatusChanged_Serialize = AiStatus_Serialize;
-
-/**  The AI assistant's connection to ChatGPT. */
-export type AiStatus_Deserialize = {
-	state: AiState,
-	/**  The ChatGPT account, when connected. */
-	email?: string | null,
-	/**  Its plan, e.g. "team". */
-	plan?: string | null,
-	/**  Why the last step failed. */
-	error?: string | null,
-};
-
-/**  The AI assistant's connection to ChatGPT. */
-export type AiStatus_Serialize = {
-	state: AiState,
-	/**  The ChatGPT account, when connected. */
-	email?: string,
-	/**  Its plan, e.g. "team". */
-	plan?: string,
-	/**  Why the last step failed. */
-	error?: string,
-};
-
-/**  The hub runs the pet's tools: a call to act on, answered with `ai_tool_result`. */
-export type AiToolCall = {
-	callId: string,
-	tool: string,
-	args: unknown,
-};
-
-/**  The assistant calls one of the pet's tools. */
-export type AiToolCallEvent = AiToolCall;
-
-export type AiToolResult = AiToolResult_Serialize | AiToolResult_Deserialize;
-
-export type AiToolResult_Deserialize = {
-	ok: boolean,
-	data?: unknown | null,
-	error?: string | null,
-};
-
-export type AiToolResult_Serialize = {
-	ok: boolean,
-	data?: unknown,
-	error?: string,
-};
-
-export type AiTurnStatus = "completed" | "interrupted" | "failed";
-
 /**
  *  Error codes that cross the bridge; the UI shows `errors.<code>`.
  *  The strings are the ones `SourceErrorCode` and `AppErrorCode` use in `src/shared/ipc.ts`.
@@ -896,7 +772,7 @@ export type GradientColor = {
 /**  The one-off GUID index build for a commit. */
 export type IndexProgress = DoneTotal;
 
-/**  A download the app runs by itself: GitHub CLI, Codex, an update. */
+/**  A download the app runs by itself: GitHub CLI, an update. */
 export type InstallProgress = { stage: "download"; received: number | null; total: number | null } | { stage: "verify" } | { stage: "extract" } | 
 /**  An update the app started by itself failed; the user can try again from the button. */
 { stage: "failed"; message: string };
@@ -1531,14 +1407,10 @@ export type Settings_Deserialize = {
 	/**  Folder a team shares, holding an index everyone takes in. */
 	sharedIndexDir?: string | null,
 	collections?: Collection_Deserialize[] | null,
-	/**  The AI pet in the corner of the hub. */
-	aiPet?: boolean | null,
 	recent?: RecentLists_Deserialize | null,
 	watched?: WatchedBranch[] | null,
 	/**  Usage notes sent to the team's feedback repo (absent: on). */
 	usageStats?: boolean | null,
-	/**  Signed in from last time: straight into the hub, without the 3D lobby. */
-	skipLobby?: boolean | null,
 };
 
 /**  The user's settings. */
@@ -1563,14 +1435,10 @@ export type Settings_Serialize = {
 	/**  Folder a team shares, holding an index everyone takes in. */
 	sharedIndexDir?: string,
 	collections?: Collection_Serialize[],
-	/**  The AI pet in the corner of the hub. */
-	aiPet?: boolean,
 	recent?: RecentLists_Serialize,
 	watched?: WatchedBranch[],
 	/**  Usage notes sent to the team's feedback repo (absent: on). */
 	usageStats?: boolean,
-	/**  Signed in from last time: straight into the hub, without the 3D lobby. */
-	skipLobby?: boolean,
 };
 
 export type ShaderKind = "builtin" | "package" | "project";

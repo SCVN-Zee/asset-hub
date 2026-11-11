@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use specta::Type;
 
-use crate::ipc::{IpcError, Json};
+use crate::ipc::IpcError;
 
 /// Derives and the camelCase naming that every type of the contract shares.
 macro_rules! dto {
@@ -127,14 +127,10 @@ dto! {
         /// Folder a team shares, holding an index everyone takes in.
         pub shared_index_dir: Option<String>,
         pub collections: Option<Vec<Collection>>,
-        /// The AI pet in the corner of the hub.
-        pub ai_pet: Option<bool>,
         pub recent: Option<RecentLists>,
         pub watched: Option<Vec<WatchedBranch>>,
         /// Usage notes sent to the team's feedback repo (absent: on).
         pub usage_stats: Option<bool>,
-        /// Signed in from last time: straight into the hub, without the 3D lobby.
-        pub skip_lobby: Option<bool>,
     }
 }
 
@@ -697,7 +693,7 @@ dto! {
         pub version: String,
     }
 
-    /// A download the app runs by itself: GitHub CLI, Codex, an update.
+    /// A download the app runs by itself: GitHub CLI, an update.
     #[serde(tag = "stage")]
     pub enum InstallProgress {
         Download { received: f64, total: f64 },
@@ -1022,73 +1018,10 @@ dto! {
 }
 
 // ---------------------------------------------------------------------------------------------
-// AI assistant, update, usage, feedback
+// Update, usage, feedback
 // ---------------------------------------------------------------------------------------------
 
 dto! {
-    #[derive(Copy, Eq)]
-    pub enum AiState {
-        Unsupported,
-        NotInstalled,
-        Installing,
-        SignedOut,
-        Connecting,
-        Connected,
-        Error,
-    }
-
-    /// The AI assistant's connection to ChatGPT.
-    pub struct AiStatus {
-        pub state: AiState,
-        /// The ChatGPT account, when connected.
-        pub email: Option<String>,
-        /// Its plan, e.g. "team".
-        pub plan: Option<String>,
-        /// Why the last step failed.
-        pub error: Option<String>,
-    }
-
-    #[derive(Copy, Eq)]
-    pub enum AiTurnStatus {
-        Completed,
-        Interrupted,
-        Failed,
-    }
-
-    /// What the assistant's thread streams to the chat.
-    #[serde(tag = "type", rename_all_fields = "camelCase")]
-    pub enum AiChatEvent {
-        Delta { item_id: String, text: String },
-        /// It is using one of the hub's tools.
-        Tool { tool: String },
-        Done { status: AiTurnStatus, error: Option<String> },
-        Error { message: String },
-    }
-
-    /// The hub runs the pet's tools: a call to act on, answered with `ai_tool_result`.
-    pub struct AiToolCall {
-        pub call_id: String,
-        pub tool: String,
-        pub args: Json,
-    }
-
-    pub struct AiToolResult {
-        pub ok: bool,
-        pub data: Option<Json>,
-        pub error: Option<String>,
-    }
-
-    pub struct AiMessage {
-        pub role: String,
-        pub text: String,
-    }
-
-    /// A wrong answer, kept on this Mac to test the pet against later.
-    pub struct AiFeedbackReport {
-        pub messages: Vec<AiMessage>,
-        pub tools: Vec<String>,
-    }
-
     /// This version and, when the release repo has a later one, that one.
     pub struct UpdateInfo {
         pub current: String,

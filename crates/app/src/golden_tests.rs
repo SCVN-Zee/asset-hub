@@ -3,8 +3,7 @@
 //! crate; see its README for the tagged JSON conventions.
 //!
 //! Not ported on purpose (they stay in the page, `src/renderer` and `src/shared`): `matchRepos`,
-//! `parseAssetRef`, `assetRef` (the AI assistant's tool arguments are read by the page's side of the
-//! tool bridge), `collections` (add/rename/delete/toggle/inCollection/withFavorites: the page edits
+//! `parseAssetRef`, `assetRef`, `collections` (add/rename/delete/toggle/inCollection/withFavorites: the page edits
 //! collections and sends the whole list, `sanitizeCollections` is covered through
 //! `sanitizeSettings`), `parseAssetLink` and `assetLink` (the page builds and reads links; the app
 //! only recognises `assethub://` arguments), `displayName` and `isNewer` (shown by the page).
@@ -274,14 +273,6 @@ fn settings_this_version_does_not_know_are_kept_aside() {
     for case in cases("shared/settings", "unknownSettings") {
         let got = Value::Object(crate::settings::unknown_settings(&plain(&case["args"][0])));
         assert_eq!(got, case["result"]);
-    }
-}
-
-#[test]
-fn ai_tool_specs_list_the_asset_types_asked_for() {
-    for case in cases("shared/aiTools", "aiToolSpecs") {
-        let types: Vec<&str> = case["args"][0].as_array().unwrap().iter().map(|t| t.as_str().unwrap()).collect();
-        assert_eq!(crate::ai_tools::tool_specs(&types), case["result"]);
     }
 }
 

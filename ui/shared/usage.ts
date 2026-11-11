@@ -36,7 +36,7 @@ export interface UsageSession {
   activeMs: number
   /** Repos whose branches were opened. */
   repos: string[]
-  /** e.g. `branch.open`, `view.fbx`, `search`, `export`, `export.assets`, `unity`, `ai.chat`, `error.notFound`. */
+  /** e.g. `branch.open`, `view.fbx`, `search`, `export`, `export.assets`, `unity`, `error.notFound`. */
   counts: Record<string, number>
 }
 
@@ -81,9 +81,6 @@ export function noteIpc(session: UsageSession, channel: string, args: unknown[],
       bump(session, `${key}.assets`, r.data?.assets ?? 0)
       break
     }
-    case 'ai:chat-send':
-      bump(session, 'ai.chat')
-      break
   }
 }
 

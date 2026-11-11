@@ -12,7 +12,6 @@ use crate::ipc::IpcError;
 use crate::usage::Outcome;
 
 pub mod agent_cli;
-pub mod ai;
 pub mod app;
 pub mod assets;
 pub mod audio;

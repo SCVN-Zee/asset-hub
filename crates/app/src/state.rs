@@ -3,8 +3,6 @@
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::ai::{AiService, InstalledCodex};
-use crate::ai_tools::ASSET_TYPES;
 use crate::auth::{AuthService, KeychainVault};
 use crate::cache::{CacheConfig, Caches};
 use crate::hub::{Hub, Session};
@@ -22,7 +20,6 @@ pub struct AppState {
     pub stash: Stash,
     pub auth: AuthService,
     pub usage: Arc<UsageService>,
-    pub ai: Arc<AiService>,
     /// Downloads, thumbnails and measurements in the cache folder of the settings.
     pub caches: Arc<Caches>,
     /// The GitHub session of the signed-in account.
@@ -40,12 +37,9 @@ impl AppState {
         let auth = AuthService::new(paths.auth_file.clone(), paths.tools_dir.clone(), Arc::new(KeychainVault::new(paths.keychain_service.clone())));
         let language = serde_json::to_value(settings.get().language).ok().and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_else(|| "en".into());
         let usage = Arc::new(UsageService::new(&paths.user_data.join("usage"), env!("CARGO_PKG_VERSION"), &os_label(), &language, feedback_repo(), crate::http::API));
-        // Codex keeps its ChatGPT sign-in and settings in a home of its own, apart from any Codex the user runs themselves.
-        let runtime = InstalledCodex { tools_dir: paths.tools_dir.clone(), codex_home: paths.user_data.join("codex") };
-        let ai = Arc::new(AiService::new(Arc::new(runtime), std::env::temp_dir().join("asset-hub-ai"), env!("CARGO_PKG_VERSION"), ASSET_TYPES.to_vec()));
         let caches = Arc::new(Caches::new(CacheConfig::from_settings(&settings.get())));
         let hub = Hub::new(&caches);
-        Self { paths, settings: Mutex::new(settings), caches, hub, pending_link: Mutex::new(None), stash: Stash::default(), auth, usage, ai, saved_files: Mutex::default() }
+        Self { paths, settings: Mutex::new(settings), caches, hub, pending_link: Mutex::new(None), stash: Stash::default(), auth, usage, saved_files: Mutex::default() }
     }
 
     /// The GitHub session; `unauthorized` when nobody is signed in.

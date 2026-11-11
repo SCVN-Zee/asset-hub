@@ -70,7 +70,6 @@ Every case JSON has `source: {path, commit, sha256}` (the TS file, the last comm
 - `src/main/targetProject.ts`: contentHash (1)
 - `src/main/unityEditors.ts`: parseUnityProcesses (1)
 - `src/main/zip.ts`: zipFiles (1)
-- `src/shared/aiTools.ts`: aiToolSpecs (1), assetRef (1), matchRepos (7), parseAssetRef (3)
 - `src/shared/collections.ts`: addCollection (2), deleteCollection (2), inCollection (1), renameCollection (2), sanitizeCollections (3), toggleItem (3), withFavorites (1)
 - `src/shared/deeplink.ts`: assetLink (1), parseAssetLink (8)
 - `src/shared/displayName.ts`: displayName (6)

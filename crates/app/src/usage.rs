@@ -63,7 +63,7 @@ pub struct UsageSession {
     pub active_ms: u64,
     /// Repos whose branches were opened.
     pub repos: Vec<String>,
-    /// e.g. `branch.open`, `view.fbx`, `search`, `export`, `export.assets`, `unity`, `ai.chat`, `error.notFound`.
+    /// e.g. `branch.open`, `view.fbx`, `search`, `export`, `export.assets`, `unity`, `error.notFound`.
     pub counts: BTreeMap<String, u64>,
     /// Last, as the TypeScript writes it (the comment is read by both).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -137,7 +137,6 @@ impl UsageSession {
                 self.bump(key, 1);
                 self.bump(&format!("{key}.assets"), assets);
             }
-            "ai:chat-send" => self.bump("ai.chat", 1),
             _ => {}
         }
     }
@@ -668,11 +667,10 @@ mod tests {
     }
 
     #[test]
-    fn counts_the_assistant_and_failed_exports() {
+    fn counts_failed_exports() {
         let mut s = fresh();
-        s.note_command("ai:chat-send", None, &Outcome::OK);
         s.note_command("export:unitypackage", None, &Outcome::Failed("unknown".into()));
-        assert_eq!(counts(&s), [("ai.chat", 1), ("error.unknown", 1), ("export.fail", 1)]);
+        assert_eq!(counts(&s), [("error.unknown", 1), ("export.fail", 1)]);
     }
 
     #[test]
