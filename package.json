@@ -39,6 +39,6 @@
   "trustedDependencies": [
     "esbuild"
   ],
-  "releaseRepo": "SCVN-Dan/asset-hub-release",
+  "releaseRepo": "SCVN-Zee/asset-hub",
   "feedbackRepo": "supercent-io/asset-hub-feedback"
 }

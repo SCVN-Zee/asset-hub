@@ -2,7 +2,7 @@
 
 Desktop app (Tauri 2, Rust and React) for macOS 14 or later on Apple silicon, for browsing Unity projects on GitHub: preview models, prefabs, VFX, textures, audio and fonts straight from a branch, collect what you need, and export it with every dependency (materials, textures, shaders, animations…) as a `.unitypackage`, checked against your own Unity project.
 
-- [Install guide](docs/INSTALL.md)
+- [Install guide](docs/INSTALL.md): `brew install zeemrx0/tap/asset-hub`, or the installer DMG from the [releases](https://github.com/SCVN-Zee/asset-hub/releases)
 - [Architecture and decisions](docs/architecture.md)
 - [Changelog](CHANGELOG.md)
 - [1.x plan](docs/history/PLAN.md) and [1.x roadmap](docs/history/ROADMAP.md): Electron-era history, kept for reference
@@ -25,23 +25,30 @@ Sign in with GitHub (GitHub CLI, installed by the app if missing, or a fine-grai
 
 ## Release
 
-The app updates itself with the Tauri updater, so every update is signed with a minisign key that only the maintainer holds. One-time setup:
+Releases come from CI. Pushing a tag `v<version>` (stable, no `-`) runs [`.github/workflows/release.yml`](.github/workflows/release.yml) on `macos-15`: it checks the tag against `package.json`, runs the TypeScript and Rust tests, then `bun run release`, which builds and publishes the GitHub release to this repository (`releaseRepo` in `package.json`, `SCVN-Zee/asset-hub`). A last step, `scripts/ci/bump-homebrew-cask.sh`, renders [`packaging/homebrew/asset-hub.rb`](packaging/homebrew/asset-hub.rb) with the new version and the checksum of `Asset.Hub.app.tar.gz` and pushes it to the `zeemrx0/tap` Homebrew tap. The app, the installer and the release script all read `releaseRepo` from `package.json`.
+
+The app updates itself with the Tauri updater, so every update is signed with a minisign key that only the maintainer holds. **One-time setup before the first CI release:**
 
 ```bash
 bunx tauri signer generate -w ~/asset-hub-updater.key   # keep the key and its password in a password manager, never in the repo
 ```
 
-Then put the printed **public** key in `plugins.updater.pubkey` of `crates/app/tauri.conf.json` (it ships as a placeholder that no private key matches, so until then no update installs). Set `releaseRepo` in `package.json` to the public repo that holds the 2.x releases; the app, the installer and the release script all read it from there. If the key is lost, installed copies cannot verify updates and users must run the installer again (see [docs/architecture.md](docs/architecture.md)).
+1. Put the printed **public** key in `plugins.updater.pubkey` of `crates/app/tauri.conf.json`. It ships as a placeholder that no private key matches, so until then no update installs.
+2. Add these repository secrets in `SCVN-Zee/asset-hub` (Settings › Secrets and variables › Actions): `TAURI_SIGNING_PRIVATE_KEY` (the key content), `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and `HOMEBREW_TAP_TOKEN` (a fine-grained token with Contents read/write on `ZeeMRx0/homebrew-tap`). The workflow stops at its first step with a clear message when one is missing.
+
+If the key is lost, installed copies cannot verify updates and users must run the installer again (see [docs/architecture.md](docs/architecture.md)).
+
+To release: bump `version` in `package.json`, rename **Unreleased** in [CHANGELOG.md](CHANGELOG.md) to that version (its section becomes the release notes, and the script refuses without one), commit, then `git tag v<version> && git push origin v<version>`.
+
+To build by hand, with `TAURI_SIGNING_PRIVATE_KEY` (the key, or its path) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` in the environment, because the updater archive is signed while it is built:
 
 ```bash
 bun run dist:web   # tauri build, then release/Asset-Hub-Installer.dmg (~1.4 MB) + Asset.Hub.app.tar.gz + .sig
-bun run release    # builds with the key, then publishes v<version> (archive, .sig, latest.json, installer) to the release repo
+bun run release    # builds with the key, runs the secret scan (scripts/secret-scan.mjs), then publishes v<version> to the release repo
 bun run dist       # (optional) the full dmg from Tauri's own bundler
 ```
 
-`dist:web` and `bun run build` need `TAURI_SIGNING_PRIVATE_KEY` (the key, or its path) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` in the environment, because the updater archive is signed while it is built. `bun run release` reads them from the environment, hands them to the build only, runs a secret scan (`scripts/secret-scan.mjs`) and refuses on any finding. The source repo stays private; only the built app goes to the public release repo. See [docs/INSTALL.md](docs/INSTALL.md).
-
-**Every installed copy updates itself from the release repo**, so publish only a build that has been tested and approved. Before `bun run release`: bump `version` in `package.json` and rename **Unreleased** in [CHANGELOG.md](CHANGELOG.md) to that version; its section becomes the release notes (the script refuses without one). The `.app` is signed ad hoc (`bundle.macOS.signingIdentity: "-"`), and an updated copy must not be reached through a symlink.
+**Every installed copy updates itself from the release repo**, so tag only a build that has been tested and approved. The `.app` is signed ad hoc (`bundle.macOS.signingIdentity: "-"`), and an updated copy must not be reached through a symlink. See [docs/INSTALL.md](docs/INSTALL.md).
 
 ## Use from coding agents
 

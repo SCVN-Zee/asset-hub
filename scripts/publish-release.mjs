@@ -55,7 +55,7 @@ function publish() {
   const missing = files.filter((f) => !existsSync(f))
   if (missing.length) throw new Error(`Missing after the build: ${missing.join(', ')}`)
 
-  const notes = `Install: download **Asset-Hub-Installer.dmg** and run it (Apple silicon, macOS 14 or later). Installed copies offer the update by themselves.\n\n${section}`
+  const notes = `Install: run \`brew install zeemrx0/tap/asset-hub\`, or download **Asset-Hub-Installer.dmg** and run it (Apple silicon, macOS 14 or later). Installed copies offer the update by themselves.\n\n${section}`
   const latest = join(release, 'latest.json')
   writeFileSync(latest, `${JSON.stringify(buildLatestJson({ version, releaseRepo, notes, signature: readFileSync(files[1], 'utf8') }), null, 2)}\n`)
 
