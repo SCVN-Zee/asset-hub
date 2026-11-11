@@ -2,6 +2,11 @@
 
 What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
 
+## [2.1.1] — 2026-11-11
+
+### Changed
+- **New app icon:** three soft blocks (blue, purple and coral) in a cream tray.
+
 ## [2.1.0] — 2026-11-11
 
 ### Changed
