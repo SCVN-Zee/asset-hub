@@ -20,7 +20,7 @@ export interface Settings {
   cacheDir: string
   /** Most the downloaded files may take, in GB (absent: `DEFAULT_CACHE_LIMIT_GB`; 0: no limit). */
   cacheLimitGB?: number
-  /** Folder names hidden from browsing at any depth (e.g. third-party packs). */
+  /** Patterns hiding folders and files from browsing: gitignore syntax, one per entry, relative to the Unity project root (a bare name matches at any depth). */
   excludedFolders: string[]
   /** Repo and branch opened last, restored on the next launch. */
   lastRepo?: string

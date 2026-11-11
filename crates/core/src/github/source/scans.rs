@@ -23,7 +23,7 @@ use crate::handlers::{tmp_candidate, Resolver};
 use crate::js::{decode_utf8, OrderedMap};
 use crate::re;
 use crate::types::{FactKind, TreeEntry};
-use crate::unity::is_in_excluded_folder;
+use crate::unity::ExcludeMatcher;
 use crate::unity::particles::{effect_shas, prefab_effect_fact};
 use crate::unity::prefab::{folder_affinity, model_materials};
 use crate::unity::tmp_font::is_tmp_font_asset;
@@ -554,10 +554,11 @@ impl<F: HttpFetch + 'static> Inner<F> {
         let Some(model_guid) = meta_text.as_deref().and_then(meta_guid) else { return Err(not_found(format!("{path} has no .meta GUID"))) };
 
         let assets = format!("{root}Assets/");
+        let excluded = ExcludeMatcher::new(excluded_folders);
         let prefabs: Vec<TreeEntry> = snap
             .entries
             .iter()
-            .filter(|e| is_blob(e) && e.path.ends_with(".prefab") && e.path.starts_with(&assets) && !is_in_excluded_folder(&e.path[root.len()..], excluded_folders))
+            .filter(|e| is_blob(e) && e.path.ends_with(".prefab") && e.path.starts_with(&assets) && !excluded.is_excluded(&e.path[root.len()..]))
             .cloned()
             .collect();
         let known_rec = self.shared_cache(PREFAB_KIND, repo).await?;

@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::js::{locale_compare, ordered_object, ordered_object_opt, parse_date, OrderedMap};
 use crate::registry::base_name;
 use crate::types::{EntryType, TreeEntry};
-use crate::unity::is_in_excluded_folder;
+use crate::unity::{project_relative, ExcludeMatcher};
 
 /// A branch tip as last read from GitHub.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -248,7 +248,7 @@ impl RepoCatalog {
     /// Adds this repo's files to `by_sha` (see [`group_catalog`]), one location per path and blob
     /// with the branches holding it. Works on the stored indexes: millions of file x branch pairs,
     /// so no strings are made per pair.
-    pub fn group_into(&self, by_sha: &mut GroupMap, type_of: &dyn Fn(&str) -> Option<String>, excluded_folders: &[&str]) {
+    pub fn group_into(&self, by_sha: &mut GroupMap, type_of: &dyn Fn(&str) -> Option<String>, excluded: &ExcludeMatcher) {
         let RepoCatalogData { paths, blobs, repo, .. } = &self.data;
         // Per path: its asset type, or None when excluded or not an asset (worked out once).
         let mut type_at: Vec<Option<Option<String>>> = vec![None; paths.len()];
@@ -258,7 +258,7 @@ impl RepoCatalog {
             let Some(flat) = self.data.commits.get(&branch.commit) else { continue };
             for pair in flat.chunks_exact(2) {
                 let (p, b) = (pair[0], pair[1]);
-                let kind = type_at[p].get_or_insert_with(|| if is_in_excluded_folder(&paths[p], excluded_folders) { None } else { type_of(&paths[p]) });
+                let kind = type_at[p].get_or_insert_with(|| if excluded.is_excluded(project_relative(&paths[p])) { None } else { type_of(&paths[p]) });
                 let Some(kind) = kind.as_deref() else { continue };
                 let key = p as u64 * blobs.len() as u64 + b as u64;
                 let (asset, location) = match locations.get(&key) {
@@ -406,8 +406,9 @@ impl GroupMap {
 /// Groups every file of the catalogs by content, leaving out excluded folders and unknown types.
 pub fn group_catalog(catalogs: &[&RepoCatalog], type_of: &dyn Fn(&str) -> Option<String>, excluded_folders: &[&str]) -> Vec<CatalogAsset> {
     let mut by_sha = GroupMap::new();
+    let excluded = ExcludeMatcher::new(excluded_folders);
     for catalog in catalogs {
-        catalog.group_into(&mut by_sha, type_of, excluded_folders);
+        catalog.group_into(&mut by_sha, type_of, &excluded);
     }
     let mut assets = by_sha.assets;
     for asset in &mut assets {

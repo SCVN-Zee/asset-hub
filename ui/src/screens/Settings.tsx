@@ -8,6 +8,7 @@ import { formatBytes } from '../format'
 import { BUDGET_KEYS, BUDGET_PRESETS, DEFAULT_BUDGET_PRESET, budgetFor } from '../playable'
 import { commands, type CliInstall } from '../bindings'
 import { Dropdown } from '../components/Dropdown'
+import { ExcludedFoldersDialog } from '../components/ExcludedFoldersDialog'
 import { CloseIcon } from '../components/Icons'
 import { LangToggle } from '../components/LangToggle'
 import { useSharedIndex } from '../useSharedIndex'
@@ -22,11 +23,12 @@ interface Props {
   onBack(): void
 }
 
-const parseFolders = (text: string) =>
-  text
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
+/** The patterns in a short line: the first few. */
+const SUMMARY_SHOWN = 3
+const summarize = (patterns: string[]) => {
+  const shown = patterns.slice(0, SUMMARY_SHOWN).join(', ')
+  return patterns.length > SUMMARY_SHOWN ? `${shown}, …` : shown
+}
 
 /** How each limit is shown and typed: bytes as MB or KB. */
 const UNITS: Record<keyof PlayableBudget, { unit: string; scale: number }> = {
@@ -127,10 +129,9 @@ function BudgetSetting({ settings, onChange }: Pick<Props, 'settings' | 'onChang
 
 export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props) {
   const { t } = useTranslation()
-  const [folders, setFolders] = useState(settings.excludedFolders.join(', '))
+  const [editingFolders, setEditingFolders] = useState(false)
   // Kept between launches, like the other ticks.
   const [signOutGh, setSignOutGh] = useStoredFlag('assethub.signOut.gh', true)
-  useEffect(() => setFolders(settings.excludedFolders.join(', ')), [settings.excludedFolders])
 
   const chooseCache = async () => {
     const folder = await window.api.chooseFolder()
@@ -218,18 +219,25 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
           </section>
 
           <section className="setting">
-            <h2>
-              <label htmlFor="excluded">{t('settings.excluded')}</label>
-            </h2>
-            <input
-              id="excluded"
-              className="input mono"
-              value={folders}
-              placeholder="_ThirdParty, Plugins"
-              onChange={(e) => setFolders(e.target.value)}
-              onBlur={() => onChange({ excludedFolders: parseFolders(folders) })}
-              onKeyDown={(e) => e.key === 'Enter' && onChange({ excludedFolders: parseFolders(folders) })}
-            />
+            <h2>{t('settings.excluded')}</h2>
+            <div className="excluded-row">
+              <span className="muted mono excluded-summary">
+                {settings.excludedFolders.length ? t('settings.excludedSummary', { count: settings.excludedFolders.length, list: summarize(settings.excludedFolders) }) : t('settings.excludedNone')}
+              </span>
+              <button type="button" className="btn" onClick={() => setEditingFolders(true)}>
+                {t('settings.excludedEdit')}
+              </button>
+            </div>
+            {editingFolders && (
+              <ExcludedFoldersDialog
+                patterns={settings.excludedFolders}
+                onSave={(excludedFolders) => {
+                  onChange({ excludedFolders })
+                  setEditingFolders(false)
+                }}
+                onClose={() => setEditingFolders(false)}
+              />
+            )}
           </section>
 
           <TargetProjectSetting settings={settings} onChange={onChange} />

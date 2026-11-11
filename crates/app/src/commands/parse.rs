@@ -27,7 +27,7 @@ use asset_hub_core::unity::yaml::{
     built_audio_bytes, effective_audio_import, extract_fbx_texture_names, guess_texture_role, imported_texture_size, parse_audio_meta, parse_embedded_texture, parse_fbx_meta, parse_material_look,
     parse_material_props, parse_sprite_meta, parse_texture_meta, shader_blend, shader_defaults, shader_name, shader_texture_props, AudioImport,
 };
-use asset_hub_core::unity::{find_unity_project_roots, is_in_excluded_folder, project_entries};
+use asset_hub_core::unity::{find_unity_project_roots, project_entries, ExcludeMatcher};
 use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::State;
@@ -435,7 +435,8 @@ pub async fn browse_assets(state: State<'_, AppState>, repo: String, branch: Str
         };
         let everything = create_default_registry().collect_assets(&listed);
         let total = everything.len();
-        let assets: Vec<Asset> = everything.into_iter().filter(|a| !is_in_excluded_folder(&a.path, &excluded_folders)).collect();
+        let excluded = ExcludeMatcher::new(&excluded_folders);
+        let assets: Vec<Asset> = everything.into_iter().filter(|a| !excluded.is_excluded(&a.path)).collect();
         json(&json!({ "roots": roots, "root": chosen, "assets": assets, "hidden": total - assets.len() }))
     })
     .await

@@ -4,7 +4,7 @@ mod common;
 
 use asset_hub_core::format::{format_bytes, short_path};
 use asset_hub_core::unity::imported_ids::{imported_object_id, mesh_for_file_id, xx_hash64};
-use asset_hub_core::unity::{find_unity_project_roots, is_in_excluded_folder, project_entries};
+use asset_hub_core::unity::{find_unity_project_roots, project_entries, ExcludeMatcher};
 use common::*;
 use serde_json::{json, Value};
 
@@ -38,7 +38,7 @@ fn project_entries_match() {
 
 #[test]
 fn excluded_folders_match() {
-    run("core/unity", "isInExcludedFolder", |a| json!(is_in_excluded_folder(s(&a[0]), &from::<Vec<String>>(&a[1]))));
+    run("core/unity", "isInExcludedFolder", |a| json!(ExcludeMatcher::new(&from::<Vec<String>>(&a[1])).is_excluded(s(&a[0]))));
 }
 
 #[test]

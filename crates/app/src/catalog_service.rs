@@ -980,6 +980,18 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn listing_matches_anchored_patterns_from_the_project_root() {
+        let h = harness(2);
+        h.source.set_heads("o/a", &[("main", "a1", None)]);
+        h.source.set_tree("a1", &[("game/Assets/Plugins/P.fbx", "p"), ("game/Assets/Art/Plugins/Q.fbx", "q"), ("game/Assets/Plugins/Keep/K.fbx", "k")]);
+        h.service.scan(&[repo("o/a")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+
+        let shown = h.service.listing(&[], &["Assets/Plugins/".into(), "!Assets/Plugins/Keep/".into()], ListFilter::default()).await.unwrap();
+        assert_eq!(shown.assets.iter().map(|x| x.sha.as_str()).collect::<BTreeSet<_>>(), BTreeSet::from(["q", "k"]));
+    }
+
+    #[tokio::test]
     async fn listing_filters_by_repo_and_branch_and_leaves_out_excluded_folders() {
         let h = harness(2);
         h.source.set_heads("o/a", &[("main", "a1", None), ("dev", "a2", None)]);
