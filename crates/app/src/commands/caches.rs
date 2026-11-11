@@ -58,7 +58,12 @@ pub async fn cache_clear(state: State<'_, AppState>) -> Result<(), IpcError> {
 #[tauri::command]
 #[specta::specta]
 pub async fn shared_index_status(state: State<'_, AppState>) -> Result<SharedIndexStatus, IpcError> {
-    traced("shared_index_status", async { Ok(state.session()?.shared_index.status().await) }).await
+    traced("shared_index_status", async {
+        let shared = state.session()?.shared_index.clone();
+        shared.resolve_writer().await;
+        Ok(shared.status().await)
+    })
+    .await
 }
 
 /// Takes in the folder's index now, even one taken in before.

@@ -98,7 +98,6 @@
     "loadedHint": "썸네일 준비 완료. 화면에 보이는 카드부터 먼저 로드하고, 나머지는 백그라운드에서 로드합니다.",
     "unlistedShow_other": "모델 없는 클립 {{count}}개 숨김 — 보기",
     "unlistedHide": "모델 없는 클립 숨기기",
-    "settingsAccount": "설정 및 계정 (로그아웃)",
     "searchShortcut": "⌘K로 검색",
     "allAssets": "모든 에셋",
     "cellSize": "셀 크기",
@@ -135,7 +134,7 @@
   "settings": {
     "title": "설정",
     "account": "계정",
-    "signedInAs": "{{login}}(으)로 로그인됨",
+    "accountActive": "활성",
     "method": {
       "gh": "gh CLI 사용",
       "pat": "액세스 토큰 사용"
@@ -173,6 +172,8 @@
     "sharedIndexFailed": "공유 인덱스 오류: {{error}}",
     "sharedIndexAuto": "자동으로 최신 상태 유지: 팀원이 추가하면 바로 받아오고, 공유본이 2시간보다 오래되면 내 인덱스를 추가합니다.",
     "sharedIndexReadOnly": "GitHub 계정이 {{repo}}를 읽을 수만 있고 쓸 수는 없습니다: 팀 인덱스는 받지만 추가하지는 않습니다.",
+    "sharedIndexReadOnlyMany": "로그인된 GitHub 계정 중 {{repo}}에 쓸 수 있는 계정이 없습니다: 팀 인덱스는 받지만 추가하지는 않습니다.",
+    "sharedIndexWriter": "내 인덱스는 {{login}} 계정으로 추가됩니다.",
     "sharedIndexNoGit": "공유 안 함: git(Xcode Command Line Tools) 또는 폴더가 필요합니다.",
     "usage": "사용 통계",
     "usageStats": "팀에 사용 통계 보내기",

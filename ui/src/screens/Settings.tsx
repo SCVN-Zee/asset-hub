@@ -175,9 +175,16 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
             <h2>{t('settings.account')}</h2>
             {auth?.signedIn ? (
               <>
-                <span>
-                  {t('settings.signedInAs', { login: displayName(auth.login ?? '') })} · <span className="muted">{t(`settings.method.${auth.method}`)}</span>
-                </span>
+                <ul className="account-list" aria-label={t('settings.account')}>
+                  {auth.accounts.map((login) => (
+                    <li key={login}>
+                      <span className="account-login">{login}</span>
+                      {displayName(login) !== login && <span className="muted">{displayName(login)}</span>}
+                      {login === auth.login && <span className="badge">{t('settings.accountActive')}</span>}
+                    </li>
+                  ))}
+                </ul>
+                <span className="muted small">{t(`settings.method.${auth.method}`)}</span>
                 {auth.persisted === false && <span className="muted small">{t('settings.notPersisted')}</span>}
               </>
             ) : null}
@@ -256,7 +263,7 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
 
           <CacheSetting settings={settings} onChange={onChange} />
 
-          {auth?.signedIn && <SharedIndexSetting settings={settings} onChange={onChange} />}
+          {auth?.signedIn && <SharedIndexSetting settings={settings} onChange={onChange} accounts={auth.accounts.length} />}
 
           <CliSetting />
 
@@ -359,7 +366,7 @@ function CacheSetting({ settings, onChange }: Pick<Props, 'settings' | 'onChange
 }
 
 /** The team's shared index (GitHub repo, or a folder): what one app has listed and drawn, everyone takes in, so cross-branch search starts full. */
-function SharedIndexSetting({ settings, onChange }: Pick<Props, 'settings' | 'onChange'>) {
+function SharedIndexSetting({ settings, onChange, accounts }: Pick<Props, 'settings' | 'onChange'> & { accounts: number }) {
   const { t, i18n } = useTranslation()
   const status = useSharedIndex()
   const [failed, setFailed] = useState<string>()
@@ -400,7 +407,12 @@ function SharedIndexSetting({ settings, onChange }: Pick<Props, 'settings' | 'on
       </div>
       {(settings.sharedIndexDir || status?.via === 'github') && (
         <>
-          {status?.via === 'github' && <span className="muted small">{t(status.readOnly ? 'settings.sharedIndexReadOnly' : 'settings.sharedIndexAuto', { repo: status.repo })}</span>}
+          {status?.via === 'github' && (
+            <span className="muted small">
+              {t(status.readOnly ? (accounts > 1 ? 'settings.sharedIndexReadOnlyMany' : 'settings.sharedIndexReadOnly') : 'settings.sharedIndexAuto', { repo: status.repo })}
+              {!status.readOnly && status.writer && ` ${t('settings.sharedIndexWriter', { login: displayName(status.writer) })}`}
+            </span>
+          )}
           <span className="muted small" role="status">
             {m
               ? t('settings.sharedIndexThere', { when: when(m.exportedAt), who: m.exportedBy ?? '?', repos: m.repos.length, thumbs: m.thumbs })

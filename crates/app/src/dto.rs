@@ -678,7 +678,10 @@ dto! {
 
     pub struct AuthStatus {
         pub signed_in: bool,
+        /// The active account.
         pub login: Option<String>,
+        /// Every signed-in account, the active one first (one unless gh holds several).
+        pub accounts: Vec<String>,
         pub method: Option<AuthMethod>,
         /// False when the OS keychain was unavailable and the token lives only in memory.
         pub persisted: Option<bool>,
@@ -855,8 +858,11 @@ dto! {
         pub via: Option<SharedIndexVia>,
         /// The GitHub repo, `via: github`.
         pub repo: Option<String>,
-        /// This account can read the GitHub repo but not write to it.
+        /// No signed-in account can write to the GitHub repo (each can read it).
         pub read_only: Option<bool>,
+        /// The signed-in account that pushes to the repo, once known (only checked when there is a
+        /// choice of accounts and a push or the page's status check needs it).
+        pub writer: Option<String>,
         /// In the shared folder now.
         pub manifest: Option<SharedIndexManifest>,
         /// `exportedAt` of the index taken in last.

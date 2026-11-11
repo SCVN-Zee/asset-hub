@@ -8,19 +8,25 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use regex::Regex;
+use reqwest::header::{ACCEPT, AUTHORIZATION};
+use tokio::sync::OnceCell;
 
 use crate::git_tree::{git, git_env};
-use crate::ipc::IpcError;
+use crate::http;
+use crate::ipc::{AppErrorCode, IpcError};
 
 /// The GitHub repo the team's shared index lives in (data only, written by the app).
 pub const INDEX_REPO: &str = "SCVN-Dan/asset-hub-index";
 const BRANCH: &str = "main";
 
+/// A signed-in account: login and token.
+pub type Account = (String, String);
+
 /// What happened to a push.
 /// - `Pushed`: on GitHub now.
 /// - `Unchanged`: nothing new to add (only the manifest's time would have changed).
 /// - `Behind`: someone pushed first; pull, write again (which takes in their work) and push again.
-/// - `ReadOnly`: this account can read the repo but not write to it.
+/// - `ReadOnly`: no signed-in account can write to the repo (git refused, or GitHub says none may push).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PushResult {
     Pushed,
@@ -49,9 +55,16 @@ pub fn classify_push_error(text: &str) -> Option<PushResult> {
 
 pub struct IndexRepo {
     dir: PathBuf,
-    token: String,
+    /// Every signed-in account, the active one first. Fetching works with any that can read the repo;
+    /// pushing uses the first that can write.
+    accounts: Vec<Account>,
     repo: String,
     url: String,
+    /// The API root that tells which account may push. With one account, or none given, nobody is
+    /// asked: the first account pushes and git's own refusal decides.
+    api: Option<String>,
+    /// Index of the account that pushes (`None`: none can). Asked once, when a push needs it.
+    writer: OnceCell<Option<usize>>,
 }
 
 impl IndexRepo {
@@ -62,7 +75,44 @@ impl IndexRepo {
 
     /// Another repo name or URL (a local repo in tests).
     pub fn with_remote(dir: PathBuf, token: String, repo: String, url: String) -> Self {
-        Self { dir, token, repo, url }
+        Self::with_accounts(dir, vec![(String::new(), token)], repo, url, None)
+    }
+
+    /// Every signed-in account (at least one); `api` is where write access is asked when there is a choice.
+    pub fn with_accounts(dir: PathBuf, accounts: Vec<Account>, repo: String, url: String, api: Option<String>) -> Self {
+        assert!(!accounts.is_empty(), "an index repo needs an account");
+        Self { dir, accounts, repo, url, api, writer: OnceCell::new() }
+    }
+
+    /// The login that pushes, when it was asked and there was a choice between accounts.
+    pub fn known_writer(&self) -> Option<&str> {
+        if self.accounts.len() < 2 {
+            return None;
+        }
+        self.writer.get().copied().flatten().map(|i| self.accounts[i].0.as_str())
+    }
+
+    /// The login that pushes, asking GitHub once (`None`: no account can write). Not asked with a
+    /// single account: that one pushes, and its login is returned only when it is known.
+    pub async fn writer(&self) -> Result<Option<&str>, IpcError> {
+        Ok(self.writer_index().await?.map(|i| self.accounts[i].0.as_str()).filter(|login| !login.is_empty()))
+    }
+
+    async fn writer_index(&self) -> Result<Option<usize>, IpcError> {
+        let ask = || async {
+            let Some(api) = self.api.as_deref().filter(|_| self.accounts.len() > 1) else { return Ok(Some(0)) };
+            let mut failure = None;
+            for (index, (_, token)) in self.accounts.iter().enumerate() {
+                match can_push(api, &self.repo, token).await {
+                    Ok(true) => return Ok(Some(index)),
+                    Ok(false) => {}
+                    Err(error) => failure = Some(error),
+                }
+            }
+            // Not knowing (offline) is not an answer: it is asked again next time.
+            failure.map_or(Ok(None), Err)
+        };
+        self.writer.get_or_try_init(ask).await.copied()
     }
 
     pub fn dir(&self) -> &Path {
@@ -74,7 +124,12 @@ impl IndexRepo {
     }
 
     async fn run(&self, args: &[&str]) -> Result<Vec<u8>, IpcError> {
-        git(args, &git_env(&self.token), Some(&self.dir), None).await
+        git(args, &git_env(&self.accounts[0].1), Some(&self.dir), None).await
+    }
+
+    /// Runs git with the token of account `index`.
+    async fn run_as(&self, index: usize, args: &[&str]) -> Result<Vec<u8>, IpcError> {
+        git(args, &git_env(&self.accounts[index].1), Some(&self.dir), None).await
     }
 
     /// Brings the working copy to the repo's latest commit, dropping anything not pushed. Returns that commit.
@@ -94,7 +149,17 @@ impl IndexRepo {
         ] {
             self.run(&["config", key, value]).await?;
         }
-        self.run(&["fetch", "--quiet", "--depth", "1", "origin", BRANCH]).await?;
+        // The writer is the likeliest to read; otherwise each account is tried in turn.
+        let first = self.writer.get().copied().flatten().unwrap_or(0);
+        let order = std::iter::once(first).chain((0..self.accounts.len()).filter(|i| *i != first));
+        let mut fetched = Err(IpcError::unknown("no account to fetch with"));
+        for index in order {
+            fetched = self.run_as(index, &["fetch", "--quiet", "--depth", "1", "origin", BRANCH]).await;
+            if fetched.is_ok() {
+                break;
+            }
+        }
+        fetched?;
         self.run(&["reset", "--quiet", "--hard", "FETCH_HEAD"]).await?;
         self.run(&["clean", "-fdq"]).await?;
         // Commits fetched before are unreachable now: forget them at once (not after 90 days) so git's
@@ -127,10 +192,11 @@ impl IndexRepo {
             self.discard().await?;
             return Ok(PushResult::Unchanged);
         }
+        let Some(writer) = self.writer_index().await? else { return Ok(PushResult::ReadOnly) };
         self.run(&["add", "-A"]).await?;
         self.run(&["commit", "--quiet", "-m", message]).await?;
         let target = format!("HEAD:{BRANCH}");
-        match self.run(&["push", "--quiet", "origin", &target]).await {
+        match self.run_as(writer, &["push", "--quiet", "origin", &target]).await {
             Ok(_) => Ok(PushResult::Pushed),
             Err(error) => classify_push_error(&error.message).ok_or(error),
         }
@@ -141,6 +207,28 @@ impl IndexRepo {
         self.run(&["reset", "--quiet", "--hard"]).await?;
         self.run(&["clean", "-fdq"]).await?;
         Ok(())
+    }
+}
+
+/// Whether the account of `token` may push to `repo` (`permissions.push` of the repo). A repo the
+/// account cannot see answers 404 and counts as no.
+async fn can_push(api: &str, repo: &str, token: &str) -> Result<bool, IpcError> {
+    let response = http::client()
+        .get(format!("{api}/repos/{repo}"))
+        .header(AUTHORIZATION, format!("Bearer {token}"))
+        .header(ACCEPT, "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await
+        .map_err(|e| IpcError::new(AppErrorCode::Network, e.without_url().to_string()))?;
+    match response.status().as_u16() {
+        200 => {
+            let body: serde_json::Value = response.json().await.map_err(|e| IpcError::new(AppErrorCode::Network, e.without_url().to_string()))?;
+            Ok(body.pointer("/permissions/push").and_then(|p| p.as_bool()) == Some(true))
+        }
+        401 | 403 | 404 => Ok(false),
+        status => Err(IpcError::new(AppErrorCode::Unknown, format!("GitHub responded {status}"))),
     }
 }
 
@@ -276,6 +364,96 @@ pub mod tests {
         // The refused commit stays local until the next pull throws it away.
         a.pull().await.unwrap();
         assert!(!a.dir().join("a.txt").exists());
+    }
+
+    /// A GitHub stand-in that answers `permissions.push` by token and counts the questions.
+    async fn permissions(pushers: &'static [&'static str], hidden: &'static [&'static str]) -> (String, std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+        let asked = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counter = asked.clone();
+        let api = crate::test_server::serve(move |(path, headers)| {
+            use crate::test_server::Reply;
+            counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let token = headers.get("authorization").and_then(|h| h.strip_prefix("Bearer ")).unwrap_or("").to_owned();
+            if path != "/repos/o/index" || hidden.contains(&token.as_str()) {
+                Reply::json(404, r#"{"message":"Not Found"}"#)
+            } else {
+                Reply::json(200, &format!(r#"{{"permissions":{{"push":{}}}}}"#, pushers.contains(&token.as_str())))
+            }
+        })
+        .await;
+        (api, asked)
+    }
+
+    fn accounts_copy(root: &Path, url: &str, api: &str, accounts: &[(&str, &str)]) -> IndexRepo {
+        let accounts = accounts.iter().map(|(login, token)| (login.to_string(), token.to_string())).collect();
+        IndexRepo::with_accounts(root.join("a"), accounts, "o/index".into(), url.to_owned(), Some(api.to_owned()))
+    }
+
+    #[tokio::test]
+    async fn the_first_account_with_push_permission_pushes_and_is_asked_only_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = bare_remote(dir.path());
+        // The active account only reads; the second can push; the third is never asked.
+        let (api, asked) = permissions(&["writer", "third"], &[]).await;
+        let repo = accounts_copy(dir.path(), &url, &api, &[("reader-user", "reader"), ("writer-user", "writer"), ("third-user", "third")]);
+        assert_eq!(repo.known_writer(), None, "nothing is asked before a push or a status check needs it");
+        assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 0);
+        repo.pull().await.unwrap();
+        std::fs::write(repo.dir().join("a.txt"), "a").unwrap();
+        assert_eq!(repo.push("a", &[]).await.unwrap(), PushResult::Pushed);
+        assert_eq!(repo.known_writer(), Some("writer-user"));
+        assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 2);
+        std::fs::write(repo.dir().join("b.txt"), "b").unwrap();
+        assert_eq!(repo.push("b", &[]).await.unwrap(), PushResult::Pushed);
+        assert_eq!(repo.writer().await.unwrap(), Some("writer-user"));
+        assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 2, "the answer is kept for the session");
+    }
+
+    #[tokio::test]
+    async fn an_account_that_cannot_see_the_repo_is_skipped_and_the_active_one_wins_when_it_can_push() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = bare_remote(dir.path());
+        let (api, _) = permissions(&["writer"], &["blind"]).await;
+        let repo = accounts_copy(dir.path(), &url, &api, &[("blind-user", "blind"), ("writer-user", "writer")]);
+        assert_eq!(repo.writer().await.unwrap(), Some("writer-user"));
+
+        let (api, asked) = permissions(&["writer", "other"], &[]).await;
+        let repo = accounts_copy(&dir.path().join("second"), &url, &api, &[("writer-user", "writer"), ("other-user", "other")]);
+        assert_eq!(repo.writer().await.unwrap(), Some("writer-user"));
+        assert_eq!(asked.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn when_no_account_can_write_the_push_is_read_only_and_nothing_is_committed() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = bare_remote(dir.path());
+        let (api, _) = permissions(&[], &[]).await;
+        let repo = accounts_copy(dir.path(), &url, &api, &[("a-user", "a"), ("b-user", "b")]);
+        repo.pull().await.unwrap();
+        std::fs::write(repo.dir().join("a.txt"), "a").unwrap();
+        assert_eq!(repo.push("a", &[]).await.unwrap(), PushResult::ReadOnly);
+        assert_eq!(repo.writer().await.unwrap(), None);
+        assert_eq!(sh(repo.dir(), &["rev-list", "--count", "HEAD"]), "1", "no commit was made");
+    }
+
+    #[tokio::test]
+    async fn a_check_that_could_not_reach_github_is_not_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = bare_remote(dir.path());
+        let repo = accounts_copy(dir.path(), &url, "http://127.0.0.1:1", &[("a-user", "a"), ("b-user", "b")]);
+        assert!(repo.writer().await.is_err());
+        assert_eq!(repo.known_writer(), None);
+    }
+
+    #[tokio::test]
+    async fn a_single_account_pushes_without_being_asked() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = bare_remote(dir.path());
+        let repo = accounts_copy(dir.path(), &url, "http://127.0.0.1:1", &[("only-user", "only")]);
+        repo.pull().await.unwrap();
+        std::fs::write(repo.dir().join("a.txt"), "a").unwrap();
+        assert_eq!(repo.push("a", &[]).await.unwrap(), PushResult::Pushed);
+        assert_eq!(repo.known_writer(), None);
     }
 
     #[tokio::test]

@@ -95,7 +95,6 @@ export function App() {
           source={source}
           registry={registry}
           excludedFolders={settings.excludedFolders}
-          login={auth?.login}
           initialRepo={settings.lastRepo}
           initialBranch={settings.lastBranch}
           onOpenBranch={(lastRepo, lastBranch) => {

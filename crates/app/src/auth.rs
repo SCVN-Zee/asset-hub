@@ -179,14 +179,92 @@ async fn run_gh(gh: &Path, args: &[&str]) -> Result<GhRun, String> {
     Ok(GhRun { success: output.status.success(), stdout: String::from_utf8_lossy(&output.stdout).into_owned(), stderr: String::from_utf8_lossy(&output.stderr).into_owned() })
 }
 
-/// The token of the account logged in with `gh auth login`.
+/// The token of the account logged in with `gh auth login` (the active one).
 pub async fn read_gh_token(gh: Option<&Path>) -> Result<String, IpcError> {
     let gh = gh.ok_or_else(|| gh_error(AppErrorCode::GhNotFound, "GitHub CLI (gh) was not found"))?;
-    match run_gh(gh, &["auth", "token", "--hostname", "github.com"]).await {
+    gh_token(gh, None).await
+}
+
+/// The token of one gh account, or of the active one when `user` is `None`.
+async fn gh_token(gh: &Path, user: Option<&str>) -> Result<String, IpcError> {
+    let mut args = vec!["auth", "token", "--hostname", "github.com"];
+    if let Some(user) = user {
+        args.extend(["--user", user]);
+    }
+    match run_gh(gh, &args).await {
         Ok(run) if run.success && !run.stdout.trim().is_empty() => Ok(run.stdout.trim().to_owned()),
         Ok(run) => Err(gh_error(AppErrorCode::GhNotLoggedIn, if run.stderr.trim().is_empty() { "gh is not logged in" } else { run.stderr.trim() })),
         Err(message) => Err(gh_error(AppErrorCode::GhNotLoggedIn, message)),
     }
+}
+
+/// The accounts gh holds for github.com that work, the active one first. Newer gh answers
+/// `--json hosts`; older gh is read from its text. Empty when neither can be read.
+pub async fn list_gh_logins(gh: &Path) -> Vec<String> {
+    if let Ok(run) = run_gh(gh, &["auth", "status", "--hostname", "github.com", "--json", "hosts"]).await {
+        if run.success {
+            if let Some(logins) = parse_gh_logins_json(&run.stdout) {
+                return logins;
+            }
+        }
+    }
+    match run_gh(gh, &["auth", "status", "--hostname", "github.com"]).await {
+        // gh printed this on stderr before 2.40.
+        Ok(run) => parse_gh_logins_text(&format!("{}\n{}", run.stdout, run.stderr)),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// `{"hosts":{"github.com":[{"login":..,"active":..,"state":..}]}}`; `None` for any other shape.
+fn parse_gh_logins_json(text: &str) -> Option<Vec<String>> {
+    let value: serde_json::Value = serde_json::from_str(text).ok()?;
+    let accounts = value.get("hosts")?.get("github.com")?.as_array()?;
+    let working = |account: &&serde_json::Value| account.get("state").and_then(|s| s.as_str()).is_none_or(|state| state == "success");
+    let login = |account: &serde_json::Value| account.get("login").and_then(|l| l.as_str()).map(str::to_owned);
+    let active = |account: &&serde_json::Value| account.get("active").and_then(|a| a.as_bool()) == Some(true);
+    let mut logins: Vec<String> = accounts.iter().filter(working).filter(active).filter_map(login).collect();
+    logins.extend(accounts.iter().filter(working).filter(|a| !active(a)).filter_map(login));
+    Some(logins)
+}
+
+/// Reads `Logged in to github.com account NAME (...)` and the `Active account: true` line after it.
+fn parse_gh_logins_text(text: &str) -> Vec<String> {
+    let mut accounts: Vec<(String, bool)> = Vec::new();
+    for line in text.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.split_once("Logged in to github.com account ").map(|(_, rest)| rest) {
+            if let Some(name) = rest.split_whitespace().next() {
+                accounts.push((name.to_owned(), false));
+            }
+        } else if line.trim_start_matches(['-', ' ']).eq_ignore_ascii_case("active account: true") {
+            if let Some(last) = accounts.last_mut() {
+                last.1 = true;
+            }
+        }
+    }
+    let mut logins: Vec<String> = accounts.iter().filter(|a| a.1).map(|a| a.0.clone()).collect();
+    logins.extend(accounts.iter().filter(|a| !a.1).map(|a| a.0.clone()));
+    logins
+}
+
+/// A gh account: its login (not known when gh cannot list its accounts) and token.
+pub type GhAccount = (Option<String>, String);
+
+/// Every account gh holds for github.com with its token, the active one first. A gh that cannot
+/// list its accounts gives the active account's token alone, as before. An account whose token
+/// cannot be read is left out.
+pub async fn read_gh_accounts(gh: Option<&Path>) -> Result<Vec<GhAccount>, IpcError> {
+    let gh = gh.ok_or_else(|| gh_error(AppErrorCode::GhNotFound, "GitHub CLI (gh) was not found"))?;
+    let mut accounts: Vec<GhAccount> = Vec::new();
+    for login in list_gh_logins(gh).await {
+        if let Ok(token) = gh_token(gh, Some(&login)).await {
+            accounts.push((Some(login), token));
+        }
+    }
+    if accounts.is_empty() {
+        accounts.push((None, gh_token(gh, None).await?));
+    }
+    Ok(accounts)
 }
 
 /// Logs the account out of gh on this Mac, so the next sign-in goes through the browser again and
@@ -287,7 +365,8 @@ pub async fn run_gh_web_login(gh: &Path, watchdog: Duration, cancel: &Notify, mu
 
 struct Session {
     status: AuthStatus,
-    token: String,
+    /// Login and token of every signed-in account, the active one first.
+    accounts: Vec<(String, String)>,
 }
 
 /// A browser sign-in that is running. A second request (button pressed again, or the page reloaded
@@ -332,16 +411,19 @@ impl AuthService {
         }
     }
 
-    /// The token of the signed-in account, for the requests the app makes on its behalf.
+    /// The token of the active account, for the requests the app makes on its behalf.
     pub fn token(&self) -> Option<String> {
-        self.session.lock().ok()?.as_ref().map(|s| s.token.clone())
+        self.account().map(|(_, token)| token)
     }
 
-    /// The signed-in login and its token, for sending usage notes as that account.
+    /// The active login and its token, for sending usage notes as that account.
     pub fn account(&self) -> Option<(String, String)> {
-        let session = self.session.lock().ok()?;
-        let session = session.as_ref()?;
-        Some((session.status.login.clone()?, session.token.clone()))
+        self.session.lock().ok()?.as_ref()?.accounts.first().cloned()
+    }
+
+    /// Login and token of every signed-in account, the active one first.
+    pub fn accounts(&self) -> Option<Vec<(String, String)>> {
+        Some(self.session.lock().ok()?.as_ref()?.accounts.clone())
     }
 
     fn gh(&self) -> Option<PathBuf> {
@@ -349,7 +431,7 @@ impl AuthService {
     }
 
     fn signed_out() -> AuthStatus {
-        AuthStatus { signed_in: false, login: None, method: None, persisted: None }
+        AuthStatus { signed_in: false, login: None, accounts: Vec::new(), method: None, persisted: None }
     }
 
     async fn blocking_store<T: Send + 'static>(&self, work: impl FnOnce(AuthStore) -> T + Send + 'static) -> Result<T, IpcError> {
@@ -357,7 +439,8 @@ impl AuthService {
         tokio::task::spawn_blocking(move || work(store)).await.map_err(|e| IpcError::unknown(format!("the sign-in store stopped: {e}")))
     }
 
-    async fn start(&self, method: AuthMethod, token: &str, persist: bool) -> Result<AuthStatus, IpcError> {
+    /// Signs in with `token`; `others` are the other gh accounts (login and token) that go along.
+    async fn start(&self, method: AuthMethod, token: &str, others: Vec<(String, String)>, persist: bool) -> Result<AuthStatus, IpcError> {
         let token = token.trim();
         if token.is_empty() {
             return Err(gh_error(AppErrorCode::EmptyToken, "Token is empty"));
@@ -369,9 +452,22 @@ impl AuthService {
         } else {
             true
         };
-        let status = AuthStatus { signed_in: true, login: Some(login), method: Some(method), persisted: Some(persisted) };
-        *lock(&self.session)? = Some(Session { status: status.clone(), token: token.to_owned() });
+        let mut accounts = vec![(login.clone(), token.to_owned())];
+        for (other_login, other_token) in others {
+            if !accounts.iter().any(|(l, t)| l.eq_ignore_ascii_case(&other_login) || *t == other_token) {
+                accounts.push((other_login, other_token));
+            }
+        }
+        let status = AuthStatus { signed_in: true, login: Some(login), accounts: accounts.iter().map(|(l, _)| l.clone()).collect(), method: Some(method), persisted: Some(persisted) };
+        *lock(&self.session)? = Some(Session { status: status.clone(), accounts });
         Ok(status)
+    }
+
+    /// Signs in with every account gh holds; the active one is the main account.
+    async fn start_gh(&self, persist: bool) -> Result<AuthStatus, IpcError> {
+        let mut accounts = read_gh_accounts(self.gh().as_deref()).await?.into_iter();
+        let (_, token) = accounts.next().ok_or_else(|| gh_error(AppErrorCode::GhNotLoggedIn, "gh is not logged in"))?;
+        self.start(AuthMethod::Gh, &token, accounts.filter_map(|(login, token)| Some((login?, token))).collect(), persist).await
     }
 
     /// Restores the previous sign-in once per launch.
@@ -382,15 +478,12 @@ impl AuthService {
         }
         *restored = true;
         let Ok(Some((method, saved))) = self.blocking_store(|store| store.load()).await else { return };
-        let token = match (method, saved) {
-            (AuthMethod::Pat, Some(token)) => token,
-            (AuthMethod::Gh, _) => match read_gh_token(self.gh().as_deref()).await {
-                Ok(token) => token,
-                Err(_) => return,
-            },
+        let started = match (method, saved) {
+            (AuthMethod::Pat, Some(token)) => self.start(AuthMethod::Pat, &token, Vec::new(), false).await,
+            (AuthMethod::Gh, _) => self.start_gh(false).await,
             (AuthMethod::Pat, None) => return,
         };
-        let Err(error) = self.start(method, &token, false).await else { return };
+        let Err(error) = started else { return };
         match error.code {
             // A revoked token should not be retried on every launch.
             AppErrorCode::Unauthorized => {
@@ -408,12 +501,11 @@ impl AuthService {
     }
 
     pub async fn sign_in_with_token(&self, token: &str) -> Result<AuthStatus, IpcError> {
-        self.start(AuthMethod::Pat, token, true).await
+        self.start(AuthMethod::Pat, token, Vec::new(), true).await
     }
 
     pub async fn sign_in_with_gh(&self) -> Result<AuthStatus, IpcError> {
-        let token = read_gh_token(self.gh().as_deref()).await?;
-        self.start(AuthMethod::Gh, &token, true).await
+        self.start_gh(true).await
     }
 
     /// Logs gh in through the browser, then signs in with it. `emit` shows the code to the page.
@@ -484,10 +576,19 @@ impl AuthService {
     pub async fn sign_out(&self, options: Option<SignOutOptions>) -> Result<AuthStatus, IpcError> {
         let was = lock(&self.session)?.as_ref().map(|s| s.status.clone());
         // Signed in through gh: gh itself is logged out too when asked, or the next launch would sign straight back in.
+        // Every account goes, those gh holds now and those the session knew.
         if let (Some(was), true) = (&was, options.and_then(|o| o.gh) == Some(true)) {
             if was.method == Some(AuthMethod::Gh) {
                 if let Some(gh) = self.gh() {
-                    gh_logout(&gh, was.login.as_deref()).await;
+                    let mut logins = list_gh_logins(&gh).await;
+                    for login in &was.accounts {
+                        if !logins.iter().any(|l| l.eq_ignore_ascii_case(login)) {
+                            logins.push(login.clone());
+                        }
+                    }
+                    for login in &logins {
+                        gh_logout(&gh, Some(login)).await;
+                    }
                 }
             }
         }
@@ -630,6 +731,53 @@ mod tests {
         let error = read_gh_token(Some(&out)).await.unwrap_err();
         assert_eq!((error.code, error.message.as_str()), (AppErrorCode::GhNotLoggedIn, "You are not logged in"));
         assert_eq!(read_gh_token(None).await.unwrap_err().code, AppErrorCode::GhNotFound);
+    }
+
+    /// A gh that holds two working accounts (the active one listed second) and one broken one.
+    const TWO_ACCOUNTS: &str = r#"case "$*" in
+"auth status --hostname github.com --json hosts") echo '{"hosts":{"github.com":[{"state":"success","active":false,"login":"other-user"},{"state":"success","active":true,"login":"octo"},{"state":"error","active":false,"login":"stale"}]}}';;
+"auth token --hostname github.com --user octo") echo token-octo;;
+"auth token --hostname github.com --user other-user") echo token-other;;
+"auth token --hostname github.com") echo token-octo;;
+*) exit 1;;
+esac"#;
+
+    #[tokio::test]
+    async fn reads_every_gh_account_and_its_token_with_the_active_one_first() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh = script(dir.path(), "gh", TWO_ACCOUNTS);
+        let accounts = read_gh_accounts(Some(&gh)).await.unwrap();
+        assert_eq!(accounts, [(Some("octo".to_owned()), "token-octo".to_owned()), (Some("other-user".to_owned()), "token-other".to_owned())]);
+        assert_eq!(read_gh_accounts(None).await.unwrap_err().code, AppErrorCode::GhNotFound);
+    }
+
+    #[tokio::test]
+    async fn a_gh_without_json_is_read_from_its_text_and_a_gh_without_either_gives_the_active_token() {
+        let dir = tempfile::tempdir().unwrap();
+        let text = script(
+            dir.path(),
+            "text-gh",
+            r#"case "$*" in
+"auth status --hostname github.com --json hosts") echo 'unknown flag: --json' >&2; exit 1;;
+"auth status --hostname github.com") printf 'github.com\n  ✓ Logged in to github.com account other-user (keyring)\n  - Active account: false\n  ✓ Logged in to github.com account octo (keyring)\n  - Active account: true\n  X Failed to log in to github.com account stale (keyring)\n';;
+"auth token --hostname github.com --user octo") echo token-octo;;
+"auth token --hostname github.com --user other-user") echo token-other;;
+*) exit 1;;
+esac"#,
+        );
+        let accounts = read_gh_accounts(Some(&text)).await.unwrap();
+        assert_eq!(accounts.iter().map(|(l, t)| (l.as_deref(), t.as_str())).collect::<Vec<_>>(), [(Some("octo"), "token-octo"), (Some("other-user"), "token-other")]);
+
+        let old = script(dir.path(), "old-gh", r#"[ "$1 $2" = "auth token" ] && [ "$#" = 4 ] && echo token-octo || exit 1"#);
+        assert_eq!(read_gh_accounts(Some(&old)).await.unwrap(), [(None, "token-octo".to_owned())]);
+    }
+
+    #[test]
+    fn the_account_lists_of_gh_are_read_whatever_their_order() {
+        assert_eq!(parse_gh_logins_json(r#"{"hosts":{"github.com":[{"login":"b","active":false},{"login":"a","active":true}]}}"#), Some(vec!["a".into(), "b".into()]));
+        assert_eq!(parse_gh_logins_json(r#"{"hosts":{}}"#), None);
+        assert_eq!(parse_gh_logins_json("not json"), None);
+        assert_eq!(parse_gh_logins_text("github.com\n  Logged in to github.com as someone (keyring)\n"), Vec::<String>::new());
     }
 
     #[tokio::test]
@@ -807,13 +955,77 @@ sleep 0.2"#);
     }
 
     #[tokio::test]
+    async fn a_gh_sign_in_takes_every_account_and_keeps_the_active_one_as_the_main() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh_dir = dir.path().join("bin");
+        std::fs::create_dir_all(&gh_dir).unwrap();
+        script(&gh_dir, "gh", TWO_ACCOUNTS);
+        let api = github("token-octo").await;
+        let mut auth = service(dir.path(), Arc::new(MemoryVault::default()), &api);
+        auth.gh_dirs = vec![gh_dir];
+        let status = auth.sign_in_with_gh().await.unwrap();
+        assert_eq!((status.login.as_deref(), status.accounts.as_slice(), status.method), (Some("octo"), ["octo".to_owned(), "other-user".to_owned()].as_slice(), Some(AuthMethod::Gh)));
+        // The page marks the account named by `login` as active and lists the rest, so both must agree with the order.
+        assert_eq!(status.accounts.first(), status.login.as_ref());
+        assert_eq!(status.accounts.iter().filter(|a| Some(*a) == status.login.as_ref()).count(), 1);
+        assert_eq!(auth.accounts().unwrap(), [("octo".to_owned(), "token-octo".to_owned()), ("other-user".to_owned(), "token-other".to_owned())]);
+        assert_eq!(auth.token().as_deref(), Some("token-octo"));
+        assert_eq!(auth.account().unwrap().0, "octo");
+        // The next launch signs in again from gh, with both accounts.
+        let mut next = service(dir.path(), Arc::new(MemoryVault::default()), &api);
+        next.gh_dirs = auth.gh_dirs.clone();
+        assert_eq!(next.status().await.unwrap().accounts, ["octo", "other-user"]);
+    }
+
+    #[tokio::test]
+    async fn a_token_sign_in_and_a_single_gh_account_stay_one_account() {
+        let dir = tempfile::tempdir().unwrap();
+        let api = github("dummy-token").await;
+        let auth = service(dir.path(), Arc::new(MemoryVault::default()), &api);
+        let status = auth.sign_in_with_token("dummy-token").await.unwrap();
+        assert_eq!(status.accounts, ["octo"]);
+        assert_eq!(auth.accounts().unwrap(), [("octo".to_owned(), "dummy-token".to_owned())]);
+
+        let gh_dir = dir.path().join("bin");
+        std::fs::create_dir_all(&gh_dir).unwrap();
+        script(&gh_dir, "gh", r#"[ "$1 $2" = "auth token" ] && echo dummy-token || exit 1"#);
+        let mut auth = service(dir.path(), Arc::new(MemoryVault::default()), &api);
+        auth.gh_dirs = vec![gh_dir];
+        assert_eq!(auth.sign_in_with_gh().await.unwrap().accounts, ["octo"]);
+    }
+
+    #[tokio::test]
+    async fn signing_out_of_gh_logs_out_every_account_and_without_it_gh_is_left_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh_dir = dir.path().join("bin");
+        std::fs::create_dir_all(&gh_dir).unwrap();
+        let log = dir.path().join("logouts.txt");
+        script(&gh_dir, "gh", &format!("case \"$2\" in logout) echo \"$@\" >> {}; exit 0;; esac\n{TWO_ACCOUNTS}", log.display()));
+        let api = github("token-octo").await;
+        let vault = Arc::new(MemoryVault::default());
+        let mut auth = service(dir.path(), vault.clone(), &api);
+        auth.gh_dirs = vec![gh_dir];
+
+        auth.sign_in_with_gh().await.unwrap();
+        assert!(!auth.sign_out(None).await.unwrap().signed_in);
+        assert!(!log.exists(), "gh is not touched without the option");
+
+        auth.sign_in_with_gh().await.unwrap();
+        assert!(!auth.sign_out(Some(SignOutOptions { gh: Some(true) })).await.unwrap().signed_in);
+        let mut lines: Vec<String> = std::fs::read_to_string(&log).unwrap().lines().map(str::to_owned).collect();
+        lines.sort();
+        assert_eq!(lines, ["auth logout --hostname github.com --user octo", "auth logout --hostname github.com --user other-user"]);
+        assert_eq!(auth.accounts(), None);
+    }
+
+    #[tokio::test]
     async fn a_second_browser_login_joins_the_first_and_sees_its_code() {
         let dir = tempfile::tempdir().unwrap();
         let gh_dir = dir.path().join("tools");
         let gh_path = gh_dir.join("gh-9.9.9/bin");
         std::fs::create_dir_all(&gh_path).unwrap();
         let counter = dir.path().join("starts");
-        script(&gh_path, "gh", &format!("[ \"$2\" = token ] && exit 1\necho started >> {}\necho '! First copy your one-time code: 4915-D299'\necho https://github.com/login/device\nsleep 1", counter.display()));
+        script(&gh_path, "gh", &format!("case \"$2\" in token|status) exit 1;; esac\necho started >> {}\necho '! First copy your one-time code: 4915-D299'\necho https://github.com/login/device\nsleep 1", counter.display()));
         std::fs::write(gh_dir.join("gh.json"), serde_json::json!({ "version": "9.9.9", "path": gh_path.join("gh") }).to_string()).unwrap();
         let api = github("never").await;
         let mut auth = service(dir.path(), Arc::new(MemoryVault::default()), &api);

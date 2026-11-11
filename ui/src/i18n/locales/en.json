@@ -103,7 +103,6 @@
     "unlistedShow_one": "{{count}} clip without a model hidden — show",
     "unlistedShow_other": "{{count}} clips without a model hidden — show",
     "unlistedHide": "Hide clips without a model",
-    "settingsAccount": "Settings and account (sign out)",
     "searchShortcut": "Press ⌘K to search",
     "allAssets": "All assets",
     "cellSize": "Cell size",
@@ -142,7 +141,7 @@
   "settings": {
     "title": "Settings",
     "account": "Account",
-    "signedInAs": "Signed in as {{login}}",
+    "accountActive": "active",
     "method": {
       "gh": "via gh CLI",
       "pat": "via access token"
@@ -180,6 +179,8 @@
     "sharedIndexFailed": "Shared index failed: {{error}}",
     "sharedIndexAuto": "Kept up to date on its own: taken in when a teammate adds to it, and yours is added when it is more than 2 hours old.",
     "sharedIndexReadOnly": "Your GitHub account can read {{repo}} but not write to it: you get the team's index without adding to it.",
+    "sharedIndexReadOnlyMany": "None of your signed-in GitHub accounts can write to {{repo}}: you get the team's index without adding to it.",
+    "sharedIndexWriter": "Your index is added as {{login}}.",
     "sharedIndexNoGit": "Not shared: needs git (Xcode Command Line Tools) or a folder.",
     "usage": "Usage statistics",
     "usageStats": "Send usage statistics to the team",

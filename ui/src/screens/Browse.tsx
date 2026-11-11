@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { displayName } from '@shared/displayName'
 import type { Asset, AssetFacts, AssetSource, CatalogAsset, CatalogFacets, DependencyReport, FactKind, RepoRef, StatsSummary } from '@shared/types'
 import { formatBytes } from '../format'
 import type { HandlerRegistry } from '../handlers'
@@ -15,7 +14,7 @@ import { Dropdown } from '../components/Dropdown'
 import { Picker } from '../components/Picker'
 import { ErrorNote } from '../components/ErrorNote'
 import { FolderTree } from '../components/FolderTree'
-import { CloseIcon, PinIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, LinkIcon, MessageIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
+import { CloseIcon, PinIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, GearIcon, LinkIcon, MessageIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
 import { useContextMenu, type MenuItem } from '../components/ContextMenu'
 import { preferredEditor, rememberEditor, useUnityEditors } from '../components/UnityButton'
 import { assetLink } from '@shared/deeplink'
@@ -102,8 +101,6 @@ interface Props {
   source: AssetSource
   registry: HandlerRegistry
   excludedFolders: string[]
-  /** Signed-in GitHub login, shown in the top bar. */
-  login?: string
   /** Repo/branch to reopen when they still exist. */
   initialRepo?: string
   initialBranch?: string
@@ -184,7 +181,6 @@ export function Browse({
   source,
   registry,
   excludedFolders,
-  login,
   initialRepo,
   initialBranch,
   onOpenBranch,
@@ -1211,19 +1207,10 @@ export function Browse({
           <button type="button" className="btn icon-btn" aria-label={t('feedback.title')} title={t('feedback.title')} onClick={() => setFeedbackOpen(true)}>
             <MessageIcon />
           </button>
+          <button type="button" className="btn icon-btn" aria-label={t('common.settings')} title={t('common.settings')} onClick={onSettings}>
+            <GearIcon />
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn acct"
-          aria-label={login ? `${displayName(login)} · ${t('common.settings')}` : t('common.settings')}
-          title={t('browse.settingsAccount')}
-          onClick={onSettings}
-        >
-          <span className="acct-avatar" aria-hidden="true">
-            {login ? displayName(login).charAt(0).toUpperCase() : '?'}
-          </span>
-          <span className="acct-name">{login ? displayName(login) : t('common.settings')}</span>
-        </button>
       </header>
 
 

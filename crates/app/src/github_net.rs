@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use asset_hub_core::errors::{SourceError, SourceErrorCode};
-use asset_hub_core::github::client::{HttpFetch, HttpRequest, HttpResponse};
+use asset_hub_core::github::client::{AccountTokens, HttpFetch, HttpRequest, HttpResponse};
 use asset_hub_core::github::source::{BlobCache, CommitCache, SourceHooks};
 use asset_hub_core::registry::HandlerRegistry;
 use asset_hub_core::types::TreeEntry;
@@ -148,7 +148,29 @@ impl BlobCache for CacheBridge {
 pub struct GitHooks {
     pub git: Arc<GitTree>,
     pub registry: Arc<HandlerRegistry>,
-    pub token: String,
+    /// Git tries the account that reads the repo first, then every other account.
+    pub tokens: Arc<AccountTokens>,
+}
+
+/// Runs a git operation with each account's token in turn (the repo's readers first) until one
+/// succeeds, and remembers that account as a reader. Git reports a refused token as plain text, so
+/// any failure moves on to the next account; when all fail, the first failure is the error.
+async fn with_each_token<T, Fut: std::future::Future<Output = Result<T, IpcError>>>(tokens: &AccountTokens, repo: &str, run: impl Fn(String) -> Fut) -> Result<T, IpcError> {
+    let mut first = None;
+    for (position, token) in tokens.for_repo(repo).into_iter().enumerate() {
+        match run(token.clone()).await {
+            Ok(value) => {
+                if position > 0 {
+                    tokens.remember_reader(repo, &token);
+                }
+                return Ok(value);
+            }
+            Err(error) => {
+                first.get_or_insert(error);
+            }
+        }
+    }
+    Err(first.unwrap_or_else(|| IpcError::unknown("no account to run git with")))
 }
 
 impl SourceHooks for GitHooks {
@@ -158,7 +180,7 @@ impl SourceHooks for GitHooks {
     }
 
     fn git_fallback<'a>(&'a self, repo: &'a str, commit: &'a str) -> Option<BoxFuture<'a, Result<Vec<TreeEntry>, SourceError>>> {
-        Some(Box::pin(async move { listing(self.git.list_tree(repo, commit, &self.token, false).await) }))
+        Some(Box::pin(async move { listing(with_each_token(&self.tokens, repo, |token| async move { self.git.list_tree(repo, commit, &token, false).await }).await) }))
     }
 
     fn background_git_fallback<'a>(&'a self, repo: &'a str, commit: &'a str) -> Option<BoxFuture<'a, Result<Vec<TreeEntry>, SourceError>>> {
@@ -166,7 +188,7 @@ impl SourceHooks for GitHooks {
             if !has_git().await {
                 return Err(SourceError::new(SourceErrorCode::Truncated, "Repository tree is too large for the GitHub API"));
             }
-            listing(self.git.list_tree(repo, commit, &self.token, true).await)
+            listing(with_each_token(&self.tokens, repo, |token| async move { self.git.list_tree(repo, commit, &token, true).await }).await)
         }))
     }
 
@@ -175,7 +197,7 @@ impl SourceHooks for GitHooks {
             if !has_git().await {
                 return Err(SourceError::new(SourceErrorCode::Unknown, "git is not available"));
             }
-            self.git.read_blobs(repo, oids, &self.token).await.map_err(source_error)
+            with_each_token(&self.tokens, repo, |token| async move { self.git.read_blobs(repo, oids, &token).await }).await.map_err(source_error)
         }))
     }
 
@@ -184,7 +206,7 @@ impl SourceHooks for GitHooks {
             if !has_git().await {
                 return Ok(());
             }
-            self.git.prefetch_blobs(repo, oids, &self.token).await.map_err(source_error)
+            with_each_token(&self.tokens, repo, |token| async move { self.git.prefetch_blobs(repo, oids, &token).await }).await.map_err(source_error)
         }))
     }
 }
@@ -240,6 +262,23 @@ mod tests {
         other.fetch(get(format!("{base}/b"))).await.unwrap();
         other.fetch(get(format!("{base}/b"))).await.unwrap();
         assert!(seen.lock().unwrap()[2..].iter().all(|(_, tag)| tag.is_none()));
+    }
+
+    #[tokio::test]
+    async fn git_tries_every_account_and_remembers_the_one_that_works() {
+        let tokens = AccountTokens::new("first", vec!["second".into(), "third".into()]);
+        let tried = std::sync::Mutex::new(Vec::<String>::new());
+        let run = |token: String| {
+            tried.lock().unwrap().push(token.clone());
+            async move { if token == "third" { Ok(7) } else { Err(IpcError::unknown(format!("denied for {token}"))) } }
+        };
+        assert_eq!(with_each_token(&tokens, "o/r", run).await.unwrap(), 7);
+        assert_eq!(*tried.lock().unwrap(), ["first", "second", "third"]);
+        tried.lock().unwrap().clear();
+        assert_eq!(with_each_token(&tokens, "O/R", run).await.unwrap(), 7);
+        assert_eq!(*tried.lock().unwrap(), ["third"], "the account that read it goes first");
+        let error = with_each_token(&tokens, "o/other", |token: String| async move { Err::<(), _>(IpcError::unknown(format!("denied for {token}"))) }).await.unwrap_err();
+        assert_eq!(error.message, "denied for first");
     }
 
     #[tokio::test]

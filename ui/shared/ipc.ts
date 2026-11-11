@@ -151,8 +151,10 @@ export interface SharedIndexStatus {
   via?: 'github' | 'folder'
   /** The GitHub repo, `via: 'github'`. */
   repo?: string
-  /** This account can read the GitHub repo but not write to it. */
+  /** No signed-in account can write to the GitHub repo (each can read it). */
   readOnly?: boolean
+  /** The signed-in account that adds to the GitHub repo, once known (several accounts only). */
+  writer?: string
   /** In the shared folder now. */
   manifest?: SharedIndexManifest
   /** `exportedAt` of the index taken in last. */
@@ -175,7 +177,10 @@ export type AuthMethod = 'gh' | 'pat'
 
 export interface AuthStatus {
   signedIn: boolean
+  /** The active account. */
   login?: string
+  /** Every signed-in account, the active one first. */
+  accounts: string[]
   method?: AuthMethod
   /** False when the OS keychain was unavailable and the token lives only in memory. */
   persisted?: boolean

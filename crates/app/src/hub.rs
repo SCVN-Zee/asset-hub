@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use asset_hub_core::github::client::GitHubClient;
+use asset_hub_core::github::client::{AccountTokens, GitHubClient};
 use asset_hub_core::github::source::{GitHubAssetSource, GitHubSourceOptions};
 use asset_hub_core::handlers::create_default_registry;
 use asset_hub_core::registry::HandlerRegistry;
@@ -43,14 +43,17 @@ pub struct Session {
     pub catalog: Arc<CatalogService>,
     /// The team's shared index.
     pub shared_index: Arc<SharedIndexService>,
+    /// The active account.
     pub login: String,
-    token: String,
+    /// Login and token of every signed-in account, the active one first.
+    accounts: Vec<(String, String)>,
     repos: Mutex<Option<(Instant, Vec<asset_hub_core::types::RepoRef>)>>,
 }
 
 impl Session {
+    /// The active account's token.
     pub fn token(&self) -> &str {
-        &self.token
+        &self.accounts[0].1
     }
 
     /// Ends the background work of the session (signed out, or replaced by another account's).
@@ -152,23 +155,29 @@ impl Hub {
         &self.registry
     }
 
-    /// The session of the signed-in account; `account` is its login and token.
+    /// The session of a single signed-in account; `account` is its login and token.
     pub fn session(&self, account: Option<(String, String)>, caches: &Arc<Caches>) -> Result<Arc<Session>, IpcError> {
-        let Some((login, token)) = account else {
+        self.session_with(account.into_iter().collect(), caches)
+    }
+
+    /// The session of the signed-in accounts (login and token, the active account first).
+    pub fn session_with(&self, accounts: Vec<(String, String)>, caches: &Arc<Caches>) -> Result<Arc<Session>, IpcError> {
+        let Some((login, token)) = accounts.first().cloned() else {
             self.clear();
             return Err(IpcError::new(AppErrorCode::Unauthorized, "Not signed in"));
         };
         let mut current = self.current.lock().map_err(|_| IpcError::unknown("the session is unavailable"))?;
-        if let Some(session) = current.as_ref().filter(|s| s.token == token && s.login == login) {
+        if let Some(session) = current.as_ref().filter(|s| s.accounts == accounts) {
             return Ok(session.clone());
         }
-        let hooks = GitHooks { git: self.git.clone(), registry: self.registry.clone(), token: token.clone() };
+        let tokens = Arc::new(AccountTokens::new(token, accounts.iter().skip(1).map(|(_, t)| t.clone()).collect()));
+        let hooks = GitHooks { git: self.git.clone(), registry: self.registry.clone(), tokens: tokens.clone() };
         let bridge = Arc::new(CacheBridge(caches.clone()));
         let options = GitHubSourceOptions { hooks: Arc::new(hooks), cache: Some(bridge.clone()), blob_cache: Some(bridge), registry: Some(self.registry.clone()) };
-        let client = GitHubClient::new(token.clone(), EtagFetch::new(caches.clone(), self.api.clone())).with_api_base(self.api.clone());
+        let client = GitHubClient::with_tokens(tokens, EtagFetch::new(caches.clone(), self.api.clone())).with_api_base(self.api.clone());
         let source = Arc::new(GitHubAssetSource::new(client, options));
-        let (catalog, shared_index) = self.services(&source, &login, &token, caches);
-        let session = Arc::new(Session { source, registry: self.registry.clone(), catalog, shared_index, login, token, repos: Mutex::new(None) });
+        let (catalog, shared_index) = self.services(&source, &accounts, caches);
+        let session = Arc::new(Session { source, registry: self.registry.clone(), catalog, shared_index, login, accounts, repos: Mutex::new(None) });
         if let Some(old) = current.replace(session.clone()) {
             old.end();
         }
@@ -176,7 +185,7 @@ impl Hub {
     }
 
     /// The catalog and the shared index of one session.
-    fn services(&self, source: &Arc<Source>, login: &str, token: &str, caches: &Arc<Caches>) -> (Arc<CatalogService>, Arc<SharedIndexService>) {
+    fn services(&self, source: &Arc<Source>, accounts: &[(String, String)], caches: &Arc<Caches>) -> (Arc<CatalogService>, Arc<SharedIndexService>) {
         let emitters = self.emitters.get().cloned();
         let types = self.registry.all().iter().map(|h| h.id).collect::<Vec<_>>().join(",");
         let (is_asset, type_of) = (self.registry.clone(), self.registry.clone());
@@ -205,12 +214,12 @@ impl Hub {
             ),
         );
         let url = self.index_remote.clone().unwrap_or_else(|| format!("https://github.com/{INDEX_REPO}.git"));
-        let repo = IndexRepo::with_remote(config.dir().join("shared-index-repo"), token.to_owned(), INDEX_REPO.to_owned(), url);
+        let repo = IndexRepo::with_accounts(config.dir().join("shared-index-repo"), accounts.to_vec(), INDEX_REPO.to_owned(), url, Some(self.api.clone()));
         let shared_index = SharedIndexService::new(
             Deps { catalog: catalog.clone(), facts: source.clone(), caches: caches.clone() },
             SharedIndexConfig {
                 types,
-                login: Some(login.to_owned()),
+                login: Some(accounts[0].0.clone()),
                 dir: Box::new({
                     let config = config.clone();
                     move || config.shared_index_dir()
@@ -292,6 +301,42 @@ mod tests {
         assert_eq!(seen.lock().unwrap()["/repos/o/r/git/blobs/b1"].len(), 1);
         let missing = session.source.read_file("o/r", "main", "Assets/none.fbx", true).await.unwrap_err();
         assert_eq!(missing.code, asset_hub_core::errors::SourceErrorCode::NotFound);
+    }
+
+    #[tokio::test]
+    async fn with_two_accounts_repos_are_merged_and_a_refused_repo_is_read_with_the_other_account() {
+        let dir = tempfile::tempdir().unwrap();
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let seen: Arc<Mutex<Vec<(String, String)>>> = Arc::default();
+        let log = seen.clone();
+        let base = serve(move |(path, headers)| {
+            let token = headers.get("authorization").and_then(|h| h.strip_prefix("Bearer ")).unwrap_or("").to_owned();
+            log.lock().unwrap().push((path.clone(), token.clone()));
+            match (path.as_str(), token.as_str()) {
+                (p, "t-octo") if p.starts_with("/user/repos") => Reply::json(200, r#"[{"full_name":"o/mine","default_branch":"main"},{"full_name":"o/shared","default_branch":"main"}]"#),
+                (p, "t-work") if p.starts_with("/user/repos") => Reply::json(200, r#"[{"full_name":"o/shared","default_branch":"main"},{"full_name":"w/work","default_branch":"main"}]"#),
+                ("/repos/w/work/git/ref/heads/main", "t-work") => Reply::json(200, r#"{"object":{"sha":"c1"}}"#),
+                ("/repos/hidden/r/git/ref/heads/main", "t-work") => Reply::json(200, r#"{"object":{"sha":"c2"}}"#),
+                _ => Reply::json(404, r#"{"message":"Not Found"}"#),
+            }
+        })
+        .await;
+        let hub = Hub::with_api(&caches, &base);
+        let accounts = vec![("octo".to_owned(), "t-octo".to_owned()), ("work".to_owned(), "t-work".to_owned())];
+        let session = hub.session_with(accounts.clone(), &caches).unwrap();
+        assert!(Arc::ptr_eq(&session, &hub.session_with(accounts, &caches).unwrap()));
+        assert_eq!((session.login.as_str(), session.token()), ("octo", "t-octo"));
+        let names: Vec<String> = session.repos().await.unwrap().into_iter().map(|r| r.full_name).collect();
+        assert_eq!(names, ["o/mine", "o/shared", "w/work"]);
+
+        // Known to the second account only: it is used straight away.
+        assert_eq!(session.source.added_since("w/work", "main", "").await.unwrap().head, "c1");
+        // Not in any listing: the active account is refused (404) and the other is tried once.
+        assert_eq!(session.source.added_since("hidden/r", "main", "").await.unwrap().head, "c2");
+        let requests = seen.lock().unwrap();
+        let on = |path: &str| requests.iter().filter(|(p, _)| p == path).map(|(_, t)| t.as_str()).collect::<Vec<_>>();
+        assert_eq!(on("/repos/w/work/git/ref/heads/main"), ["t-work"]);
+        assert_eq!(on("/repos/hidden/r/git/ref/heads/main"), ["t-octo", "t-work"]);
     }
 
     #[tokio::test]

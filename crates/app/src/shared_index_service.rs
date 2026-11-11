@@ -142,6 +142,7 @@ impl SharedIndexService {
             via: if github.is_some() { Some(SharedIndexVia::Github) } else if (self.config.dir)().is_some() { Some(SharedIndexVia::Folder) } else { None },
             repo: github.map(|g| g.repo().to_owned()),
             read_only: github.map(|_| self.read_only.load(Ordering::SeqCst)),
+            writer: github.and_then(|g| g.known_writer()).map(str::to_owned),
             manifest: match &root {
                 Some(root) => read_manifest(root).await,
                 None => None,
@@ -149,6 +150,16 @@ impl SharedIndexService {
             imported_at: self.seen().await.map(|s| s.exported_at),
             last: core.last,
             last_action: core.last_action,
+        }
+    }
+
+    /// Asks which signed-in account may push (once; a later call answers from memory) so the status
+    /// can name it. With no choice of accounts nothing is asked. None able to write means read-only.
+    pub async fn resolve_writer(&self) {
+        if let Some(github) = self.github().await {
+            if matches!(github.writer().await, Ok(None)) {
+                self.read_only.store(true, Ordering::SeqCst);
+            }
         }
     }
 

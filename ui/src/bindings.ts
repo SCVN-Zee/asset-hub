@@ -238,7 +238,10 @@ export type AuthStatus = AuthStatus_Serialize | AuthStatus_Deserialize;
 
 export type AuthStatus_Deserialize = {
 	signedIn: boolean,
+	/**  The active account. */
 	login?: string | null,
+	/**  Every signed-in account, the active one first (one unless gh holds several). */
+	accounts: string[],
 	method?: AuthMethod | null,
 	/**  False when the OS keychain was unavailable and the token lives only in memory. */
 	persisted?: boolean | null,
@@ -246,7 +249,10 @@ export type AuthStatus_Deserialize = {
 
 export type AuthStatus_Serialize = {
 	signedIn: boolean,
+	/**  The active account. */
 	login?: string,
+	/**  Every signed-in account, the active one first (one unless gh holds several). */
+	accounts: string[],
 	method?: AuthMethod,
 	/**  False when the OS keychain was unavailable and the token lives only in memory. */
 	persisted?: boolean,
@@ -1525,8 +1531,13 @@ export type SharedIndexStatus_Deserialize = {
 	via?: SharedIndexVia | null,
 	/**  The GitHub repo, `via: github`. */
 	repo?: string | null,
-	/**  This account can read the GitHub repo but not write to it. */
+	/**  No signed-in account can write to the GitHub repo (each can read it). */
 	readOnly?: boolean | null,
+	/**
+	 *  The signed-in account that pushes to the repo, once known (only checked when there is a
+	 *  choice of accounts and a push or the page's status check needs it).
+	 */
+	writer?: string | null,
 	/**  In the shared folder now. */
 	manifest?: SharedIndexManifest_Deserialize | null,
 	/**  `exportedAt` of the index taken in last. */
@@ -1541,8 +1552,13 @@ export type SharedIndexStatus_Serialize = {
 	via?: SharedIndexVia,
 	/**  The GitHub repo, `via: github`. */
 	repo?: string,
-	/**  This account can read the GitHub repo but not write to it. */
+	/**  No signed-in account can write to the GitHub repo (each can read it). */
 	readOnly?: boolean,
+	/**
+	 *  The signed-in account that pushes to the repo, once known (only checked when there is a
+	 *  choice of accounts and a push or the page's status check needs it).
+	 */
+	writer?: string,
 	/**  In the shared folder now. */
 	manifest?: SharedIndexManifest_Serialize,
 	/**  `exportedAt` of the index taken in last. */

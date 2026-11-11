@@ -2,6 +2,11 @@
 
 What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
 
+## Unreleased
+
+### Changed
+- **Every GitHub CLI account is used:** the repos of all accounts signed in to `gh` are listed together, and each repo is read with an account that can read it (the next account is tried when GitHub refuses the first). The shared index is written by the first account with write access to it. Settings shows every account and which one adds to the shared index. Signing out with the GitHub CLI option signs out every account.
+
 ## [2.1.1] — 2026-11-11
 
 ### Changed

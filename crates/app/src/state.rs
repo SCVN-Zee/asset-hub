@@ -44,7 +44,7 @@ impl AppState {
 
     /// The GitHub session; `unauthorized` when nobody is signed in.
     pub fn session(&self) -> Result<Arc<Session>, IpcError> {
-        self.hub.session(self.auth.account(), &self.caches)
+        self.hub.session_with(self.auth.accounts().unwrap_or_default(), &self.caches)
     }
 
     pub fn settings(&self) -> Result<MutexGuard<'_, SettingsStore>, IpcError> {

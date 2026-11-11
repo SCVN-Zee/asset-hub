@@ -98,7 +98,6 @@
     "loadedHint": "Số thumbnail đã sẵn sàng. Card trên màn hình tải trước, phần còn lại tải nền sau đó.",
     "unlistedShow_other": "Đã ẩn {{count}} clip không tìm thấy model — hiện",
     "unlistedHide": "Ẩn clip không có model",
-    "settingsAccount": "Cài đặt và tài khoản (đăng xuất)",
     "searchShortcut": "Nhấn ⌘K để tìm kiếm",
     "allAssets": "Tất cả asset",
     "cellSize": "Cỡ ô",
@@ -135,7 +134,7 @@
   "settings": {
     "title": "Cài đặt",
     "account": "Tài khoản",
-    "signedInAs": "Đăng nhập: {{login}}",
+    "accountActive": "đang dùng",
     "method": {
       "gh": "qua gh CLI",
       "pat": "qua access token"
@@ -173,6 +172,8 @@
     "sharedIndexFailed": "Lỗi chỉ mục dùng chung: {{error}}",
     "sharedIndexAuto": "Tự cập nhật: nhận ngay khi đồng đội thêm vào, và tự đóng góp phần của bạn khi bản chung cũ hơn 2 giờ.",
     "sharedIndexReadOnly": "Tài khoản GitHub của bạn chỉ đọc được {{repo}}, không ghi được: bạn vẫn nhận chỉ mục của team nhưng không đóng góp.",
+    "sharedIndexReadOnlyMany": "Không tài khoản GitHub nào đang đăng nhập ghi được vào {{repo}}: bạn vẫn nhận chỉ mục của team nhưng không đóng góp.",
+    "sharedIndexWriter": "Chỉ mục của bạn được đóng góp bằng tài khoản {{login}}.",
     "sharedIndexNoGit": "Chưa dùng chung: cần git (Xcode Command Line Tools) hoặc chọn một thư mục.",
     "usage": "Thống kê sử dụng",
     "usageStats": "Gửi thống kê sử dụng cho team",

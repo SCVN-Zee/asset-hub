@@ -2,7 +2,9 @@
 //! token it holds could write: every request passes [`assert_read_only`] inside [`GitHubClient`]
 //! before it reaches the [`HttpFetch`] the app supplies, so no request path can skip it.
 
+use std::collections::HashMap;
 use std::future::Future;
+use std::sync::{Arc, Mutex};
 
 use base64::Engine;
 use futures::future::BoxFuture;
@@ -210,8 +212,8 @@ pub fn to_source_error(res: &HttpResponse, now_ms: i64) -> SourceError {
 
 /// How a request is authorised; the token as a bearer when unset.
 enum Auth {
-    /// This header value.
-    Header(String),
+    /// The token as HTTP Basic credentials (Git LFS).
+    Basic,
     /// None: pre-signed URLs.
     Nothing,
 }
@@ -222,6 +224,77 @@ struct Outgoing {
     body: Option<String>,
     headers: Vec<(String, String)>,
     auth: Option<Auth>,
+    /// The repo the request is about; the tokens of the accounts that read it are tried in order.
+    repo: Option<String>,
+    /// Use exactly this token (the listing of one account's repos).
+    token: Option<String>,
+}
+
+/// The tokens of every signed-in account, the active one first, and which of them can read which
+/// repo (learned from the repo listing). A request about a repo uses the first account that reads
+/// it; the next one is the fallback.
+pub struct AccountTokens {
+    tokens: Vec<String>,
+    /// Lowercased repo name -> indexes into `tokens`, in order.
+    readers: Mutex<HashMap<String, Vec<usize>>>,
+}
+
+impl AccountTokens {
+    pub fn new(active: impl Into<String>, others: Vec<String>) -> Self {
+        let mut tokens = vec![active.into()];
+        for token in others {
+            if !tokens.contains(&token) {
+                tokens.push(token);
+            }
+        }
+        Self { tokens, readers: Mutex::default() }
+    }
+
+    /// The active account's token.
+    pub fn active(&self) -> &str {
+        &self.tokens[0]
+    }
+
+    /// Every token, the active one first.
+    pub fn all(&self) -> &[String] {
+        &self.tokens
+    }
+
+    /// The tokens to try for `repo`, best first: the accounts known to read it, then every other
+    /// account (the listing can miss a repo an account still reads).
+    pub fn for_repo(&self, repo: &str) -> Vec<String> {
+        let known = self.readers.lock().ok().and_then(|r| r.get(&repo.to_lowercase()).cloned()).unwrap_or_default();
+        let rest = (0..self.tokens.len()).filter(|i| !known.contains(i));
+        known.iter().copied().chain(rest).map(|i| self.tokens[i].clone()).collect()
+    }
+
+    /// Remembers that the account of `token` reads `repo`, and tries it first from now on.
+    pub fn remember_reader(&self, repo: &str, token: &str) {
+        let Some(index) = self.tokens.iter().position(|t| t == token) else { return };
+        if let Ok(mut readers) = self.readers.lock() {
+            let accounts = readers.entry(repo.to_lowercase()).or_default();
+            accounts.retain(|i| *i != index);
+            accounts.insert(0, index);
+        }
+    }
+
+    fn set_readers(&self, readers: HashMap<String, Vec<usize>>) {
+        if let Ok(mut kept) = self.readers.lock() {
+            *kept = readers;
+        }
+    }
+}
+
+/// The repo a request URL is about: `/repos/{owner}/{name}/...`, or a Git LFS URL
+/// (`https://github.com/{owner}/{name}.git/info/lfs/...`).
+fn repo_of_url(url: &str) -> Option<String> {
+    let path = url_path(url)?;
+    let parts: Vec<&str> = path.trim_start_matches('/').split('/').collect();
+    match parts.as_slice() {
+        ["repos", owner, name, ..] => Some(format!("{owner}/{name}")),
+        [owner, name, ..] if name.ends_with(".git") => Some(format!("{owner}/{}", name.trim_end_matches(".git"))),
+        _ => None,
+    }
 }
 
 #[derive(Deserialize)]
@@ -304,15 +377,37 @@ fn graphql_error(errors: Option<Vec<GqlError>>) -> SourceError {
     SourceError::new(code, first.map_or_else(|| "GraphQL request failed".to_string(), |e| e.message))
 }
 
+/// GraphQL answers 200 when the account cannot see a repo: no repository and a NOT_FOUND error.
+/// Returns that error's message, so the request can go out again with another account.
+fn graphql_repo_missing(url: &str, res: &HttpResponse) -> Option<String> {
+    if url_path(url) != Some("/graphql") {
+        return None;
+    }
+    let body: serde_json::Value = serde_json::from_slice(&res.body).ok()?;
+    if body.pointer("/data/repository").is_some_and(|r| !r.is_null()) {
+        return None;
+    }
+    body.get("errors")?.as_array()?.iter().find_map(|e| {
+        let message = e.get("message").and_then(|m| m.as_str()).unwrap_or_default();
+        let missing = e.get("type").and_then(|t| t.as_str()) == Some("NOT_FOUND") || message.contains("Could not resolve to a Repository");
+        missing.then(|| message.to_owned())
+    })
+}
+
 pub struct GitHubClient<F: HttpFetch> {
-    token: String,
+    tokens: Arc<AccountTokens>,
     fetch: F,
     api_base: String,
 }
 
 impl<F: HttpFetch> GitHubClient<F> {
     pub fn new(token: impl Into<String>, fetch: F) -> Self {
-        Self { token: token.into(), fetch, api_base: API.to_string() }
+        Self::with_tokens(Arc::new(AccountTokens::new(token, Vec::new())), fetch)
+    }
+
+    /// A client over every signed-in account.
+    pub fn with_tokens(tokens: Arc<AccountTokens>, fetch: F) -> Self {
+        Self { tokens, fetch, api_base: API.to_string() }
     }
 
     /// The clock of the HTTP stack, in milliseconds since the epoch.
@@ -336,14 +431,40 @@ impl<F: HttpFetch> GitHubClient<F> {
         Ok(GitHubUser { login: user.login, name: user.name })
     }
 
+    /// The repos every signed-in account reads, merged by name (the active account's first), and
+    /// remembers which account reads which. Fails only when no account could list.
     pub async fn list_repos(&self) -> Result<Vec<RepoRef>, SourceError> {
         #[derive(Deserialize)]
         struct Repo {
             full_name: String,
             default_branch: String,
         }
-        let repos: Vec<Repo> = self.paginate("/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member").await?;
-        Ok(repos.into_iter().map(|r| RepoRef { full_name: r.full_name, default_branch: r.default_branch }).collect())
+        let mut merged: Vec<RepoRef> = Vec::new();
+        let mut readers: HashMap<String, Vec<usize>> = HashMap::new();
+        let mut failure = None;
+        let mut listed = false;
+        for (index, token) in self.tokens.all().iter().enumerate() {
+            match self.paginate::<Repo>(Some(token), "/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member").await {
+                Ok(repos) => {
+                    listed = true;
+                    for repo in repos {
+                        let accounts = readers.entry(repo.full_name.to_lowercase()).or_default();
+                        if accounts.is_empty() {
+                            merged.push(RepoRef { full_name: repo.full_name, default_branch: repo.default_branch });
+                        }
+                        accounts.push(index);
+                    }
+                }
+                Err(error) => failure = failure.or(Some(error)),
+            }
+        }
+        match failure {
+            Some(error) if !listed => Err(error),
+            _ => {
+                self.tokens.set_readers(readers);
+                Ok(merged)
+            }
+        }
     }
 
     pub async fn list_branches(&self, repo: &str) -> Result<Vec<String>, SourceError> {
@@ -351,7 +472,7 @@ impl<F: HttpFetch> GitHubClient<F> {
         struct Branch {
             name: String,
         }
-        let branches: Vec<Branch> = self.paginate(&format!("/repos/{}/branches?per_page=100", repo_path(repo)?)).await?;
+        let branches: Vec<Branch> = self.paginate(None, &format!("/repos/{}/branches?per_page=100", repo_path(repo)?)).await?;
         Ok(branches.into_iter().map(|b| b.name).collect())
     }
 
@@ -381,7 +502,7 @@ impl<F: HttpFetch> GitHubClient<F> {
         let mut after: Option<String> = None;
         for _ in 0..MAX_PAGES {
             let body = json_body(&Body { query: QUERY, variables: Variables { owner, name, after: after.as_deref() } })?;
-            let (data, _): (RefsResponse, _) = self.request("/graphql", Some("POST"), Some(body)).await?;
+            let (data, _): (RefsResponse, _) = self.request_for(Some(repo), None, "/graphql", Some("POST"), Some(body)).await?;
             let Some(refs) = data.data.and_then(|d| d.repository).map(|r| r.refs) else { return Err(graphql_error(data.errors)) };
             for node in refs.nodes {
                 if let Some(target) = node.target {
@@ -515,7 +636,7 @@ impl<F: HttpFetch> GitHubClient<F> {
             fields.push(format!("f{i}: object(expression: {}) {{ ... on Blob {{ text isTruncated oid }} }}", json(&format!("{commit_sha}:{p}"))?));
         }
         let query = format!("query {{ repository(owner: {}, name: {}) {{ {} }} }}", json(owner)?, json(name)?, fields.join("\n"));
-        let (data, _): (BlobsResponse, _) = self.request("/graphql", Some("POST"), Some(json_body(&Body { query: &query })?)).await?;
+        let (data, _): (BlobsResponse, _) = self.request_for(Some(&format!("{owner}/{name}")), None, "/graphql", Some("POST"), Some(json_body(&Body { query: &query })?)).await?;
         let Some(repo_data) = data.data.and_then(|d| d.repository) else { return Err(graphql_error(data.errors)) };
         let mut result = OrderedMap::new();
         let mut truncated: Vec<(&String, &str)> = Vec::new();
@@ -577,16 +698,17 @@ impl<F: HttpFetch> GitHubClient<F> {
             href: String,
             header: Option<std::collections::BTreeMap<String, String>>,
         }
-        let auth = format!("Basic {}", base64::engine::general_purpose::STANDARD.encode(format!("x-access-token:{}", self.token)));
         let batch = json_body(&Batch { operation: "download", transfers: ["basic"], objects: [Object { oid, size }] })?;
         let res = self
             .send(
                 &format!("https://github.com/{repo}.git/info/lfs/objects/batch"),
                 Outgoing {
                     method: Some("POST"),
-                    auth: Some(Auth::Header(auth)),
+                    auth: Some(Auth::Basic),
+                    repo: Some(repo.to_owned()),
                     headers: vec![("Accept".into(), "application/vnd.git-lfs+json".into()), ("Content-Type".into(), "application/vnd.git-lfs+json".into())],
                     body: Some(batch),
+                    token: None,
                 },
             )
             .await?;
@@ -601,12 +723,12 @@ impl<F: HttpFetch> GitHubClient<F> {
         Ok(self.send(&download.href, Outgoing { auth: Some(Auth::Nothing), headers, ..Default::default() }).await?.body)
     }
 
-    async fn paginate<T: for<'de> Deserialize<'de>>(&self, path: &str) -> Result<Vec<T>, SourceError> {
+    async fn paginate<T: for<'de> Deserialize<'de>>(&self, token: Option<&str>, path: &str) -> Result<Vec<T>, SourceError> {
         let mut items = Vec::new();
         let mut url = Some(path.to_string());
         let mut page = 0;
         while let Some(current) = url.take().filter(|_| page < MAX_PAGES) {
-            let (data, link): (Vec<T>, _) = self.request(&current, None, None).await?;
+            let (data, link): (Vec<T>, _) = self.request_for(None, token, &current, None, None).await?;
             items.extend(data);
             url = next_link(link.as_deref());
             page += 1;
@@ -616,30 +738,67 @@ impl<F: HttpFetch> GitHubClient<F> {
 
     /// A JSON request to the API; also returns the `Link` header, for paging.
     async fn request<T: for<'de> Deserialize<'de>>(&self, path_or_url: &str, method: Option<&'static str>, body: Option<String>) -> Result<(T, Option<String>), SourceError> {
+        self.request_for(None, None, path_or_url, method, body).await
+    }
+
+    /// [`Self::request`] about `repo` (else the repo in the URL), or with exactly `token`.
+    async fn request_for<T: for<'de> Deserialize<'de>>(&self, repo: Option<&str>, token: Option<&str>, path_or_url: &str, method: Option<&'static str>, body: Option<String>) -> Result<(T, Option<String>), SourceError> {
         let url = if path_or_url.starts_with("http") { path_or_url.to_string() } else { format!("{}{path_or_url}", self.api_base) };
         let mut headers = vec![("Accept".to_string(), "application/vnd.github+json".to_string()), ("X-GitHub-Api-Version".to_string(), "2022-11-28".to_string())];
         if body.is_some() {
             headers.push(("Content-Type".into(), "application/json".into()));
         }
-        let res = self.send(&url, Outgoing { method, body, headers, auth: None }).await?;
+        let res = self.send(&url, Outgoing { method, body, headers, auth: None, repo: repo.map(str::to_owned), token: token.map(str::to_owned) }).await?;
         let data = parse_json(&res)?;
         Ok((data, res.header("link").map(str::to_string)))
     }
 
-    /// Sends a request and maps failures to `SourceError`; the read-only guard runs first.
+    /// Sends a request and maps failures to `SourceError`; the read-only guard runs first. A request
+    /// about a repo that GitHub refuses (403) or does not show (404, or a GraphQL "not found") goes
+    /// out again with each other account in turn. The account that gets through is remembered as a
+    /// reader of the repo. When every account fails, the first account's answer is the error.
     async fn send(&self, url: &str, init: Outgoing) -> Result<HttpResponse, SourceError> {
         let method = init.method.unwrap_or("GET");
         assert_read_only(url, method, init.body.as_deref())?;
+        let repo = if init.token.is_some() { None } else { init.repo.clone().or_else(|| repo_of_url(url)) };
+        let candidates = match (&init.token, &repo) {
+            (Some(token), _) => vec![token.clone()],
+            (None, Some(repo)) => self.tokens.for_repo(repo),
+            (None, None) => vec![self.tokens.active().to_owned()],
+        };
+        let mut first = None;
+        for (position, token) in candidates.iter().enumerate() {
+            match self.send_with(url, &init, token).await {
+                Ok(res) => {
+                    if let (true, Some(repo)) = (position > 0, &repo) {
+                        self.tokens.remember_reader(repo, token);
+                    }
+                    return Ok(res);
+                }
+                Err(error) if matches!(error.code, SourceErrorCode::Forbidden | SourceErrorCode::NotFound) => {
+                    first.get_or_insert(error);
+                }
+                Err(error) => return Err(first.unwrap_or(error)),
+            }
+        }
+        Err(first.unwrap_or_else(|| SourceError::new(SourceErrorCode::Unknown, "No account to send the request")))
+    }
+
+    async fn send_with(&self, url: &str, init: &Outgoing, token: &str) -> Result<HttpResponse, SourceError> {
+        let method = init.method.unwrap_or("GET");
         let auth = match init.auth {
-            None => Some(format!("Bearer {}", self.token)),
-            Some(Auth::Header(value)) => Some(value),
+            None => Some(format!("Bearer {token}")),
+            Some(Auth::Basic) => Some(format!("Basic {}", base64::engine::general_purpose::STANDARD.encode(format!("x-access-token:{token}")))),
             Some(Auth::Nothing) => None,
         };
         let mut headers: Vec<(String, String)> = auth.into_iter().map(|a| ("Authorization".to_string(), a)).collect();
-        headers.extend(init.headers);
-        let res = self.fetch.fetch(HttpRequest { url: url.to_string(), method: method.to_string(), headers, body: init.body }).await.map_err(|e| SourceError::new(SourceErrorCode::Network, e))?;
+        headers.extend(init.headers.iter().cloned());
+        let res = self.fetch.fetch(HttpRequest { url: url.to_string(), method: method.to_string(), headers, body: init.body.clone() }).await.map_err(|e| SourceError::new(SourceErrorCode::Network, e))?;
         if res.ok() {
-            Ok(res)
+            match graphql_repo_missing(url, &res) {
+                Some(message) => Err(SourceError::with_detail(SourceErrorCode::NotFound, message, SourceErrorDetail { status: Some(res.status), ..Default::default() })),
+                None => Ok(res),
+            }
         } else {
             Err(to_source_error(&res, self.fetch.now_ms()))
         }
@@ -754,6 +913,119 @@ mod tests {
         assert_eq!(sent[0].method, "GET");
         assert!(sent[0].headers.contains(&("Authorization".into(), "Bearer tok".into())));
         assert!(sent[0].headers.contains(&("X-GitHub-Api-Version".into(), "2022-11-28".into())));
+    }
+
+    fn two_accounts(script: &Script) -> GitHubClient<&Script> {
+        GitHubClient::with_tokens(Arc::new(AccountTokens::new("active", vec!["other".into(), "active".into()])), script)
+    }
+
+    fn bearer(request: &HttpRequest) -> &str {
+        request.headers.iter().find(|(k, _)| k == "Authorization").map(|(_, v)| v.as_str()).unwrap_or("")
+    }
+
+    #[test]
+    fn the_repos_of_every_account_are_merged_by_name_and_read_by_the_first_account_that_lists_them() {
+        let script = Script::new(vec![
+            json(200, r#"[{"full_name":"o/shared","default_branch":"main"},{"full_name":"o/mine","default_branch":"main"}]"#),
+            json(200, r#"[{"full_name":"O/Shared","default_branch":"main"},{"full_name":"w/work","default_branch":"dev"}]"#),
+            json(200, r#"{"object":{"sha":"c1"}}"#),
+            json(200, r#"{"object":{"sha":"c2"}}"#),
+        ]);
+        let client = two_accounts(&script);
+        let repos = futures::executor::block_on(client.list_repos()).expect("repos");
+        assert_eq!(repos.iter().map(|r| r.full_name.as_str()).collect::<Vec<_>>(), ["o/shared", "o/mine", "w/work"]);
+        {
+            let sent = script.sent.lock().unwrap();
+            assert_eq!((bearer(&sent[0]), bearer(&sent[1])), ("Bearer active", "Bearer other"));
+        }
+        // "w/work" is readable by the second account only, "o/mine" by the first only.
+        futures::executor::block_on(client.get_branch_head("w/work", "main")).expect("head");
+        futures::executor::block_on(client.get_branch_head("o/mine", "main")).expect("head");
+        let sent = script.sent.lock().unwrap();
+        assert_eq!((bearer(&sent[2]), bearer(&sent[3])), ("Bearer other", "Bearer active"));
+    }
+
+    #[test]
+    fn a_repo_the_active_account_cannot_read_is_retried_with_the_next_account() {
+        let script = Script::new(vec![json(404, r#"{"message":"Not Found"}"#), json(200, r#"{"object":{"sha":"c1"}}"#), json(403, r#"{"message":"Forbidden"}"#), json(404, r#"{"message":"Not Found"}"#)]);
+        assert_eq!(futures::executor::block_on(two_accounts(&script).get_branch_head("o/r", "main")).expect("head"), "c1");
+        let error = futures::executor::block_on(two_accounts(&script).get_branch_head("o/r", "main")).expect_err("both refuse");
+        assert_eq!(error.code, SourceErrorCode::Forbidden, "the active account's answer is kept");
+        let sent = script.sent.lock().unwrap();
+        assert_eq!(sent.iter().map(bearer).collect::<Vec<_>>(), ["Bearer active", "Bearer other", "Bearer active", "Bearer other"]);
+    }
+
+    fn three_accounts(script: &Script) -> GitHubClient<&Script> {
+        GitHubClient::with_tokens(Arc::new(AccountTokens::new("first", vec!["second".into(), "third".into()])), script)
+    }
+
+    #[test]
+    fn every_account_is_tried_until_one_reads_the_repo_and_it_is_remembered() {
+        let script = Script::new(vec![
+            json(404, r#"{"message":"Not Found"}"#),
+            json(404, r#"{"message":"Not Found"}"#),
+            json(200, r#"{"object":{"sha":"c1"}}"#),
+            json(200, r#"{"object":{"sha":"c2"}}"#),
+        ]);
+        let client = three_accounts(&script);
+        assert_eq!(futures::executor::block_on(client.get_branch_head("o/r", "dev")).expect("head"), "c1");
+        assert_eq!(futures::executor::block_on(client.get_branch_head("O/R", "dev")).expect("head"), "c2");
+        let sent = script.sent.lock().unwrap();
+        assert_eq!(sent.iter().map(bearer).collect::<Vec<_>>(), ["Bearer first", "Bearer second", "Bearer third", "Bearer third"]);
+    }
+
+    #[test]
+    fn an_account_that_lists_a_repo_but_cannot_read_it_does_not_block_the_others() {
+        // The listing shows the repo for the second account only; the first one is the one that reads it.
+        let script = Script::new(vec![
+            json(200, "[]"),
+            json(200, r#"[{"full_name":"z/UnityVFX","default_branch":"dev"}]"#),
+            json(404, r#"{"message":"Not Found"}"#),
+            json(200, r#"{"object":{"sha":"c1"}}"#),
+        ]);
+        let client = two_accounts(&script);
+        futures::executor::block_on(client.list_repos()).expect("repos");
+        assert_eq!(futures::executor::block_on(client.get_branch_head("z/UnityVFX", "dev")).expect("head"), "c1");
+        let sent = script.sent.lock().unwrap();
+        assert_eq!((bearer(&sent[2]), bearer(&sent[3])), ("Bearer other", "Bearer active"));
+    }
+
+    #[test]
+    fn a_graphql_not_found_goes_to_the_next_account() {
+        let missing = r#"{"data":{"repository":null},"errors":[{"type":"NOT_FOUND","message":"Could not resolve to a Repository with the name 'o/r'."}]}"#;
+        let found = r#"{"data":{"repository":{"refs":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[{"name":"dev","target":{"oid":"c1","committedDate":"2024-01-01T00:00:00Z"}}]}}}}"#;
+        let script = Script::new(vec![json(200, missing), json(200, missing), json(200, found)]);
+        let heads = futures::executor::block_on(three_accounts(&script).list_branch_heads("o/r")).expect("heads");
+        assert_eq!(heads.iter().map(|h| h.name.as_str()).collect::<Vec<_>>(), ["dev"]);
+        assert_eq!(script.sent.lock().unwrap().iter().map(bearer).collect::<Vec<_>>(), ["Bearer first", "Bearer second", "Bearer third"]);
+        let script = Script::new(vec![json(200, missing), json(200, missing), json(200, missing)]);
+        let error = futures::executor::block_on(three_accounts(&script).list_branch_heads("o/r")).expect_err("no account reads it");
+        assert_eq!(error.code, SourceErrorCode::NotFound);
+    }
+
+    #[test]
+    fn a_single_account_gets_no_second_try() {
+        let script = Script::new(vec![json(404, r#"{"message":"Not Found"}"#)]);
+        let error = futures::executor::block_on(GitHubClient::new("only", &script).get_branch_head("o/r", "main")).expect_err("not found");
+        assert_eq!(error.code, SourceErrorCode::NotFound);
+        assert_eq!(script.sent.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn the_listing_fails_only_when_no_account_could_list() {
+        let script = Script::new(vec![json(401, r#"{"message":"Bad credentials"}"#), json(200, r#"[{"full_name":"o/r","default_branch":"main"}]"#)]);
+        let repos = futures::executor::block_on(two_accounts(&script).list_repos()).expect("one account listed");
+        assert_eq!(repos.len(), 1);
+        let script = Script::new(vec![json(401, r#"{"message":"Bad credentials"}"#), json(401, r#"{"message":"Bad credentials"}"#)]);
+        assert_eq!(futures::executor::block_on(two_accounts(&script).list_repos()).expect_err("none listed").code, SourceErrorCode::Unauthorized);
+    }
+
+    #[test]
+    fn the_repo_of_a_url_is_read_for_the_api_and_for_lfs() {
+        assert_eq!(repo_of_url("https://api.github.com/repos/o/r/git/trees/abc?recursive=1").as_deref(), Some("o/r"));
+        assert_eq!(repo_of_url("https://github.com/o/r.git/info/lfs/objects/batch").as_deref(), Some("o/r"));
+        assert_eq!(repo_of_url("https://api.github.com/user/repos?per_page=100"), None);
+        assert_eq!(repo_of_url("https://api.github.com/graphql"), None);
     }
 
     #[test]
