@@ -2,7 +2,7 @@
 
 What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
 
-## Unreleased
+## [2.1.0] — 2026-11-11
 
 ### Changed
 - **New interface:** the whole app is redesigned for daily use. A graphite shell with one top bar and a sidebar of types, your lists, pinned branches and folders. A dense grid of assets on a neutral 18% grey stage. An inspector on the right with the preview, the key facts (size, triangles, budget fit) and one row of actions.

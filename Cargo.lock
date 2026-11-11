@@ -144,7 +144,7 @@ dependencies = [
 
 [[package]]
 name = "asset-hub"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "arboard",
  "asset_hub_core",
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "asset_hub_core"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "base64 0.22.1",
  "futures",

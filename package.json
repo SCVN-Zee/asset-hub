@@ -1,6 +1,6 @@
 {
   "name": "asset-hub",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Browse the Unity projects on GitHub, preview their assets and export them as .unitypackage.",
   "scripts": {
