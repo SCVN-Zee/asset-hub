@@ -813,8 +813,8 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
           onLoading={onViewerLoading}
         />
       ) : live && repoPath && kind === 'prefab' ? (
+        // No key by path: the viewer follows its `path` itself, so the Luna runtime it hosts stays running from one prefab to the next.
         <PrefabViewer
-          key={repoPath}
           live={live}
           path={repoPath}
           report={report}

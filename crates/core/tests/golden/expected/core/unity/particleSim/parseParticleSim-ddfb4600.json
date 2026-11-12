@@ -198,7 +198,22 @@
     "min": 1
    },
    "frequency": 0.5,
-   "scrollSpeed": 0
+   "scrollSpeed": 0,
+   "positionAmount": {
+    "mode": 0,
+    "scalar": 1,
+    "min": 1
+   },
+   "rotationAmount": {
+    "mode": 0,
+    "scalar": 0,
+    "min": 0
+   },
+   "sizeAmount": {
+    "mode": 0,
+    "scalar": 0,
+    "min": 0
+   }
   }
  }
 }

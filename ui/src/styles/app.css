@@ -709,6 +709,25 @@ body.resizing * { cursor: inherit !important; }
 .viewer-seg .viewer-btn:first-of-type { border-radius: var(--r) 0 0 var(--r); }
 .viewer-seg .viewer-btn:last-of-type { border-radius: 0 var(--r) var(--r) 0; }
 .viewer-seg .viewer-btn[aria-pressed='true'] { position: relative; z-index: 1; }
+/* Luna: the same effect in the Luna runtime, in place of the viewer's own canvas or beside it. */
+.viewer-luna { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+.luna-frame { position: absolute; inset: 0; }
+/* The runtime only shows; clicks reach the viewer, so its keys keep working. */
+.luna-frame iframe { pointer-events: none; }
+.viewer[data-mode='luna'] .viewer-canvas { visibility: hidden; }
+.viewer[data-mode='split'] .viewer-canvas { right: 50%; }
+.viewer[data-mode='split'] .viewer-luna { left: 50%; border-left: 1px solid var(--line-strong); }
+.viewer[data-mode='split']:not(.audio-viewer):not(.font-viewer):not(.tmp-viewer)::before, .viewer[data-mode='luna']:not(.audio-viewer):not(.font-viewer):not(.tmp-viewer)::before { display: none; }
+.viewer-tools-top .viewer-seg { margin-left: 0; }
+.viewer-tag { position: absolute; bottom: 10px; padding: 2px 8px; border-radius: 999px; background: rgba(31, 31, 32, 0.78); color: var(--text-2); font-size: var(--fs-xs); pointer-events: none; }
+.viewer-tag-unity { left: 10px; }
+.viewer-tag-luna { left: calc(50% + 10px); }
+.viewer-btn-warn { color: var(--warn); border-color: var(--warn-line); }
+.luna-error { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.luna-notes { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; min-width: 240px; max-height: 180px; overflow: auto; padding: 8px 10px; border-radius: var(--r-lg); background: rgba(31, 31, 32, 0.94); color: var(--text); font-size: var(--fs-xs); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.5); }
+.luna-notes h4 { margin: 0 0 2px; color: var(--text-2); font-size: var(--fs-xs); font-weight: 500; letter-spacing: 0.04em; }
+.luna-notes section + section { margin-top: 8px; }
+.luna-notes ul { margin: 0; padding-left: 14px; display: flex; flex-direction: column; gap: 2px; }
 
 @media (prefers-reduced-motion: reduce) { .weight-fill { transition: none; } }
 /* ---------- export list: a strip docked at the foot of the centre column; open, it grows upward ---------- */

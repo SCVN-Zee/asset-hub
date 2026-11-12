@@ -507,6 +507,21 @@ export type Collection_Serialize = {
 	items: CollectionItem_Serialize[],
 };
 
+/**  Colour by Speed: the gradient over the speed range. */
+export type ColorBySpeed = ColorBySpeed_Serialize | ColorBySpeed_Deserialize;
+
+/**  Colour by Speed: the gradient over the speed range. */
+export type ColorBySpeed_Deserialize = {
+	color: MinMaxColor_Deserialize,
+	range: [(number | null), (number | null)],
+};
+
+/**  Colour by Speed: the gradient over the speed range. */
+export type ColorBySpeed_Serialize = {
+	color: MinMaxColor_Serialize,
+	range: [(number | null), (number | null)],
+};
+
 /**  One key of an animation curve; `v`, `inS` and `outS` have one number per component. */
 export type CurveKey = {
 	t: number | null,
@@ -758,10 +773,7 @@ export type GhLoginPrompt = {
 	url: string,
 };
 
-export type Gradient = {
-	colors: GradientColor[],
-	alphas: GradientAlpha[],
-};
+export type Gradient = Gradient_Serialize | Gradient_Deserialize;
 
 export type GradientAlpha = {
 	t: number | null,
@@ -775,8 +787,37 @@ export type GradientColor = {
 	b: number | null,
 };
 
+export type Gradient_Deserialize = {
+	colors: GradientColor[],
+	alphas: GradientAlpha[],
+	/**  1 when the gradient is Fixed (steps instead of a blend). Absent: Blend. */
+	mode?: number | null,
+};
+
+export type Gradient_Serialize = {
+	colors: GradientColor[],
+	alphas: GradientAlpha[],
+	/**  1 when the gradient is Fixed (steps instead of a blend). Absent: Blend. */
+	mode?: number | null,
+};
+
 /**  The one-off GUID index build for a commit. */
 export type IndexProgress = DoneTotal;
+
+/**  Inherit Velocity module: `mode` 0 initial, 1 current. */
+export type InheritVelocity = InheritVelocity_Serialize | InheritVelocity_Deserialize;
+
+/**  Inherit Velocity module: `mode` 0 initial, 1 current. */
+export type InheritVelocity_Deserialize = {
+	mode: number | null,
+	curve: MinMax_Deserialize,
+};
+
+/**  Inherit Velocity module: `mode` 0 initial, 1 current. */
+export type InheritVelocity_Serialize = {
+	mode: number | null,
+	curve: MinMax_Serialize,
+};
 
 /**  A download the app runs by itself: GitHub CLI, an update. */
 export type InstallProgress = { stage: "download"; received: number | null; total: number | null } | { stage: "verify" } | { stage: "extract" } | 
@@ -869,8 +910,8 @@ export type MinMaxColor_Deserialize = {
 	/**  r, g, b, a in 0-1. */
 	max: [(number | null), (number | null), (number | null), (number | null)],
 	min: [(number | null), (number | null), (number | null), (number | null)],
-	gradient?: Gradient | null,
-	minGradient?: Gradient | null,
+	gradient?: Gradient_Deserialize | null,
+	minGradient?: Gradient_Deserialize | null,
 };
 
 /**  Unity's MinMaxGradient. */
@@ -879,8 +920,8 @@ export type MinMaxColor_Serialize = {
 	/**  r, g, b, a in 0-1. */
 	max: [(number | null), (number | null), (number | null), (number | null)],
 	min: [(number | null), (number | null), (number | null), (number | null)],
-	gradient?: Gradient,
-	minGradient?: Gradient,
+	gradient?: Gradient_Serialize,
+	minGradient?: Gradient_Serialize,
 };
 
 /**  Unity's MinMaxCurve: a constant, a curve (x scalar), random between two curves or two constants. */
@@ -1078,17 +1119,47 @@ export type ParticleNoise_Deserialize = {
 	strength: MinMax_Deserialize,
 	frequency: number | null,
 	scrollSpeed: number | null,
+	/**  Strength of Y and Z, when the module separates the axes. */
+	separate?: [MinMax_Deserialize, MinMax_Deserialize] | null,
+	/**  The scroll speed as a curve. */
+	scroll?: MinMax_Deserialize | null,
+	damping?: boolean | null,
+	octaves?: number | null,
+	octaveMultiplier?: number | null,
+	octaveScale?: number | null,
+	/**  0 low, 1 medium, 2 high. */
+	quality?: number | null,
+	remap?: [MinMax_Deserialize, MinMax_Deserialize, MinMax_Deserialize] | null,
+	positionAmount?: MinMax_Deserialize | null,
+	rotationAmount?: MinMax_Deserialize | null,
+	sizeAmount?: MinMax_Deserialize | null,
 };
 
 export type ParticleNoise_Serialize = {
 	strength: MinMax_Serialize,
 	frequency: number | null,
 	scrollSpeed: number | null,
+	/**  Strength of Y and Z, when the module separates the axes. */
+	separate?: [MinMax_Serialize, MinMax_Serialize],
+	/**  The scroll speed as a curve. */
+	scroll?: MinMax_Serialize,
+	damping?: boolean,
+	octaves?: number | null,
+	octaveMultiplier?: number | null,
+	octaveScale?: number | null,
+	/**  0 low, 1 medium, 2 high. */
+	quality?: number | null,
+	remap?: [MinMax_Serialize, MinMax_Serialize, MinMax_Serialize],
+	positionAmount?: MinMax_Serialize,
+	rotationAmount?: MinMax_Serialize,
+	sizeAmount?: MinMax_Serialize,
 };
 
 export type ParticleRenderMode = "billboard" | "stretched" | "horizontal" | "vertical" | "mesh" | "none";
 
-export type ParticleShape = {
+export type ParticleShape = ParticleShape_Serialize | ParticleShape_Deserialize;
+
+export type ParticleShape_Deserialize = {
 	/**  Unity's ParticleSystemShapeType. */
 	type: number | null,
 	radius: number | null,
@@ -1105,6 +1176,53 @@ export type ParticleShape = {
 	rotation: [(number | null), (number | null), (number | null)],
 	scale: [(number | null), (number | null), (number | null)],
 	randomDirection: number | null,
+	/**  How the radius is walked: 0 random, 1 loop, 2 ping-pong, 3 burst spread. */
+	radiusMode?: number | null,
+	radiusSpread?: number | null,
+	radiusSpeed?: MinMax_Deserialize | null,
+	/**  Same for the arc. */
+	arcMode?: number | null,
+	arcSpread?: number | null,
+	arcSpeed?: MinMax_Deserialize | null,
+	donutRadius?: number | null,
+	/**  Box shapes: how deep into the box particles start, per axis. */
+	boxThickness?: [(number | null), (number | null), (number | null)] | null,
+	sphericalDirection?: number | null,
+	randomPosition?: number | null,
+	alignToDirection?: boolean | null,
+};
+
+export type ParticleShape_Serialize = {
+	/**  Unity's ParticleSystemShapeType. */
+	type: number | null,
+	radius: number | null,
+	/**  0 emits from the edge only, 1 from the whole volume. */
+	radiusThickness: number | null,
+	/**  Cone half angle, in degrees. */
+	angle: number | null,
+	/**  Degrees of the circle used (360 = all). */
+	arc: number | null,
+	/**  Cone volume length. */
+	length: number | null,
+	position: [(number | null), (number | null), (number | null)],
+	/**  Euler degrees. */
+	rotation: [(number | null), (number | null), (number | null)],
+	scale: [(number | null), (number | null), (number | null)],
+	randomDirection: number | null,
+	/**  How the radius is walked: 0 random, 1 loop, 2 ping-pong, 3 burst spread. */
+	radiusMode?: number | null,
+	radiusSpread?: number | null,
+	radiusSpeed?: MinMax_Serialize,
+	/**  Same for the arc. */
+	arcMode?: number | null,
+	arcSpread?: number | null,
+	arcSpeed?: MinMax_Serialize,
+	donutRadius?: number | null,
+	/**  Box shapes: how deep into the box particles start, per axis. */
+	boxThickness?: [(number | null), (number | null), (number | null)],
+	sphericalDirection?: number | null,
+	randomPosition?: number | null,
+	alignToDirection?: boolean,
 };
 
 /**  What it takes to play a particle system. */
@@ -1133,7 +1251,7 @@ export type ParticleSim_Deserialize = {
 	maxParticles: number | null,
 	rate: MinMax_Deserialize,
 	bursts: ParticleBurst_Deserialize[],
-	shape?: ParticleShape | null,
+	shape?: ParticleShape_Deserialize | null,
 	/**  Added to each particle's velocity (local axes unless `velocityWorld`). */
 	velocity?: [MinMax_Deserialize, MinMax_Deserialize, MinMax_Deserialize] | null,
 	velocityWorld?: boolean | null,
@@ -1165,6 +1283,38 @@ export type ParticleSim_Deserialize = {
 	custom2?: MinMax_Deserialize[] | null,
 	/**  The renderer's vertex streams, in order; absent: Unity's default set. */
 	streams?: number[] | null,
+	/**  The renderer uses its own vertex streams. Present only when true. */
+	customStreams?: boolean | null,
+	/**  0 local, 1 world, 2 custom. */
+	simulationSpace?: number | null,
+	/**  0 hierarchy, 1 local, 2 shape. */
+	scalingMode?: number | null,
+	/**  0 transform, 1 rigidbody. */
+	emitterVelocityMode?: number | null,
+	playOnAwake?: boolean | null,
+	useUnscaledTime?: boolean | null,
+	/**  Share of particles that spin the other way, 0 to 1. */
+	flipRotation?: number | null,
+	rateOverDistance?: MinMax_Deserialize | null,
+	velocityOrbit?: VelocityOrbit_Deserialize | null,
+	inheritVelocity?: InheritVelocity_Deserialize | null,
+	/**  Force over Lifetime: in world space. */
+	forceWorld?: boolean | null,
+	/**  Force over Lifetime: random per frame. */
+	forceRandomized?: boolean | null,
+	colorBySpeed?: ColorBySpeed_Deserialize | null,
+	sizeBySpeed?: SizeBySpeed_Deserialize | null,
+	rotationBySpeed?: RotationBySpeed_Deserialize | null,
+	/**  The Trigger module is on. */
+	triggers?: boolean | null,
+	/**  0 none, 1 by distance, 2 oldest in front, 3 youngest in front. */
+	sortMode?: number | null,
+	/**  Smallest size on screen, as a fraction of the view height. */
+	minScreenSize?: number | null,
+	flip?: [(number | null), (number | null), (number | null)] | null,
+	cameraVelocityScale?: number | null,
+	normalDirection?: number | null,
+	applyActiveColorSpace?: boolean | null,
 };
 
 /**  What it takes to play a particle system. */
@@ -1190,7 +1340,7 @@ export type ParticleSim_Serialize = {
 	maxParticles: number | null,
 	rate: MinMax_Serialize,
 	bursts: ParticleBurst_Serialize[],
-	shape?: ParticleShape,
+	shape?: ParticleShape_Serialize,
 	/**  Added to each particle's velocity (local axes unless `velocityWorld`). */
 	velocity?: [MinMax_Serialize, MinMax_Serialize, MinMax_Serialize],
 	velocityWorld?: boolean,
@@ -1222,6 +1372,38 @@ export type ParticleSim_Serialize = {
 	custom2?: MinMax_Serialize[],
 	/**  The renderer's vertex streams, in order; absent: Unity's default set. */
 	streams?: number[],
+	/**  The renderer uses its own vertex streams. Present only when true. */
+	customStreams?: boolean,
+	/**  0 local, 1 world, 2 custom. */
+	simulationSpace?: number | null,
+	/**  0 hierarchy, 1 local, 2 shape. */
+	scalingMode?: number | null,
+	/**  0 transform, 1 rigidbody. */
+	emitterVelocityMode?: number | null,
+	playOnAwake?: boolean,
+	useUnscaledTime?: boolean,
+	/**  Share of particles that spin the other way, 0 to 1. */
+	flipRotation?: number | null,
+	rateOverDistance?: MinMax_Serialize,
+	velocityOrbit?: VelocityOrbit_Serialize,
+	inheritVelocity?: InheritVelocity_Serialize,
+	/**  Force over Lifetime: in world space. */
+	forceWorld?: boolean,
+	/**  Force over Lifetime: random per frame. */
+	forceRandomized?: boolean,
+	colorBySpeed?: ColorBySpeed_Serialize,
+	sizeBySpeed?: SizeBySpeed_Serialize,
+	rotationBySpeed?: RotationBySpeed_Serialize,
+	/**  The Trigger module is on. */
+	triggers?: boolean,
+	/**  0 none, 1 by distance, 2 oldest in front, 3 youngest in front. */
+	sortMode?: number | null,
+	/**  Smallest size on screen, as a fraction of the view height. */
+	minScreenSize?: number | null,
+	flip?: [(number | null), (number | null), (number | null)],
+	cameraVelocityScale?: number | null,
+	normalDirection?: number | null,
+	applyActiveColorSpace?: boolean,
 };
 
 /**  Trails behind particles (Trail module, Particles mode). */
@@ -1348,6 +1530,23 @@ export type RepoRef = {
 };
 
 export type ResolveMode = "instant" | "quick" | "full";
+
+/**  Rotation by Speed, in radians per second; `xy` holds X and Y when the axes are separate. */
+export type RotationBySpeed = RotationBySpeed_Serialize | RotationBySpeed_Deserialize;
+
+/**  Rotation by Speed, in radians per second; `xy` holds X and Y when the axes are separate. */
+export type RotationBySpeed_Deserialize = {
+	z: MinMax_Deserialize,
+	xy?: [MinMax_Deserialize, MinMax_Deserialize] | null,
+	range: [(number | null), (number | null)],
+};
+
+/**  Rotation by Speed, in radians per second; `xy` holds X and Y when the axes are separate. */
+export type RotationBySpeed_Serialize = {
+	z: MinMax_Serialize,
+	xy?: [MinMax_Serialize, MinMax_Serialize],
+	range: [(number | null), (number | null)],
+};
 
 /**  A Unity editor open on this Mac, with its project. */
 export type RunningUnity = RunningUnity_Serialize | RunningUnity_Deserialize;
@@ -1580,6 +1779,14 @@ export type SheetAnimation_Deserialize = {
 	frame: MinMax_Deserialize,
 	startFrame: MinMax_Deserialize,
 	cycles: number | null,
+	/**  0 grid, 1 sprites. */
+	mode?: number | null,
+	/**  0 over the lifetime, 1 by speed, 2 by frames per second. */
+	timeMode?: number | null,
+	/**  Single-row mode: 0 the row index, 1 a random row, 2 the mesh index. */
+	rowMode?: number | null,
+	flipU?: number | null,
+	flipV?: number | null,
 };
 
 export type SheetAnimation_Serialize = {
@@ -1590,6 +1797,14 @@ export type SheetAnimation_Serialize = {
 	frame: MinMax_Serialize,
 	startFrame: MinMax_Serialize,
 	cycles: number | null,
+	/**  0 grid, 1 sprites. */
+	mode?: number | null,
+	/**  0 over the lifetime, 1 by speed, 2 by frames per second. */
+	timeMode?: number | null,
+	/**  Single-row mode: 0 the row index, 1 a random row, 2 the mesh index. */
+	rowMode?: number | null,
+	flipU?: number | null,
+	flipV?: number | null,
 };
 
 /**  Options of `signOut`: `gh` also logs the account out of GitHub CLI on this Mac. */
@@ -1603,6 +1818,23 @@ export type SignOutOptions_Deserialize = {
 /**  Options of `signOut`: `gh` also logs the account out of GitHub CLI on this Mac. */
 export type SignOutOptions_Serialize = {
 	gh?: boolean,
+};
+
+/**  Size by Speed; `separate` holds height and depth. */
+export type SizeBySpeed = SizeBySpeed_Serialize | SizeBySpeed_Deserialize;
+
+/**  Size by Speed; `separate` holds height and depth. */
+export type SizeBySpeed_Deserialize = {
+	size: MinMax_Deserialize,
+	separate?: [MinMax_Deserialize, MinMax_Deserialize] | null,
+	range: [(number | null), (number | null)],
+};
+
+/**  Size by Speed; `separate` holds height and depth. */
+export type SizeBySpeed_Serialize = {
+	size: MinMax_Serialize,
+	separate?: [MinMax_Serialize, MinMax_Serialize],
+	range: [(number | null), (number | null)],
 };
 
 export type SkipReason = "noMeta" | "noGuid" | "duplicateGuid";
@@ -1883,11 +2115,44 @@ export type VelocityLimit = VelocityLimit_Serialize | VelocityLimit_Deserialize;
 export type VelocityLimit_Deserialize = {
 	limit: MinMax_Deserialize,
 	dampen: number | null,
+	/**  Limits per axis (x, y, z), when the module separates the axes. */
+	separate?: [MinMax_Deserialize, MinMax_Deserialize, MinMax_Deserialize] | null,
+	drag?: MinMax_Deserialize | null,
+	dragBySize?: boolean | null,
+	dragByVelocity?: boolean | null,
+	/**  Limits in world space (else the system's). */
+	world?: boolean | null,
 };
 
 export type VelocityLimit_Serialize = {
 	limit: MinMax_Serialize,
 	dampen: number | null,
+	/**  Limits per axis (x, y, z), when the module separates the axes. */
+	separate?: [MinMax_Serialize, MinMax_Serialize, MinMax_Serialize],
+	drag?: MinMax_Serialize,
+	dragBySize?: boolean,
+	dragByVelocity?: boolean,
+	/**  Limits in world space (else the system's). */
+	world?: boolean,
+};
+
+/**  Velocity over lifetime beyond the linear axes. */
+export type VelocityOrbit = VelocityOrbit_Serialize | VelocityOrbit_Deserialize;
+
+/**  Velocity over lifetime beyond the linear axes. */
+export type VelocityOrbit_Deserialize = {
+	orbital: [MinMax_Deserialize, MinMax_Deserialize, MinMax_Deserialize],
+	offset: [MinMax_Deserialize, MinMax_Deserialize, MinMax_Deserialize],
+	radial: MinMax_Deserialize,
+	speedModifier: MinMax_Deserialize,
+};
+
+/**  Velocity over lifetime beyond the linear axes. */
+export type VelocityOrbit_Serialize = {
+	orbital: [MinMax_Serialize, MinMax_Serialize, MinMax_Serialize],
+	offset: [MinMax_Serialize, MinMax_Serialize, MinMax_Serialize],
+	radial: MinMax_Serialize,
+	speedModifier: MinMax_Serialize,
 };
 
 /**  What `watchCheck` found: the tip commit and the asset files added since the last one seen. */

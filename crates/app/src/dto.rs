@@ -417,6 +417,8 @@ dto! {
     pub struct Gradient {
         pub colors: Vec<GradientColor>,
         pub alphas: Vec<GradientAlpha>,
+        /// 1 when the gradient is Fixed (steps instead of a blend). Absent: Blend.
+        pub mode: Option<f64>,
     }
 
     /// Unity's MinMaxGradient.
@@ -447,6 +449,20 @@ dto! {
         pub rotation: [f64; 3],
         pub scale: [f64; 3],
         pub random_direction: f64,
+        /// How the radius is walked: 0 random, 1 loop, 2 ping-pong, 3 burst spread.
+        pub radius_mode: Option<f64>,
+        pub radius_spread: Option<f64>,
+        pub radius_speed: Option<MinMax>,
+        /// Same for the arc.
+        pub arc_mode: Option<f64>,
+        pub arc_spread: Option<f64>,
+        pub arc_speed: Option<MinMax>,
+        pub donut_radius: Option<f64>,
+        /// Box shapes: how deep into the box particles start, per axis.
+        pub box_thickness: Option<[f64; 3]>,
+        pub spherical_direction: Option<f64>,
+        pub random_position: Option<f64>,
+        pub align_to_direction: Option<bool>,
     }
 
     pub struct ParticleBurst {
@@ -460,6 +476,47 @@ dto! {
     pub struct VelocityLimit {
         pub limit: MinMax,
         pub dampen: f64,
+        /// Limits per axis (x, y, z), when the module separates the axes.
+        pub separate: Option<[MinMax; 3]>,
+        pub drag: Option<MinMax>,
+        pub drag_by_size: Option<bool>,
+        pub drag_by_velocity: Option<bool>,
+        /// Limits in world space (else the system's).
+        pub world: Option<bool>,
+    }
+
+    /// Velocity over lifetime beyond the linear axes.
+    pub struct VelocityOrbit {
+        pub orbital: [MinMax; 3],
+        pub offset: [MinMax; 3],
+        pub radial: MinMax,
+        pub speed_modifier: MinMax,
+    }
+
+    /// Inherit Velocity module: `mode` 0 initial, 1 current.
+    pub struct InheritVelocity {
+        pub mode: f64,
+        pub curve: MinMax,
+    }
+
+    /// Colour by Speed: the gradient over the speed range.
+    pub struct ColorBySpeed {
+        pub color: MinMaxColor,
+        pub range: [f64; 2],
+    }
+
+    /// Size by Speed; `separate` holds height and depth.
+    pub struct SizeBySpeed {
+        pub size: MinMax,
+        pub separate: Option<[MinMax; 2]>,
+        pub range: [f64; 2],
+    }
+
+    /// Rotation by Speed, in radians per second; `xy` holds X and Y when the axes are separate.
+    pub struct RotationBySpeed {
+        pub z: MinMax,
+        pub xy: Option<[MinMax; 2]>,
+        pub range: [f64; 2],
     }
 
     pub struct SheetAnimation {
@@ -470,12 +527,34 @@ dto! {
         pub frame: MinMax,
         pub start_frame: MinMax,
         pub cycles: f64,
+        /// 0 grid, 1 sprites.
+        pub mode: Option<f64>,
+        /// 0 over the lifetime, 1 by speed, 2 by frames per second.
+        pub time_mode: Option<f64>,
+        /// Single-row mode: 0 the row index, 1 a random row, 2 the mesh index.
+        pub row_mode: Option<f64>,
+        pub flip_u: Option<f64>,
+        pub flip_v: Option<f64>,
     }
 
     pub struct ParticleNoise {
         pub strength: MinMax,
         pub frequency: f64,
         pub scroll_speed: f64,
+        /// Strength of Y and Z, when the module separates the axes.
+        pub separate: Option<[MinMax; 2]>,
+        /// The scroll speed as a curve.
+        pub scroll: Option<MinMax>,
+        pub damping: Option<bool>,
+        pub octaves: Option<f64>,
+        pub octave_multiplier: Option<f64>,
+        pub octave_scale: Option<f64>,
+        /// 0 low, 1 medium, 2 high.
+        pub quality: Option<f64>,
+        pub remap: Option<[MinMax; 3]>,
+        pub position_amount: Option<MinMax>,
+        pub rotation_amount: Option<MinMax>,
+        pub size_amount: Option<MinMax>,
     }
 
     #[derive(Copy, Eq)]
@@ -579,6 +658,38 @@ dto! {
         pub custom2: Option<Vec<MinMax>>,
         /// The renderer's vertex streams, in order; absent: Unity's default set.
         pub streams: Option<Vec<u32>>,
+        /// The renderer uses its own vertex streams. Present only when true.
+        pub custom_streams: Option<bool>,
+        /// 0 local, 1 world, 2 custom.
+        pub simulation_space: Option<f64>,
+        /// 0 hierarchy, 1 local, 2 shape.
+        pub scaling_mode: Option<f64>,
+        /// 0 transform, 1 rigidbody.
+        pub emitter_velocity_mode: Option<f64>,
+        pub play_on_awake: Option<bool>,
+        pub use_unscaled_time: Option<bool>,
+        /// Share of particles that spin the other way, 0 to 1.
+        pub flip_rotation: Option<f64>,
+        pub rate_over_distance: Option<MinMax>,
+        pub velocity_orbit: Option<VelocityOrbit>,
+        pub inherit_velocity: Option<InheritVelocity>,
+        /// Force over Lifetime: in world space.
+        pub force_world: Option<bool>,
+        /// Force over Lifetime: random per frame.
+        pub force_randomized: Option<bool>,
+        pub color_by_speed: Option<ColorBySpeed>,
+        pub size_by_speed: Option<SizeBySpeed>,
+        pub rotation_by_speed: Option<RotationBySpeed>,
+        /// The Trigger module is on.
+        pub triggers: Option<bool>,
+        /// 0 none, 1 by distance, 2 oldest in front, 3 youngest in front.
+        pub sort_mode: Option<f64>,
+        /// Smallest size on screen, as a fraction of the view height.
+        pub min_screen_size: Option<f64>,
+        pub flip: Option<[f64; 3]>,
+        pub camera_velocity_scale: Option<f64>,
+        pub normal_direction: Option<f64>,
+        pub apply_active_color_space: Option<bool>,
     }
 
     #[derive(Copy, Eq)]
@@ -1090,8 +1201,9 @@ mod tests {
         assert_eq!(convert::<_, MinMax>(&curve).unwrap().mode, 0.0);
         let color = core::MinMaxColor { mode: 1.0, max: [1.0; 4], min: [0.0; 4], gradient: None, min_gradient: None };
         assert_eq!(convert::<_, MinMaxColor>(&color).unwrap().mode, 1.0);
-        let shape = core::ParticleShape { kind: 4.0, radius: 1.0, radius_thickness: 1.0, angle: 25.0, arc: 360.0, length: 5.0, position: [0.0; 3], rotation: [0.0; 3], scale: [1.0; 3], random_direction: 0.0 };
+        let shape = core::ParticleShape { kind: 4.0, radius: 1.0, radius_thickness: 1.0, angle: 25.0, arc: 360.0, length: 5.0, position: [0.0; 3], rotation: [0.0; 3], scale: [1.0; 3], random_direction: 0.0, radius_mode: None, radius_spread: None, radius_speed: None, arc_mode: None, arc_spread: None, arc_speed: None, donut_radius: Some(0.3), box_thickness: None, spherical_direction: None, random_position: None, align_to_direction: None };
         assert_eq!(convert::<_, ParticleShape>(&shape).unwrap().kind, 4.0);
+        assert_eq!(convert::<_, ParticleShape>(&shape).unwrap().donut_radius, Some(0.3));
         let sub = core::SubEmitter { id: "a".into(), kind: core::SubEmitterType::Birth, inherit: 3.0, probability: 1.0 };
         assert_eq!(convert::<_, SubEmitter>(&sub).unwrap().inherit, 3.0);
     }

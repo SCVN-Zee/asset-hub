@@ -40,6 +40,9 @@ pub struct GradientAlpha {
 pub struct Gradient {
     pub colors: Vec<GradientColor>,
     pub alphas: Vec<GradientAlpha>,
+    /// 1 when the gradient is Fixed (steps instead of a blend). Absent: Blend.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<f64>,
 }
 
 /// Unity's MinMaxGradient: a colour, a gradient, random between two colours or two gradients, or a
@@ -76,6 +79,31 @@ pub struct ParticleShape {
     pub rotation: [f64; 3],
     pub scale: [f64; 3],
     pub random_direction: f64,
+    /// How the radius is walked: Unity's ParticleSystemShapeMultiModeValue (0 random, 1 loop, 2 ping-pong, 3 burst spread).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radius_mode: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radius_spread: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radius_speed: Option<MinMax>,
+    /// Same for the arc.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arc_mode: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arc_spread: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arc_speed: Option<MinMax>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub donut_radius: Option<f64>,
+    /// Box shapes: how deep into the box particles start, per axis.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub box_thickness: Option<[f64; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spherical_direction: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub random_position: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub align_to_direction: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -91,6 +119,60 @@ pub struct Burst {
 pub struct VelocityLimit {
     pub limit: MinMax,
     pub dampen: f64,
+    /// Limits per axis (x, y, z), when the module separates the axes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub separate: Option<[MinMax; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drag: Option<MinMax>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drag_by_size: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drag_by_velocity: Option<bool>,
+    /// Limits in world space (else the system's).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub world: Option<bool>,
+}
+
+/// Velocity over lifetime beyond the linear axes: orbital motion, radial motion and the speed modifier.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VelocityOrbit {
+    pub orbital: [MinMax; 3],
+    pub offset: [MinMax; 3],
+    pub radial: MinMax,
+    pub speed_modifier: MinMax,
+}
+
+/// Inherit Velocity module: `mode` 0 initial, 1 current.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InheritVelocity {
+    pub mode: f64,
+    pub curve: MinMax,
+}
+
+/// Colour by Speed: the gradient over the speed range (x = slowest, y = fastest).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ColorBySpeed {
+    pub color: MinMaxColor,
+    pub range: [f64; 2],
+}
+
+/// Size by Speed. `size` is the width (all axes unless `separate`, which holds height and depth).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SizeBySpeed {
+    pub size: MinMax,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub separate: Option<[MinMax; 2]>,
+    pub range: [f64; 2],
+}
+
+/// Rotation by Speed, in radians per second. `z` is the single curve; `xy` holds X and Y when the axes are separate.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RotationBySpeed {
+    pub z: MinMax,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xy: Option<[MinMax; 2]>,
+    pub range: [f64; 2],
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -103,6 +185,19 @@ pub struct TextureSheet {
     pub frame: MinMax,
     pub start_frame: MinMax,
     pub cycles: f64,
+    /// 0 grid, 1 sprites.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<f64>,
+    /// 0 over the lifetime, 1 by speed, 2 by frames per second.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time_mode: Option<f64>,
+    /// Single-row mode: 0 the row index, 1 a random row, 2 the mesh index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_mode: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flip_u: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flip_v: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -111,6 +206,32 @@ pub struct NoiseModule {
     pub strength: MinMax,
     pub frequency: f64,
     pub scroll_speed: f64,
+    /// Strength of Y and Z, when the module separates the axes (`strength` is X).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub separate: Option<[MinMax; 2]>,
+    /// The scroll speed as a curve (`scroll_speed` is its plain number).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scroll: Option<MinMax>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub damping: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub octaves: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub octave_multiplier: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub octave_scale: Option<f64>,
+    /// 0 low, 1 medium, 2 high.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quality: Option<f64>,
+    /// Remap curves (x, y, z), when remapping is on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remap: Option<[MinMax; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position_amount: Option<MinMax>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation_amount: Option<MinMax>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size_amount: Option<MinMax>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -243,6 +364,62 @@ pub struct ParticleSim {
     /// The renderer's vertex streams (ParticleSystemVertexStream numbers), in order; absent: Unity's default set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub streams: Option<Vec<u32>>,
+    /// The renderer uses its own vertex streams (Unity ignores the list above otherwise). Present only when true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_streams: Option<bool>,
+
+    // What Luna reads on top of the above. Each field is absent when the asset does not say.
+    /// Unity's ParticleSystemSimulationSpace: 0 local, 1 world, 2 custom.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub simulation_space: Option<f64>,
+    /// 0 hierarchy, 1 local, 2 shape.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scaling_mode: Option<f64>,
+    /// 0 transform, 1 rigidbody.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub emitter_velocity_mode: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub play_on_awake: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub use_unscaled_time: Option<bool>,
+    /// Share of particles that spin the other way, 0 to 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flip_rotation: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate_over_distance: Option<MinMax>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub velocity_orbit: Option<VelocityOrbit>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inherit_velocity: Option<InheritVelocity>,
+    /// Force over Lifetime: in world space.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub force_world: Option<bool>,
+    /// Force over Lifetime: random per frame.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub force_randomized: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color_by_speed: Option<ColorBySpeed>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size_by_speed: Option<SizeBySpeed>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation_by_speed: Option<RotationBySpeed>,
+    /// The Trigger module is on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub triggers: Option<bool>,
+    /// Renderer: 0 none, 1 by distance, 2 oldest in front, 3 youngest in front.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sort_mode: Option<f64>,
+    /// Smallest size on screen, as a fraction of the view height.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_screen_size: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flip: Option<[f64; 3]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub camera_velocity_scale: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub normal_direction: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub apply_active_color_space: Option<bool>,
 }
 
 /// The lines nested under `key:` at this indent (list items at the same indent included).
@@ -323,7 +500,7 @@ fn read_gradient(text: &str, indent: usize, key: &str) -> Option<Gradient> {
             alphas.push(GradientAlpha { t: yaml_num(b, indent + 2, &format!("atime{i}")).unwrap_or(0.0) / 65535.0, a: k[3] });
         }
     }
-    Some(Gradient { colors, alphas })
+    Some(Gradient { colors, alphas, mode: yaml_num(b, indent + 2, "m_Mode").filter(|m| *m != 0.0) })
 }
 
 pub fn read_min_max_color(text: &str, indent: usize, key: &str) -> MinMaxColor {
@@ -427,8 +604,99 @@ pub fn parse_particle_sim(ps: &str, renderer: Option<&str>) -> ParticleSim {
         custom1: None,
         custom2: None,
         streams: None,
+        custom_streams: None,
+        simulation_space: None,
+        scaling_mode: None,
+        emitter_velocity_mode: None,
+        play_on_awake: None,
+        use_unscaled_time: None,
+        flip_rotation: None,
+        rate_over_distance: None,
+        velocity_orbit: None,
+        inherit_velocity: None,
+        force_world: None,
+        force_randomized: None,
+        color_by_speed: None,
+        size_by_speed: None,
+        rotation_by_speed: None,
+        triggers: None,
+        sort_mode: None,
+        min_screen_size: None,
+        flip: None,
+        camera_velocity_scale: None,
+        normal_direction: None,
+        apply_active_color_space: None,
     };
+    let non_default = |v: Option<f64>, default: f64| v.filter(|x| *x != default);
+    sim.simulation_space = non_default(yaml_num(ps, 2, "moveWithTransform").or_else(|| yaml_num(initial, 4, "simulationSpace")), 0.0);
+    sim.scaling_mode = non_default(yaml_num(ps, 2, "scalingMode").or_else(|| yaml_num(initial, 4, "scalingMode")), 1.0);
+    sim.emitter_velocity_mode = non_default(yaml_num(ps, 2, "emitterVelocityMode"), 0.0);
+    sim.play_on_awake = (yaml_num(ps, 2, "playOnAwake") == Some(0.0)).then_some(false);
+    sim.use_unscaled_time = (yaml_num(ps, 2, "useUnscaledTime") == Some(1.0)).then_some(true);
+    sim.flip_rotation = non_default(yaml_num(initial, 4, "randomizeRotationDirection"), 0.0);
+    if emits {
+        let dist = read_min_max(emission, 4, "rateOverDistance", 0.0);
+        if dist.mode != 0.0 || dist.scalar != 0.0 {
+            sim.rate_over_distance = Some(dist);
+        }
+    }
+    if on(velocity) {
+        let orbit = VelocityOrbit {
+            orbital: ["orbitalX", "orbitalY", "orbitalZ"].map(|k| mm(velocity, 4, k)),
+            offset: ["orbitalOffsetX", "orbitalOffsetY", "orbitalOffsetZ"].map(|k| mm(velocity, 4, k)),
+            radial: mm(velocity, 4, "radial"),
+            speed_modifier: read_min_max(velocity, 4, "speedModifier", 1.0),
+        };
+        let flat = |m: &MinMax| m.mode == 0.0 && m.scalar == 0.0 && m.min == 0.0;
+        let idle = orbit.orbital.iter().chain(orbit.offset.iter()).all(flat) && flat(&orbit.radial) && orbit.speed_modifier.mode == 0.0 && orbit.speed_modifier.scalar == 1.0;
+        if !idle {
+            sim.velocity_orbit = Some(orbit);
+        }
+    }
+    if on(force) {
+        sim.force_world = (yaml_num(force, 4, "inWorldSpace") == Some(1.0)).then_some(true);
+        sim.force_randomized = (yaml_num(force, 4, "randomizePerFrame") == Some(1.0)).then_some(true);
+    }
+    let inherit = yaml_block(ps, 2, "InheritVelocityModule");
+    if on(inherit) {
+        sim.inherit_velocity = Some(InheritVelocity { mode: yaml_num(inherit, 4, "m_Mode").unwrap_or(0.0), curve: mm(inherit, 4, "m_Curve") });
+    }
+    let by_speed_range = |block: &str| {
+        let re = js::cached(&format!(r"^ {{4}}range: \{{x: {NUM}, y: {NUM}"), "m");
+        re.exec(block).map_or([0.0, 1.0], |m| [1, 2].map(|i| to_number(m.get(i).unwrap_or(""))))
+    };
+    let color_speed = yaml_block(ps, 2, "ColorBySpeedModule");
+    if on(color_speed) {
+        sim.color_by_speed = Some(ColorBySpeed { color: read_min_max_color(color_speed, 4, "gradient"), range: by_speed_range(color_speed) });
+    }
+    let size_speed = yaml_block(ps, 2, "SizeBySpeedModule");
+    if on(size_speed) {
+        sim.size_by_speed = Some(SizeBySpeed {
+            size: read_min_max(size_speed, 4, "curve", 1.0),
+            separate: (yaml_num(size_speed, 4, "separateAxes") == Some(1.0)).then(|| [read_min_max(size_speed, 4, "y", 1.0), read_min_max(size_speed, 4, "z", 1.0)]),
+            range: by_speed_range(size_speed),
+        });
+    }
+    let rotation_speed = yaml_block(ps, 2, "RotationBySpeedModule");
+    if on(rotation_speed) {
+        sim.rotation_by_speed = Some(RotationBySpeed {
+            z: read_min_max(rotation_speed, 4, "curve", std::f64::consts::FRAC_PI_4),
+            xy: (yaml_num(rotation_speed, 4, "separateAxes") == Some(1.0)).then(|| [mm(rotation_speed, 4, "x"), mm(rotation_speed, 4, "y")]),
+            range: by_speed_range(rotation_speed),
+        });
+    }
+    if on(yaml_block(ps, 2, "TriggerModule")) {
+        sim.triggers = Some(true);
+    }
+    sim.sort_mode = non_default(rnum("m_SortMode"), 0.0);
+    sim.min_screen_size = non_default(rnum("m_MinParticleSize"), 0.0);
+    sim.flip = renderer.and_then(|r| vec3(r, 2, "m_Flip")).filter(|f| *f != [0.0; 3]);
+    sim.camera_velocity_scale = non_default(rnum("m_CameraVelocityScale"), 0.0);
+    sim.normal_direction = non_default(rnum("m_NormalDirection"), 1.0);
+    sim.apply_active_color_space = (rnum("m_ApplyActiveColorSpace") == Some(0.0)).then_some(false);
     if on(shape) {
+        let radius_block = yaml_block(shape, 4, "radius");
+        let arc_block = yaml_block(shape, 4, "arc");
         sim.shape = Some(ParticleShape {
             kind: yaml_num(shape, 4, "type").unwrap_or(4.0),
             // radius and arc are MultiModeParameters: their `value` sits one level down.
@@ -441,6 +709,17 @@ pub fn parse_particle_sim(ps: &str, renderer: Option<&str>) -> ParticleSim {
             rotation: vec3(shape, 4, "m_Rotation").unwrap_or([0.0; 3]),
             scale: vec3(shape, 4, "m_Scale").unwrap_or([1.0; 3]),
             random_direction: yaml_num(shape, 4, "randomDirectionAmount").unwrap_or(0.0),
+            radius_mode: non_default(yaml_num(radius_block, 6, "mode"), 0.0),
+            radius_spread: non_default(yaml_num(radius_block, 6, "spread"), 0.0),
+            radius_speed: Some(read_min_max(radius_block, 6, "speed", 1.0)).filter(|m| m.mode != 0.0 || m.scalar != 1.0),
+            arc_mode: non_default(yaml_num(arc_block, 6, "mode"), 0.0),
+            arc_spread: non_default(yaml_num(arc_block, 6, "spread"), 0.0),
+            arc_speed: Some(read_min_max(arc_block, 6, "speed", 1.0)).filter(|m| m.mode != 0.0 || m.scalar != 1.0),
+            donut_radius: non_default(yaml_num(shape, 4, "donutRadius"), 0.2),
+            box_thickness: vec3(shape, 4, "boxThickness").filter(|t| *t != [0.0; 3]),
+            spherical_direction: non_default(yaml_num(shape, 4, "sphericalDirectionAmount"), 0.0),
+            random_position: non_default(yaml_num(shape, 4, "randomPositionAmount"), 0.0),
+            align_to_direction: (yaml_num(shape, 4, "alignToDirection") == Some(1.0)).then_some(true),
         });
     }
     if on(velocity) {
@@ -451,7 +730,15 @@ pub fn parse_particle_sim(ps: &str, renderer: Option<&str>) -> ParticleSim {
         sim.force = Some([mm(force, 4, "x"), mm(force, 4, "y"), mm(force, 4, "z")]);
     }
     if on(limit) {
-        sim.limit = Some(VelocityLimit { limit: read_min_max(limit, 4, "magnitude", 1.0), dampen: yaml_num(limit, 4, "dampen").unwrap_or(0.0) });
+        sim.limit = Some(VelocityLimit {
+            limit: read_min_max(limit, 4, "magnitude", 1.0),
+            dampen: yaml_num(limit, 4, "dampen").unwrap_or(0.0),
+            separate: (yaml_num(limit, 4, "separateAxis") == Some(1.0)).then(|| ["x", "y", "z"].map(|k| read_min_max(limit, 4, k, 1.0))),
+            drag: Some(mm(limit, 4, "drag")).filter(|d| d.mode != 0.0 || d.scalar != 0.0),
+            drag_by_size: (yaml_num(limit, 4, "multiplyDragByParticleSize") == Some(1.0)).then_some(true),
+            drag_by_velocity: (yaml_num(limit, 4, "multiplyDragByParticleVelocity") == Some(1.0)).then_some(true),
+            world: (yaml_num(limit, 4, "inWorldSpace") == Some(1.0)).then_some(true),
+        });
     }
     if on(color) {
         sim.color_over_lifetime = Some(read_min_max_color(color, 4, "gradient"));
@@ -477,6 +764,11 @@ pub fn parse_particle_sim(ps: &str, renderer: Option<&str>) -> ParticleSim {
             frame: read_min_max(uv, 4, "frameOverTime", 1.0),
             start_frame: mm(uv, 4, "startFrame"),
             cycles: yaml_num(uv, 4, "cycles").unwrap_or(1.0),
+            mode: non_default(yaml_num(uv, 4, "mode"), 0.0),
+            time_mode: non_default(yaml_num(uv, 4, "timeMode"), 0.0),
+            row_mode: non_default(yaml_num(uv, 4, "rowMode"), 0.0),
+            flip_u: non_default(yaml_num(uv, 4, "flipU"), 0.0),
+            flip_v: non_default(yaml_num(uv, 4, "flipV"), 0.0),
         });
     }
     let sub = yaml_block(ps, 2, "SubModule");
@@ -515,7 +807,23 @@ pub fn parse_particle_sim(ps: &str, renderer: Option<&str>) -> ParticleSim {
         });
     }
     if on(noise) {
-        sim.noise = Some(NoiseModule { strength: read_min_max(noise, 4, "strength", 1.0), frequency: yaml_num(noise, 4, "frequency").unwrap_or(0.5), scroll_speed: yaml_num(noise, 4, "scrollSpeed").unwrap_or(0.0) });
+        let scroll = read_min_max(noise, 4, "scrollSpeed", 0.0);
+        sim.noise = Some(NoiseModule {
+            strength: read_min_max(noise, 4, "strength", 1.0),
+            frequency: yaml_num(noise, 4, "frequency").unwrap_or(0.5),
+            scroll_speed: yaml_num(noise, 4, "scrollSpeed").unwrap_or(0.0),
+            separate: (yaml_num(noise, 4, "separateAxes") == Some(1.0)).then(|| [read_min_max(noise, 4, "strengthY", 1.0), read_min_max(noise, 4, "strengthZ", 1.0)]),
+            scroll: Some(scroll).filter(|m| m.mode != 0.0 || m.scalar != 0.0),
+            damping: yaml_num(noise, 4, "damping").map(|d| d != 0.0),
+            octaves: yaml_num(noise, 4, "octaves"),
+            octave_multiplier: yaml_num(noise, 4, "octaveMultiplier"),
+            octave_scale: yaml_num(noise, 4, "octaveScale"),
+            quality: yaml_num(noise, 4, "quality"),
+            remap: (yaml_num(noise, 4, "remapEnabled") == Some(1.0)).then(|| [read_min_max(noise, 4, "remap", 1.0), read_min_max(noise, 4, "remapY", 1.0), read_min_max(noise, 4, "remapZ", 1.0)]),
+            position_amount: Some(read_min_max(noise, 4, "positionAmount", 1.0)),
+            rotation_amount: Some(mm(noise, 4, "rotationAmount")),
+            size_amount: Some(mm(noise, 4, "sizeAmount")),
+        });
     }
     let custom = yaml_block(ps, 2, "CustomDataModule");
     if on(custom) {
@@ -536,5 +844,200 @@ pub fn parse_particle_sim(ps: &str, renderer: Option<&str>) -> ParticleSim {
     if let Some(streams) = renderer.and_then(|r| js::group1(r"m_VertexStreams: ([0-9a-f]+)", "", r)) {
         sim.streams = Some(streams.as_bytes().chunks_exact(2).map(|h| u32::from_str_radix(std::str::from_utf8(h).unwrap_or("0"), 16).unwrap_or(0)).collect());
     }
+    sim.custom_streams = (rnum("m_UseCustomVertexStreams") == Some(1.0)).then_some(true);
     sim
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A ParticleSystem document body: `body` is written with module keys at column 0, and every line is
+    /// shifted by two spaces, as `parse_particle_systems` hands the keys over.
+    fn ps(body: &str) -> String {
+        body.lines().map(|l| format!("  {l}\n")).collect()
+    }
+
+    /// A constant MinMaxCurve block `key` at `indent` spaces (body coordinates).
+    fn curve(indent: usize, key: &str, v: f64) -> String {
+        let (pad, inner) = (" ".repeat(indent), " ".repeat(indent + 2));
+        format!("{pad}{key}:\n{inner}minMaxState: 0\n{inner}scalar: {v}\n{inner}minScalar: 0\n")
+    }
+
+    #[test]
+    fn an_empty_system_reports_none_of_the_added_fields() {
+        let sim = parse_particle_sim(&ps("lengthInSec: 5\nlooping: 1"), None);
+        assert!(sim.simulation_space.is_none() && sim.scaling_mode.is_none() && sim.play_on_awake.is_none());
+        assert!(sim.rate_over_distance.is_none() && sim.velocity_orbit.is_none() && sim.inherit_velocity.is_none());
+        assert!(sim.color_by_speed.is_none() && sim.size_by_speed.is_none() && sim.rotation_by_speed.is_none());
+        assert!(sim.sort_mode.is_none() && sim.flip.is_none() && sim.apply_active_color_space.is_none());
+    }
+
+    #[test]
+    fn main_module_settings_are_read() {
+        let text = ps("moveWithTransform: 2\nscalingMode: 0\nemitterVelocityMode: 1\nplayOnAwake: 0\nuseUnscaledTime: 1\nInitialModule:\n  enabled: 1\n  randomizeRotationDirection: 0.5");
+        let sim = parse_particle_sim(&text, None);
+        assert_eq!(sim.simulation_space, Some(2.0));
+        assert_eq!(sim.scaling_mode, Some(0.0));
+        assert_eq!(sim.emitter_velocity_mode, Some(1.0));
+        assert_eq!(sim.play_on_awake, Some(false));
+        assert_eq!(sim.use_unscaled_time, Some(true));
+        assert_eq!(sim.flip_rotation, Some(0.5));
+        // The Unity-style player keeps reading the older fields.
+        assert!(!sim.world_space);
+    }
+
+    #[test]
+    fn rate_over_distance_is_read_when_emission_is_on() {
+        let text = ps(&format!("EmissionModule:\n  enabled: 1\n{}{}", curve(2, "rateOverTime", 0.0), curve(2, "rateOverDistance", 3.0)));
+        assert_eq!(parse_particle_sim(&text, None).rate_over_distance.map(|m| m.scalar), Some(3.0));
+    }
+
+    #[test]
+    fn shape_extras_are_read() {
+        let text = ps(&format!(
+            "ShapeModule:\n  enabled: 1\n  type: 10\n  radius:\n    value: 2\n    mode: 1\n    spread: 0.25\n{}  arc:\n    value: 180\n    mode: 2\n    spread: 0\n{}  donutRadius: 0.4\n  boxThickness: {{x: 1, y: 0, z: 0.5}}\n  sphericalDirectionAmount: 0.3\n  randomPositionAmount: 0.1\n  alignToDirection: 1",
+            curve(4, "speed", 3.0),
+            curve(4, "speed", 1.0)
+        ));
+        let shape = parse_particle_sim(&text, None).shape.expect("shape");
+        assert_eq!(shape.radius, 2.0);
+        assert_eq!(shape.radius_mode, Some(1.0));
+        assert_eq!(shape.radius_spread, Some(0.25));
+        assert_eq!(shape.radius_speed.map(|m| m.scalar), Some(3.0));
+        assert_eq!(shape.arc_mode, Some(2.0));
+        assert_eq!(shape.arc_spread, None);
+        assert!(shape.arc_speed.is_none(), "a speed of the default 1 is not reported");
+        assert_eq!(shape.donut_radius, Some(0.4));
+        assert_eq!(shape.box_thickness, Some([1.0, 0.0, 0.5]));
+        assert_eq!(shape.spherical_direction, Some(0.3));
+        assert_eq!(shape.random_position, Some(0.1));
+        assert_eq!(shape.align_to_direction, Some(true));
+    }
+
+    #[test]
+    fn shape_defaults_stay_silent() {
+        let text = ps("ShapeModule:\n  enabled: 1\n  type: 4\n  radius:\n    value: 1\n    mode: 0\n    spread: 0\n  donutRadius: 0.2");
+        let shape = parse_particle_sim(&text, None).shape.expect("shape");
+        assert!(shape.radius_mode.is_none() && shape.donut_radius.is_none() && shape.box_thickness.is_none() && shape.align_to_direction.is_none());
+    }
+
+    #[test]
+    fn limit_velocity_extras_are_read() {
+        let text = ps(&format!(
+            "ClampVelocityModule:\n  enabled: 1\n{}  separateAxis: 1\n{}{}{}  dampen: 0.5\n{}  multiplyDragByParticleSize: 1\n  inWorldSpace: 1",
+            curve(2, "magnitude", 2.0),
+            curve(2, "x", 1.0),
+            curve(2, "y", 2.0),
+            curve(2, "z", 3.0),
+            curve(2, "drag", 0.7)
+        ));
+        let limit = parse_particle_sim(&text, None).limit.expect("limit");
+        let axes = limit.separate.expect("axes");
+        assert_eq!([axes[0].scalar, axes[1].scalar, axes[2].scalar], [1.0, 2.0, 3.0]);
+        assert_eq!(limit.drag.map(|d| d.scalar), Some(0.7));
+        assert_eq!(limit.drag_by_size, Some(true));
+        assert_eq!(limit.drag_by_velocity, None);
+        assert_eq!(limit.world, Some(true));
+    }
+
+    #[test]
+    fn velocity_orbit_is_reported_only_when_it_does_something() {
+        let idle = ps(&format!("VelocityModule:\n  enabled: 1\n{}", curve(2, "speedModifier", 1.0)));
+        assert!(parse_particle_sim(&idle, None).velocity_orbit.is_none());
+        let busy = ps(&format!("VelocityModule:\n  enabled: 1\n{}{}{}", curve(2, "orbitalY", 2.0), curve(2, "radial", 0.5), curve(2, "speedModifier", 1.5)));
+        let orbit = parse_particle_sim(&busy, None).velocity_orbit.expect("orbit");
+        assert_eq!(orbit.orbital[1].scalar, 2.0);
+        assert_eq!(orbit.radial.scalar, 0.5);
+        assert_eq!(orbit.speed_modifier.scalar, 1.5);
+    }
+
+    #[test]
+    fn inherit_velocity_and_force_flags_are_read() {
+        let text = ps(&format!("InheritVelocityModule:\n  enabled: 1\n  m_Mode: 1\n{}ForceModule:\n  enabled: 1\n  inWorldSpace: 1\n  randomizePerFrame: 1", curve(2, "m_Curve", 0.8)));
+        let sim = parse_particle_sim(&text, None);
+        let inherit = sim.inherit_velocity.expect("inherit");
+        assert_eq!((inherit.mode, inherit.curve.scalar), (1.0, 0.8));
+        assert_eq!(sim.force_world, Some(true));
+        assert_eq!(sim.force_randomized, Some(true));
+    }
+
+    #[test]
+    fn by_speed_modules_are_read_with_their_range() {
+        let text = ps(&format!(
+            "ColorBySpeedModule:\n  enabled: 1\n  range: {{x: 1, y: 8}}\nSizeBySpeedModule:\n  enabled: 1\n{}  range: {{x: 2, y: 4}}\n  separateAxes: 1\n{}{}RotationBySpeedModule:\n  enabled: 1\n{}  range: {{x: 0, y: 3}}",
+            curve(2, "curve", 2.0),
+            curve(2, "y", 3.0),
+            curve(2, "z", 4.0),
+            curve(2, "curve", 1.0)
+        ));
+        let sim = parse_particle_sim(&text, None);
+        assert_eq!(sim.color_by_speed.expect("colour").range, [1.0, 8.0]);
+        let size = sim.size_by_speed.expect("size");
+        assert_eq!((size.size.scalar, size.range), (2.0, [2.0, 4.0]));
+        assert_eq!(size.separate.map(|s| (s[0].scalar, s[1].scalar)), Some((3.0, 4.0)));
+        let rot = sim.rotation_by_speed.expect("rotation");
+        assert_eq!((rot.z.scalar, rot.range), (1.0, [0.0, 3.0]));
+        assert!(rot.xy.is_none());
+    }
+
+    #[test]
+    fn a_fixed_gradient_is_marked() {
+        let body = |mode: u8| ps(&format!("ColorModule:\n  enabled: 1\n  gradient:\n    minMaxState: 1\n    maxGradient:\n      m_Mode: {mode}\n      m_NumColorKeys: 2\n      m_NumAlphaKeys: 2"));
+        let mode = |text: &str| parse_particle_sim(text, None).color_over_lifetime.and_then(|c| c.gradient).map(|g| g.mode);
+        assert_eq!(mode(&body(1)), Some(Some(1.0)));
+        assert_eq!(mode(&body(0)), Some(None));
+    }
+
+    #[test]
+    fn trigger_module_is_flagged() {
+        assert_eq!(parse_particle_sim(&ps("TriggerModule:\n  enabled: 1"), None).triggers, Some(true));
+        assert!(parse_particle_sim(&ps("TriggerModule:\n  enabled: 0"), None).triggers.is_none());
+    }
+
+    #[test]
+    fn sheet_and_noise_extras_are_read() {
+        let text = ps(&format!(
+            "UVModule:\n  enabled: 1\n  mode: 1\n  timeMode: 2\n  rowMode: 1\n  flipU: 1\n  flipV: 0.5\nNoiseModule:\n  enabled: 1\n  separateAxes: 1\n{}{}{}  damping: 0\n  octaves: 3\n  octaveMultiplier: 0.4\n  octaveScale: 2.5\n  quality: 2\n{}  remapEnabled: 1\n{}",
+            curve(2, "strength", 1.0),
+            curve(2, "strengthY", 2.0),
+            curve(2, "strengthZ", 3.0),
+            curve(2, "scrollSpeed", 0.6),
+            curve(2, "rotationAmount", 0.9)
+        ));
+        let sim = parse_particle_sim(&text, None);
+        let sheet = sim.sheet.expect("sheet");
+        assert_eq!((sheet.mode, sheet.time_mode, sheet.row_mode, sheet.flip_u, sheet.flip_v), (Some(1.0), Some(2.0), Some(1.0), Some(1.0), Some(0.5)));
+        let noise = sim.noise.expect("noise");
+        assert_eq!(noise.separate.map(|s| (s[0].scalar, s[1].scalar)), Some((2.0, 3.0)));
+        assert_eq!(noise.damping, Some(false));
+        assert_eq!((noise.octaves, noise.octave_multiplier, noise.octave_scale, noise.quality), (Some(3.0), Some(0.4), Some(2.5), Some(2.0)));
+        assert_eq!(noise.scroll.map(|s| s.scalar), Some(0.6));
+        assert_eq!(noise.remap.map(|r| r.len()), Some(3));
+        assert_eq!(noise.rotation_amount.map(|r| r.scalar), Some(0.9));
+        // The plain number the Unity-style player reads stays as it was.
+        assert_eq!(noise.scroll_speed, 0.0);
+    }
+
+    #[test]
+    fn renderer_extras_are_read() {
+        let renderer = ps("m_SortMode: 2\nm_MinParticleSize: 0.1\nm_Flip: {x: 1, y: 0, z: 0}\nm_CameraVelocityScale: 0.5\nm_NormalDirection: 0.7\nm_ApplyActiveColorSpace: 0\nm_UseCustomVertexStreams: 1\nm_VertexStreams: 00010305");
+        let sim = parse_particle_sim(&ps("lengthInSec: 5"), Some(&renderer));
+        assert_eq!(sim.sort_mode, Some(2.0));
+        assert_eq!(sim.min_screen_size, Some(0.1));
+        assert_eq!(sim.flip, Some([1.0, 0.0, 0.0]));
+        assert_eq!(sim.camera_velocity_scale, Some(0.5));
+        assert_eq!(sim.normal_direction, Some(0.7));
+        assert_eq!(sim.custom_streams, Some(true));
+        assert_eq!(sim.streams, Some(vec![0, 1, 3, 5]));
+        assert_eq!(sim.apply_active_color_space, Some(false));
+    }
+
+    #[test]
+    fn new_fields_leave_the_serialised_shape_of_old_systems_alone() {
+        let json = serde_json::to_value(parse_particle_sim(&ps("lengthInSec: 5"), None)).expect("serialise");
+        for key in ["simulationSpace", "rateOverDistance", "velocityOrbit", "colorBySpeed", "sortMode", "flip"] {
+            assert!(json.get(key).is_none(), "{key} should be absent");
+        }
+    }
 }

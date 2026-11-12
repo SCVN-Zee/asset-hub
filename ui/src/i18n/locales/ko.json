@@ -230,6 +230,24 @@
     "empty": "3D로 표시할 것이 없습니다 (메시 없음).",
     "missing_other": "메시 {{count}}개를 찾을 수 없음"
   },
+  "luna": {
+    "mode": "플레이어",
+    "modeHint": "Unity: 뷰어 자체 플레이어. Luna: 플레이어블에서 그려지는 실제 Luna 런타임. 분할: 두 가지를 나란히 표시합니다.",
+    "modes": {
+      "unity": "Unity",
+      "luna": "Luna",
+      "split": "분할"
+    },
+    "starting": "Luna 런타임을 시작하는 중…",
+    "loading": "Luna에서 이펙트를 불러오는 중…",
+    "error": "Luna에서 이 이펙트를 표시할 수 없습니다: {{message}}",
+    "retry": "다시 시도",
+    "differs_other": "Luna에서 {{count}}가지 차이",
+    "differsHint": "Luna가 Unity와 다르게 그리는 항목",
+    "notesTitle": "Luna에서 달라지는 점",
+    "wholeEffect": "이펙트 전체",
+    "shaderFallback": "셰이더 {{name}}은(는) 포팅되지 않아 대체 셰이더로 그려집니다."
+  },
   "stats": {
     "triangles": "삼각형",
     "vertices": "버텍스",

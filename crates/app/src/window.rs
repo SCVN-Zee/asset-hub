@@ -19,13 +19,18 @@ const SHOW_AFTER: Duration = Duration::from_secs(5);
 /// minute to 3. Honoured on macOS 14 and later only; wry ignores it on macOS 13.
 const BACKGROUND_THROTTLING: BackgroundThrottlingPolicy = BackgroundThrottlingPolicy::Disabled;
 
-/// True when `target` is the page the window shows: the window only ever shows the app itself,
-/// so a dropped file or a stray link must not replace it.
+/// The page the Luna preview runs in, inside an iframe of the app (`ui/src/luna/runtime-info.ts`,
+/// `LUNA_HOST_URL`). WebKit asks the navigation guard about iframes too, so the guard must allow it.
+const LUNA_HOST_PATH: &str = "/luna-host.html";
+
+/// True when `target` is a page of the app: the window only ever shows the app itself, and its
+/// Luna preview iframe only the Luna host page, so a dropped file or a stray link must not replace
+/// them.
 pub fn is_app_url(target: &Url, app: &Url) -> bool {
     target.scheme() == app.scheme()
         && target.host_str() == app.host_str()
         && target.port_or_known_default() == app.port_or_known_default()
-        && page_path(target) == page_path(app)
+        && (page_path(target) == page_path(app) || page_path(target) == LUNA_HOST_PATH)
 }
 
 /// The path of a page; a URL of a scheme without a path (`tauri://localhost`) is the root.
@@ -151,6 +156,9 @@ mod tests {
         assert!(is_app_url(&url("http://localhost:5173/"), &app));
         assert!(is_app_url(&url("http://localhost:5173/?x=1#frag"), &app));
         assert!(!is_app_url(&url("http://localhost:5173/other"), &app));
+        assert!(is_app_url(&url("http://localhost:5173/luna-host.html?space=linear"), &app));
+        assert!(!is_app_url(&url("http://localhost:5174/luna-host.html"), &app));
+        assert!(!is_app_url(&url("https://example.com/luna-host.html"), &app));
         assert!(!is_app_url(&url("http://localhost:5174/"), &app));
         assert!(!is_app_url(&url("https://example.com/"), &app));
         assert!(!is_app_url(&url("file:///etc/hosts"), &app));
@@ -161,6 +169,8 @@ mod tests {
         let app = url("tauri://localhost");
         assert!(is_app_url(&url("tauri://localhost/"), &app));
         assert!(!is_app_url(&url("tauri://evil/"), &app));
+        assert!(is_app_url(&url("tauri://localhost/luna-host.html"), &app));
+        assert!(!is_app_url(&url("tauri://localhost/luna/7.2.0/pi.js"), &app));
         assert!(!is_app_url(&url("http://localhost/"), &app));
     }
 }

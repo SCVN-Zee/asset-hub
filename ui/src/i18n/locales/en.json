@@ -239,6 +239,25 @@
     "missing_one": "{{count}} mesh not found",
     "missing_other": "{{count}} meshes not found"
   },
+  "luna": {
+    "mode": "Player",
+    "modeHint": "Unity: the viewer's own player. Luna: the real Luna runtime, as a playable draws it. Split: both side by side.",
+    "modes": {
+      "unity": "Unity",
+      "luna": "Luna",
+      "split": "Split"
+    },
+    "starting": "Starting the Luna runtime…",
+    "loading": "Loading the effect in Luna…",
+    "error": "Luna could not show this effect: {{message}}",
+    "retry": "Retry",
+    "differs_one": "{{count}} difference in Luna",
+    "differs_other": "{{count}} differences in Luna",
+    "differsHint": "Things Luna does not draw as Unity does",
+    "notesTitle": "What differs in Luna",
+    "wholeEffect": "Whole effect",
+    "shaderFallback": "Shader {{name}} has no port: a stand-in shader draws it."
+  },
   "stats": {
     "triangles": "Triangles",
     "vertices": "Vertices",

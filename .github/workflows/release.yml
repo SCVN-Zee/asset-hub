@@ -53,6 +53,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run test
+      # Boots the bundled Luna runtime in headless Chrome. The runner image has Google Chrome; References/ is absent in CI, so the prefab cases skip.
+      - name: Luna runtime smoke test
+        run: bun scripts/luna-smoke.mjs
       - run: bun run prebuild:cli
       - run: cargo test --workspace
 

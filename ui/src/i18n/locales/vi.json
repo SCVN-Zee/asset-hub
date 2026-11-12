@@ -231,6 +231,24 @@
     "missing_one": "{{count}} mesh không tìm thấy",
     "missing_other": "{{count}} mesh không tìm thấy"
   },
+  "luna": {
+    "mode": "Trình phát",
+    "modeHint": "Unity: trình phát riêng của trình xem. Luna: runtime Luna thật, như playable vẽ. Chia đôi: hiện cả hai cạnh nhau.",
+    "modes": {
+      "unity": "Unity",
+      "luna": "Luna",
+      "split": "Chia đôi"
+    },
+    "starting": "Đang khởi động runtime Luna…",
+    "loading": "Đang tải hiệu ứng vào Luna…",
+    "error": "Luna không hiển thị được hiệu ứng này: {{message}}",
+    "retry": "Thử lại",
+    "differs_other": "{{count}} điểm khác trong Luna",
+    "differsHint": "Những thứ Luna không vẽ giống Unity",
+    "notesTitle": "Điểm khác trong Luna",
+    "wholeEffect": "Toàn bộ hiệu ứng",
+    "shaderFallback": "Shader {{name}} chưa được port: một shader thay thế sẽ vẽ nó."
+  },
   "stats": {
     "triangles": "Tam giác",
     "vertices": "Đỉnh",

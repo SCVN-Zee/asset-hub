@@ -61,6 +61,8 @@ export class FbxViewer {
   private home = { position: new THREE.Vector3(), target: new THREE.Vector3(), radius: 1 }
   private frame = 0
   private disposed = false
+  /** False while another pane shows the effect: the clock and the updaters still run, but nothing is drawn. */
+  private rendering = true
   /** A turn of the camera around its target under way (`lookFrom`): from and to directions, and how far along. */
   private turn?: { from: THREE.Vector3; to: THREE.Vector3; t: number }
   /** Called every frame with the seconds since the last one (particle effects). */
@@ -174,6 +176,11 @@ export class FbxViewer {
     this.model = group
     this.scene.add(group)
     this.frameModel(extent)
+  }
+
+  /** Stops or resumes drawing. The frame loop keeps running, so updaters (the effect clock) go on. */
+  setRendering(on: boolean): void {
+    this.rendering = on
   }
 
   /** Runs `fn` every frame until the returned function is called. */
@@ -502,6 +509,7 @@ export class FbxViewer {
     const dt = Math.min(this.clock.getDelta(), 0.1)
     this.mixer?.update(dt)
     this.updaters.forEach((fn) => fn(dt))
+    if (!this.rendering) return
     this.stepTurn(dt)
     this.controls.update()
     this.renderer.render(this.scene, this.camera)

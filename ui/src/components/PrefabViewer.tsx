@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
 import { useTranslation } from 'react-i18next'
 import type { DependencyReport, ModelStats } from '@shared/types'
 import { ViewGizmo } from './ViewGizmo'
+import { LunaNotes, LunaView, type LunaHandle, type LunaNote, type LunaScene } from './LunaView'
 import { FbxViewer } from '../viewer/FbxViewer'
 import { buildPrefab, dressPrefab, type PrefabBuild } from '../viewer/prefabBuild'
-import { buildEffect } from '../viewer/effectBuild'
-import { FRAME, type EffectPlayer } from '../viewer/particlePlayer'
+import { buildEffect, closeLunaTextures, type BuiltEffect } from '../viewer/effectBuild'
+import { FRAME } from '../viewer/particlePlayer'
+import { buildLunaEffect, nodesOf, type TransformLike } from '../luna/bridge'
+import { frameEffect } from '../luna/framing'
+import type { LunaCamera, Rgba } from '../luna/protocol'
 import type { LiveContext } from './ModelViewer'
 
 interface Props {
@@ -41,6 +46,66 @@ function writeBackdrop(value: FxBackdrop): void {
   }
 }
 
+/** Which player shows an effect: the viewer's own (Unity), the Luna runtime, or both side by side. */
+export type FxMode = 'unity' | 'luna' | 'split'
+const MODE_KEY = 'assethub.fxMode'
+const MODES: readonly FxMode[] = ['unity', 'luna', 'split']
+
+/** Remembered per machine like the backdrop; storage can be unavailable (then it is Unity). */
+function readMode(): FxMode {
+  try {
+    const value = localStorage.getItem(MODE_KEY)
+    return MODES.find((m) => m === value) ?? 'unity'
+  } catch {
+    return 'unity'
+  }
+}
+
+function writeMode(value: FxMode): void {
+  try {
+    localStorage.setItem(MODE_KEY, value)
+  } catch {
+    // Not remembered: still applies until the app closes.
+  }
+}
+
+/** The colour the viewer shows behind an effect, from the page's own variables so that Luna draws the same one. */
+function backdropColor(backdrop: FxBackdrop): Rgba {
+  const hex = getComputedStyle(document.documentElement).getPropertyValue(backdrop === 'dark' ? '--ground' : '--stage').trim()
+  const n = /^#([0-9a-f]{6})$/i.exec(hex)?.[1]
+  const value = n ? parseInt(n, 16) : backdrop === 'dark' ? 0x1f1f20 : 0x767676
+  return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255, 1]
+}
+
+const IDENTITY: Pick<TransformLike, 'position' | 'quaternion' | 'scale' | 'visible'> = { position: { x: 0, y: 0, z: 0 }, quaternion: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 }, visible: true }
+
+/** What the Luna pane needs of a built prefab: the same emitters, materials, textures and hierarchy the Unity-style player has. */
+function lunaScene(effect: BuiltEffect, build: PrefabBuild, camera: LunaCamera | undefined): LunaScene {
+  const linear = !effect.luna.gamma
+  return {
+    linear,
+    camera,
+    build: async () => {
+      const materials = await effect.luna.materials()
+      try {
+        // A system on the prefab's own root has no object below the group that stands for the world: it gets one of its own.
+        const rootNode: TransformLike = { name: 'Root', parent: build.group, ...IDENTITY }
+        const objects = build.anchors.map((a) => (a.object === build.group ? rootNode : a.object))
+        const { nodes, indexOf } = nodesOf(objects, build.group)
+        const spec = buildLunaEffect({
+          linear,
+          nodes,
+          emitters: build.anchors.map(({ emitter }, i) => ({ emitter, node: indexOf.get(objects[i])!, material: materials[i] }))
+        })
+        return { spec, release: () => closeLunaTextures(materials) }
+      } catch (err) {
+        closeLunaTextures(materials)
+        throw err
+      }
+    }
+  }
+}
+
 type Status = 'waiting' | 'loading' | 'ready' | 'empty' | 'error'
 
 /** What a build depends on: rebuilt only when the report finds more files, not on every step. */
@@ -51,7 +116,7 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
   const { t } = useTranslation()
   const host = useRef<HTMLDivElement>(null)
   const viewer = useRef<FbxViewer>()
-  const built = useRef<{ key: string; build: PrefabBuild; effect?: EffectPlayer; stop?: () => void }>()
+  const built = useRef<{ key: string; build: PrefabBuild; effect?: BuiltEffect; stop?: () => void }>()
   const [status, setStatus] = useState<Status>('waiting')
   const [error, setError] = useState('')
   const [missing, setMissing] = useState(0)
@@ -62,10 +127,39 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
   /** Where the effect is on its timeline, in seconds, and how long that runs. */
   const [clock, setClock] = useState({ time: 0, length: 1 })
   const [backdrop, setBackdrop] = useState(readBackdrop)
+  const [mode, setMode] = useState(readMode)
+  /** The effect as the Luna pane takes it, set with each build. */
+  const [scene, setScene] = useState<LunaScene>()
+  const [notes, setNotes] = useState<LunaNote[]>([])
+  const [notesOpen, setNotesOpen] = useState(false)
+  const luna = useRef<LunaHandle>(null)
+  /** The runtime starts when Luna is first asked for and stays until the viewer closes. */
+  const [lunaUsed, setLunaUsed] = useState(mode !== 'unity')
+  /** The Unity-style player's time at the last frame, to see it start over by itself (a loop). */
+  const lastTime = useRef(0)
   // Only effects have the choice; a model always sits on the stage.
   const shownBackdrop: FxBackdrop = fx ? backdrop : 'stage'
   const callbacks = useRef({ onStats, onThumb, onLoading, onBackdrop })
   callbacks.current = { onStats, onThumb, onLoading, onBackdrop }
+  const fxNow = useRef(fx)
+  fxNow.current = fx
+  // Only prefabs with particles can show Luna.
+  const shownMode: FxMode = fx ? mode : 'unity'
+  const lunaShown = shownMode !== 'unity'
+  /** The updater below lives as long as a build, so it reads whether Luna is shown from here. */
+  const lunaShownRef = useRef(lunaShown)
+  lunaShownRef.current = lunaShown
+  /** The Luna pane's backdrop colour, read once the page shows that backdrop (not on every render). */
+  const [lunaBackground, setLunaBackground] = useState(() => backdropColor(shownBackdrop))
+  useLayoutEffect(() => setLunaBackground(backdropColor(shownBackdrop)), [shownBackdrop])
+  /** A seek waiting for the next frame, so a drag over the timeline sends one per frame, not one per event. */
+  const pendingSeek = useRef<{ frame: number; time: number }>()
+  useEffect(() => () => {
+    if (pendingSeek.current) cancelAnimationFrame(pendingSeek.current.frame)
+  }, [])
+  // Once the runtime has started it stays mounted, with or without an effect, so it survives a change of prefab.
+  const lunaMounted = useRef(false)
+  if (lunaUsed && scene) lunaMounted.current = true
 
   useEffect(() => {
     callbacks.current.onBackdrop?.(shownBackdrop)
@@ -82,9 +176,16 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
     if (!el) return
     const v = new FbxViewer(el)
     viewer.current = v
+    // Everything that belongs to the previous prefab goes: the clock, the controls, the notices and its effect.
     setStatus('waiting')
+    setError('')
+    setClock({ time: 0, length: 1 })
+    lastTime.current = 0
     setMissing(0)
     setFx(undefined)
+    setScene(undefined)
+    setNotes([])
+    setNotesOpen(false)
     setAutoRotate(false)
     setWireframe(false)
     return () => {
@@ -96,6 +197,11 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
       built.current = undefined
     }
   }, [live.repo, live.branch, live.root, path])
+
+  // Luna alone shows the effect: the Unity-style view stops drawing (its clock keeps running) until it is shown again.
+  useEffect(() => {
+    viewer.current?.setRendering(shownMode !== 'luna')
+  }, [shownMode, live.repo, live.branch, live.root, path])
 
   useEffect(() => {
     if (!report) return
@@ -124,6 +230,10 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
             effect &&
             owner.addUpdater((dt) => {
               effect.update(dt)
+              // The Unity-style player starts a finished effect over by itself: Luna starts over with it.
+              // Only while Luna is shown: a pane that is not shown holds no effect.
+              if (lunaShownRef.current && !effect.paused && effect.time < lastTime.current - 1e-6) luna.current?.send({ type: 'restart' })
+              lastTime.current = effect.time
               // The timeline follows the play, one render per frame of it at most.
               const at = Math.floor(effect.time / FRAME)
               if (at !== shown) {
@@ -133,10 +243,15 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
             })
         }
         // The camera takes in where particles fly, not only the meshes.
-        owner.showGroup(build.group, effect?.measuredExtent())
+        const extent = effect?.measuredExtent()
+        // The same box the viewer frames (it moves the group when it takes it), so Luna can frame the same view.
+        const box = new THREE.Box3().setFromObject(build.group)
+        if (extent) box.union(extent)
+        owner.showGroup(build.group, extent)
         await dressPrefab(owner, build)
         previous?.build.dispose()
-        if (cancelled) return
+        // The viewer may have moved to another prefab meanwhile, and its cleanup already disposed this build.
+        if (cancelled || owner !== viewer.current || owner.isDisposed()) return
         setMissing(build.missing)
         if (effect) {
           owner.setWireframe(wireframe)
@@ -148,6 +263,8 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
           })
           // It played while hidden by the overlay (textures were still loading): from the start, now that it shows.
           effect.restart()
+          lastTime.current = 0
+          setScene(lunaScene(effect, build, frameEffect(box)))
           setStatus('ready')
           // No snapshot: effect cards are filmed through their whole run in the background.
           callbacks.current.onStats(owner.stats(build.modelBytes, build.textures))
@@ -174,7 +291,59 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
     const next = { paused: false, loop: true, speed: 1, ...fx, ...patch }
     const effect = built.current?.effect
     if (effect) Object.assign(effect, next)
+    // Pausing holds both players where they are. Resuming goes on from there (a fired shot needs the running effect).
+    if (patch.paused !== undefined) sendLuna({ type: patch.paused ? 'pause' : 'play' })
     setFx(next)
+  }
+  const sendLuna: LunaHandle['send'] = (command) => {
+    if (!lunaShown) return
+    if (command.type === 'seek') {
+      // The last time of the frame wins.
+      const pending = pendingSeek.current
+      if (pending) pending.time = command.time
+      else {
+        const next = { frame: 0, time: command.time }
+        next.frame = requestAnimationFrame(() => {
+          pendingSeek.current = undefined
+          luna.current?.send({ type: 'seek', time: next.time })
+        })
+        pendingSeek.current = next
+      }
+      return
+    }
+    // A command after a seek must find the effect where the seek put it.
+    flushSeek()
+    luna.current?.send(command)
+  }
+  const flushSeek = () => {
+    const pending = pendingSeek.current
+    if (!pending) return
+    cancelAnimationFrame(pending.frame)
+    pendingSeek.current = undefined
+    luna.current?.send({ type: 'seek', time: pending.time })
+  }
+  /** Plays the effect from its start in both players. */
+  const restart = () => {
+    built.current?.effect?.restart()
+    lastTime.current = 0
+    sendLuna({ type: 'restart' })
+  }
+  /**
+   * The Luna pane has its effect (it loads when the pane is shown): puts it on the Unity-style player's clock, which
+   * keeps its own time. The player restarts Luna at each loop, so the host does not loop by itself.
+   */
+  const syncLuna = () => {
+    const effect = built.current?.effect
+    const state = fxNow.current
+    if (!lunaShownRef.current || !effect || !state) return
+    luna.current?.send({ type: 'loop', value: false })
+    luna.current?.send({ type: 'seek', time: effect.time })
+    if (!state.paused) luna.current?.send({ type: 'play' })
+  }
+  const chooseMode = (next: FxMode) => {
+    writeMode(next)
+    setMode(next)
+    if (next !== 'unity') setLunaUsed(true)
   }
   const overlay =
     status === 'waiting' || status === 'loading'
@@ -192,6 +361,9 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
     if (!fx.paused) setEffect({ paused: true })
     const length = effect.timeline()
     effect.seek(Math.min(length, Math.max(0, Math.round(seconds / FRAME) * FRAME)))
+    lastTime.current = effect.time
+    // Luna restarts and steps to the same time with `Simulate`, which leaves it paused there.
+    sendLuna({ type: 'seek', time: effect.time })
     setClock({ time: effect.time, length })
   }
   const frameNow = Math.round(clock.time / FRAME)
@@ -202,12 +374,14 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
     if (!effect || !fx) return
     if (fx.paused) setEffect({ paused: false })
     effect.fire()
+    sendLuna({ type: 'fire' })
   }
 
   return (
     <div
       className="viewer"
       data-backdrop={shownBackdrop}
+      data-mode={shownMode}
       // Focused (clicked) viewer: Space fires the effect again.
       tabIndex={fx ? 0 : undefined}
       onKeyDown={(e) => {
@@ -224,6 +398,18 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
       }}
     >
       <div className="viewer-canvas" ref={host} />
+      {lunaMounted.current && (
+        <LunaView
+          ref={luna}
+          scene={scene}
+          background={lunaBackground}
+          speed={fx?.speed ?? 1}
+          hidden={!lunaShown || !scene}
+          className="viewer-luna"
+          onLoaded={syncLuna}
+          onNotes={setNotes}
+        />
+      )}
       {overlay && (
         <div className="viewer-overlay" role="status">
           {overlay}
@@ -231,33 +417,37 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
       )}
       {status === 'ready' && (
         <>
-          <ViewGizmo viewer={viewer.current} />
+          {shownMode !== 'luna' && <ViewGizmo viewer={viewer.current} />}
           <div className="viewer-tools viewer-tools-top" role="toolbar" aria-label={t('viewer.tools')}>
-            <button type="button" className="viewer-btn" onClick={() => viewer.current?.setView('reset')}>
-              {t('viewer.view.reset')}
-            </button>
-            <button
-              type="button"
-              className="viewer-btn"
-              aria-pressed={autoRotate}
-              onClick={() => {
-                viewer.current?.setAutoRotate(!autoRotate)
-                setAutoRotate(!autoRotate)
-              }}
-            >
-              {t('viewer.autoRotate')}
-            </button>
-            <button
-              type="button"
-              className="viewer-btn"
-              aria-pressed={wireframe}
-              onClick={() => {
-                viewer.current?.setWireframe(!wireframe)
-                setWireframe(!wireframe)
-              }}
-            >
-              {t('viewer.wireframe')}
-            </button>
+            {shownMode !== 'luna' && (
+              <>
+                <button type="button" className="viewer-btn" onClick={() => viewer.current?.setView('reset')}>
+                  {t('viewer.view.reset')}
+                </button>
+                <button
+                  type="button"
+                  className="viewer-btn"
+                  aria-pressed={autoRotate}
+                  onClick={() => {
+                    viewer.current?.setAutoRotate(!autoRotate)
+                    setAutoRotate(!autoRotate)
+                  }}
+                >
+                  {t('viewer.autoRotate')}
+                </button>
+                <button
+                  type="button"
+                  className="viewer-btn"
+                  aria-pressed={wireframe}
+                  onClick={() => {
+                    viewer.current?.setWireframe(!wireframe)
+                    setWireframe(!wireframe)
+                  }}
+                >
+                  {t('viewer.wireframe')}
+                </button>
+              </>
+            )}
             {fx && (
               <button
                 type="button"
@@ -273,7 +463,24 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
                 {t('viewer.backdropDark')}
               </button>
             )}
+            {fx && (
+              <div className="viewer-seg" role="group" aria-label={t('luna.mode')} title={t('luna.modeHint')}>
+                <span className="viewer-seg-label">{t('luna.mode')}</span>
+                {MODES.map((m) => (
+                  <button key={m} type="button" className="viewer-btn" aria-pressed={mode === m} onClick={() => chooseMode(m)}>
+                    {t(`luna.modes.${m}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {lunaShown && <LunaNotes notes={notes} open={notesOpen} onToggle={() => setNotesOpen(!notesOpen)} />}
           </div>
+          {shownMode === 'split' && (
+            <>
+              <span className="viewer-tag viewer-tag-unity">{t('luna.modes.unity')}</span>
+              <span className="viewer-tag viewer-tag-luna">{t('luna.modes.luna')}</span>
+            </>
+          )}
           {fx && (
             // Timeline above the play controls, stacked from the bottom: a narrow viewer wraps the controls without covering it.
             <div className="viewer-tools viewer-dock">
@@ -305,7 +512,7 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
                   aria-pressed={!fx.paused}
                   onClick={() => {
                     // Play starts the effect over at once; pause holds it where it is.
-                    if (fx.paused) built.current?.effect?.restart()
+                    if (fx.paused) restart()
                     setEffect({ paused: !fx.paused })
                   }}
                 >
@@ -314,7 +521,7 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
                 <button type="button" className="viewer-btn" title={t('particles.fireHint')} onClick={fire}>
                   {t('particles.fire')}
                 </button>
-                <button type="button" className="viewer-btn" onClick={() => built.current?.effect?.restart()}>
+                <button type="button" className="viewer-btn" onClick={restart}>
                   {t('particles.restart')}
                 </button>
                 <span className="viewer-sep" aria-hidden="true" />
@@ -333,7 +540,7 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
               </div>
             </div>
           )}
-          <span className="viewer-hint">{missing > 0 ? t('prefabView.missing', { count: missing }) : t('viewer.hint')}</span>
+          {shownMode !== 'split' && (missing > 0 || shownMode === 'unity') && <span className="viewer-hint">{missing > 0 ? t('prefabView.missing', { count: missing }) : t('viewer.hint')}</span>}
         </>
       )}
     </div>

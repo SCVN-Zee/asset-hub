@@ -4,6 +4,9 @@ What changed in each release of Asset Hub. `bun run release` publishes the secti
 
 ## Unreleased
 
+### Added
+- **Luna / Split preview:** preview particle effects in the bundled Luna runtime, or compare Luna and the Unity-style player side by side.
+
 ### Changed
 - **Every GitHub CLI account is used:** the repos of all accounts signed in to `gh` are listed together, and each repo is read with an account that can read it (the next account is tried when GitHub refuses the first). The shared index is written by the first account with write access to it. Settings shows every account and which one adds to the shared index. Signing out with the GitHub CLI option signs out every account.
 

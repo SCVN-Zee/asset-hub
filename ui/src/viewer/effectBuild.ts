@@ -1,6 +1,9 @@
 import * as THREE from 'three'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
-import type { BuiltinMesh, DependencyReport, ParticleEmitter } from '@shared/types'
+import type { BuiltinMesh, DependencyReport, MaterialProps, MaterialRef, ParticleEmitter, TextureImport } from '@shared/types'
+import { BUILTIN_SHADER_GUIDS } from '../bindings'
+import { mapMaterial, samplerFromEmbedded, samplerFromImport, textureSlots } from '../luna/materialMap'
+import type { LunaMaterialSpec, LunaTextureSpec } from '../luna/protocol'
 import type { LiveContext } from '../components/ModelViewer'
 import { mainTexture } from './particleThumb'
 import { EffectPlayer, EmitterPlayer, type EmitterLook } from './particlePlayer'
@@ -26,6 +29,55 @@ export function isGammaProject(live: LiveContext, background = false): Promise<b
     gammaProjects.set(key, p)
   }
   return p
+}
+
+/** What the Luna preview needs of a built effect, taken from the files the Unity-style player already loaded. */
+export interface LunaSource {
+  /** The project draws in Gamma colour space. The Luna host must start in the other space for a linear project. */
+  gamma: boolean
+  /**
+   * One material per anchor, in the anchors' order. Anchors that share a material share the object. Undefined draws Unity's
+   * Default-Particle. Textures are fresh `ImageBitmap`s each call: close them with `closeLunaTextures` once sent.
+   */
+  materials(): Promise<Array<LunaMaterialSpec | undefined>>
+}
+
+export type BuiltEffect = EffectPlayer & { luna: LunaSource }
+
+/** Frees the bitmaps `LunaSource.materials` made. */
+export function closeLunaTextures(materials: ReadonlyArray<LunaMaterialSpec | undefined>): void {
+  for (const m of materials) for (const t of Object.values(m?.textures ?? {})) if (t && 'bitmap' in t) t.bitmap.close()
+}
+
+/** Waits for all of `promises`. When one fails, `discard` frees what the others made, and the first failure is thrown. */
+async function allOrDiscard<T>(promises: Array<Promise<T>>, discard: (done: T) => void): Promise<T[]> {
+  const settled = await Promise.allSettled(promises)
+  const failed = settled.find((s): s is PromiseRejectedResult => s.status === 'rejected')
+  if (failed) {
+    for (const s of settled) if (s.status === 'fulfilled') discard(s.value)
+    throw failed.reason
+  }
+  return settled.map((s) => (s as PromiseFulfilledResult<T>).value)
+}
+
+const NO_PROPS: MaterialProps = { keywords: [], floats: {}, colors: {}, st: {}, refs: {} }
+
+/** An image element for a blob URL, once it has loaded. */
+function decodeImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('The texture could not be decoded'))
+    image.src = url
+  })
+}
+
+/** Unity keeps a texture's rows bottom first. The Luna protocol sends them top first. */
+function flipRows(rgba: Uint8ClampedArray, width: number, height: number): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(rgba.length)
+  const row = width * 4
+  for (let y = 0; y < height; y++) out.set(rgba.subarray(y * row, (y + 1) * row), (height - 1 - y) * row)
+  return out
 }
 
 /** Mesh particles from models larger than this are drawn as billboards. */
@@ -123,32 +175,51 @@ function blendFromShader(label: string | undefined): EmitterLook['blend'] {
  * main texture, colour and blend. Particles appear under the emitters' objects
  * as soon as the returned player is updated.
  */
-export async function buildEffect(live: LiveContext, report: DependencyReport, anchors: ReadonlyArray<{ emitter: ParticleEmitter & { prefab?: string }; object: THREE.Object3D }>, background = false): Promise<EffectPlayer> {
+export async function buildEffect(live: LiveContext, report: DependencyReport, anchors: ReadonlyArray<{ emitter: ParticleEmitter & { prefab?: string }; object: THREE.Object3D }>, background = false): Promise<BuiltEffect> {
   const byGuid = new Map(report.materials.flatMap((m) => (m.guid ? [[m.guid, m] as const] : [])))
   const gamma = await isGammaProject(live, background)
   const textures = new Map<string, Promise<THREE.Texture | undefined>>()
   let maxSide = 0
-  /** `alphaInColour`: a custom shader blending by alpha, which may take it from a colour channel (see `maskFromColour`). */
-  const loadTexture = (path: string, alphaInColour = false) => {
-    let p = textures.get(`${path}#${alphaInColour}`)
+  /** A texture file decoded once, for the Unity-style player's textures and the Luna preview's alike. */
+  const images = new Map<string, Promise<HTMLImageElement | undefined>>()
+  const loadImage = (path: string) => {
+    let p = images.get(path)
     if (!p) {
       p = fetchTextureFile(live, path, background).then(async (file) => {
         if (!file) return undefined
         try {
-          const tex = await new THREE.TextureLoader().loadAsync(file.url)
-          if (alphaInColour) {
-            const masked = maskFromColour(tex.image as HTMLImageElement)
-            if (masked) tex.image = masked
-          }
-          tex.colorSpace = gamma ? THREE.NoColorSpace : THREE.SRGBColorSpace
-          const img = tex.image as { width?: number; height?: number } | undefined
-          maxSide = Math.max(maxSide, img?.width ?? 0, img?.height ?? 0)
-          return tex
+          return await decodeImage(file.url)
         } catch {
           return undefined
         } finally {
           URL.revokeObjectURL(file.url)
         }
+      })
+      images.set(path, p)
+    }
+    return p
+  }
+  const infos = new Map<string, Promise<TextureImport | undefined>>()
+  /** How Unity imports a texture (wrap, sRGB); undefined when it cannot be read. */
+  const loadImport = (path: string) => {
+    let p = infos.get(path)
+    if (!p) {
+      p = parse.textureInfo(live, path, undefined, background).then((info) => info.import ?? undefined, () => undefined)
+      infos.set(path, p)
+    }
+    return p
+  }
+  /** `alphaInColour`: a custom shader blending by alpha, which may take it from a colour channel (see `maskFromColour`). */
+  const loadTexture = (path: string, alphaInColour = false) => {
+    let p = textures.get(`${path}#${alphaInColour}`)
+    if (!p) {
+      p = loadImage(path).then((image) => {
+        if (!image) return undefined
+        const tex = new THREE.Texture((alphaInColour ? maskFromColour(image) : undefined) ?? image)
+        tex.needsUpdate = true
+        tex.colorSpace = gamma ? THREE.NoColorSpace : THREE.SRGBColorSpace
+        maxSide = Math.max(maxSide, image.naturalWidth, image.naturalHeight)
+        return tex
       })
       textures.set(`${path}#${alphaInColour}`, p)
     }
@@ -168,25 +239,16 @@ export async function buildEffect(live: LiveContext, report: DependencyReport, a
   const loadPortTexture = (path: string) => {
     let p = textures.get(`${path}#port`)
     if (!p) {
-      p = Promise.all([
-        fetchTextureFile(live, path, background),
-        parse.textureInfo(live, path, undefined, background).then((info) => info.import ?? undefined, () => undefined)
-      ]).then(async ([file, meta]) => {
-        if (!file) return undefined
-        try {
-          const tex = await new THREE.TextureLoader().loadAsync(file.url)
-          const wrap = (w: number | undefined) => (w === 1 ? THREE.ClampToEdgeWrapping : w === 2 || w === 3 ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping)
-          tex.wrapS = wrap(meta?.wrapU)
-          tex.wrapT = wrap(meta?.wrapV)
-          tex.colorSpace = meta?.sRGB === false || gamma ? THREE.NoColorSpace : THREE.SRGBColorSpace
-          const img = tex.image as { width?: number; height?: number } | undefined
-          maxSide = Math.max(maxSide, img?.width ?? 0, img?.height ?? 0)
-          return tex
-        } catch {
-          return undefined
-        } finally {
-          URL.revokeObjectURL(file.url)
-        }
+      p = Promise.all([loadImage(path), loadImport(path)]).then(([image, meta]) => {
+        if (!image) return undefined
+        const tex = new THREE.Texture(image)
+        tex.needsUpdate = true
+        const wrap = (w: number | undefined) => (w === 1 ? THREE.ClampToEdgeWrapping : w === 2 || w === 3 ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping)
+        tex.wrapS = wrap(meta?.wrapU)
+        tex.wrapT = wrap(meta?.wrapV)
+        tex.colorSpace = meta?.sRGB === false || gamma ? THREE.NoColorSpace : THREE.SRGBColorSpace
+        maxSide = Math.max(maxSide, image.naturalWidth, image.naturalHeight)
+        return tex
       })
       textures.set(`${path}#port`, p)
     }
@@ -288,6 +350,67 @@ export async function buildEffect(live: LiveContext, report: DependencyReport, a
   }
   // Sub emitters start empty: they wait for their parents' particles.
   for (const p of players) if (p.isSub) p.restart()
+
+  /** The texture in one slot of a material, as Luna takes it: a texture file, one saved inside another asset, or none. */
+  const lunaTexture = async (material: MaterialRef, props: MaterialProps, slot: string): Promise<LunaTextureSpec | null> => {
+    const ref = props.refs[slot]
+    if (!ref) return null
+    // Unity's own textures: `mapMaterial` knows the default particle dot, anything else is white.
+    if (ref.guid && (BUILTIN_SHADER_GUIDS as readonly string[]).includes(ref.guid)) return null
+    // No GUID: a texture saved inside the material itself.
+    const path = ref.guid ? material.textures.find((t) => t.prop === slot)?.path : material.path
+    if (!path) return null
+    if (ref.fileID !== '2800000' && /\.(mat|asset)$/i.test(path)) {
+      const tex = await parse.embeddedTexture(live, path, ref.fileID, background).catch(() => undefined)
+      if (!tex) return null
+      const rgba = new Uint8ClampedArray(tex.rgba.buffer, tex.rgba.byteOffset, tex.rgba.byteLength)
+      return { width: tex.width, height: tex.height, rgba: flipRows(rgba, tex.width, tex.height), ...samplerFromEmbedded(tex, gamma) }
+    }
+    const [image, meta] = await Promise.all([loadImage(path), loadImport(path)])
+    return image ? { bitmap: await createImageBitmap(image), ...samplerFromImport(meta, gamma) } : null
+  }
+  const lunaMaterial = async (guid: string): Promise<LunaMaterialSpec | undefined> => {
+    const material = byGuid.get(guid)
+    if (!material) return undefined
+    const shader = material.shader
+    const info = shader?.kind === 'project' && shader.path ? await loadShader(shader.path) : undefined
+    const mat = material.path ? await loadMat(material.path) : undefined
+    const props = mat?.props ?? NO_PROPS
+    const shaderName = info?.shader.name ?? undefined
+    let slots = textureSlots(shaderName ?? shader?.label ?? '', props)
+    if (!slots) {
+      // No port: the colour map the Unity-style player draws.
+      const main = mainTexture(material, info?.textures)
+      const slot = main ? material.textures.find((t) => t.path === main)?.prop : undefined
+      slots = slot ? [slot] : []
+    }
+    const closeSlot = ([, t]: readonly [string, LunaTextureSpec | null]) => t && 'bitmap' in t && t.bitmap.close()
+    const loaded = await allOrDiscard(slots.map(async (slot) => [slot, await lunaTexture(material, props, slot)] as const), closeSlot)
+    try {
+      return mapMaterial({ shader, shaderName, props, look: mat?.look, defaults: info?.shader.defaults, textures: Object.fromEntries(loaded) })
+    } catch (err) {
+      loaded.forEach(closeSlot)
+      throw err
+    }
+  }
+  const luna: LunaSource = {
+    gamma,
+    materials: async () => {
+      const byGuidSpec = new Map<string, Promise<LunaMaterialSpec | undefined>>()
+      const specs = anchors.map(({ emitter }) => {
+        const guid = emitter.material
+        if (!guid) return undefined
+        let p = byGuidSpec.get(guid)
+        if (!p) {
+          p = lunaMaterial(guid)
+          byGuidSpec.set(guid, p)
+        }
+        return p
+      })
+      return allOrDiscard(specs.map((spec) => Promise.resolve(spec)), (done) => closeLunaTextures([done]))
+    }
+  }
+
   const effect = new EffectPlayer(players)
   effect.maxTextureSize = maxSide
   const dispose = effect.dispose.bind(effect)
@@ -295,6 +418,7 @@ export async function buildEffect(live: LiveContext, report: DependencyReport, a
     dispose()
     for (const p of textures.values()) void p.then((t) => t?.dispose())
     for (const p of meshes.values()) void p.then((g) => g?.dispose())
+    images.clear()
   }
-  return effect
+  return Object.assign(effect, { luna })
 }

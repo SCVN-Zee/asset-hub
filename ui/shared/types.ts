@@ -542,6 +542,8 @@ export interface ColorKey {
 export interface Gradient {
   colors: Array<{ t: number; r: number; g: number; b: number }>
   alphas: Array<{ t: number; a: number }>
+  /** 1 when the gradient is Fixed (steps instead of a blend). Absent: Blend. */
+  mode?: number
 }
 
 /** Unity's MinMaxGradient: a colour, a gradient, random between two colours or two gradients, or a random colour of a gradient. */
@@ -570,6 +572,79 @@ export interface ParticleShape {
   rotation: [number, number, number]
   scale: [number, number, number]
   randomDirection: number
+  /** How the radius is walked: 0 random, 1 loop, 2 ping-pong, 3 burst spread. Absent: random. */
+  radiusMode?: number
+  radiusSpread?: number
+  radiusSpeed?: MinMax
+  /** Same for the arc. */
+  arcMode?: number
+  arcSpread?: number
+  arcSpeed?: MinMax
+  donutRadius?: number
+  /** Box shapes: how deep into the box particles start, per axis. */
+  boxThickness?: [number, number, number]
+  sphericalDirection?: number
+  randomPosition?: number
+  alignToDirection?: boolean
+}
+
+/** Limit velocity: speed above `limit` is reduced by `dampen` each frame. */
+export interface VelocityLimit {
+  limit: MinMax
+  dampen: number
+  /** Limits per axis, when the module separates the axes. */
+  separate?: [MinMax, MinMax, MinMax]
+  drag?: MinMax
+  dragBySize?: boolean
+  dragByVelocity?: boolean
+  /** Limits in world space (else the system's). */
+  world?: boolean
+}
+
+/** Velocity over lifetime beyond the linear axes. */
+export interface VelocityOrbit {
+  orbital: [MinMax, MinMax, MinMax]
+  offset: [MinMax, MinMax, MinMax]
+  radial: MinMax
+  speedModifier: MinMax
+}
+
+export interface SheetAnimation {
+  tilesX: number
+  tilesY: number
+  singleRow: boolean
+  row: number
+  frame: MinMax
+  startFrame: MinMax
+  cycles: number
+  /** 0 grid, 1 sprites. */
+  mode?: number
+  /** 0 over the lifetime, 1 by speed, 2 by frames per second. */
+  timeMode?: number
+  /** Single-row mode: 0 the row index, 1 a random row, 2 the mesh index. */
+  rowMode?: number
+  flipU?: number
+  flipV?: number
+}
+
+export interface ParticleNoise {
+  strength: MinMax
+  frequency: number
+  scrollSpeed: number
+  /** Strength of Y and Z, when the module separates the axes. */
+  separate?: [MinMax, MinMax]
+  /** The scroll speed as a curve. */
+  scroll?: MinMax
+  damping?: boolean
+  octaves?: number
+  octaveMultiplier?: number
+  octaveScale?: number
+  /** 0 low, 1 medium, 2 high. */
+  quality?: number
+  remap?: [MinMax, MinMax, MinMax]
+  positionAmount?: MinMax
+  rotationAmount?: MinMax
+  sizeAmount?: MinMax
 }
 
 export interface ParticleSim {
@@ -600,7 +675,7 @@ export interface ParticleSim {
   velocityWorld?: boolean
   force?: [MinMax, MinMax, MinMax]
   /** Limit velocity: speed above `limit` is reduced by `dampen` each frame. */
-  limit?: { limit: MinMax; dampen: number }
+  limit?: VelocityLimit
   colorOverLifetime?: MinMaxColor
   sizeOverLifetime?: MinMax
   /** Height and depth over lifetime, when the module scales each axis apart (`sizeOverLifetime` is the width). */
@@ -609,8 +684,8 @@ export interface ParticleSim {
   rotationOverLifetime?: MinMax
   /** Radians per second around X and Y, when the module turns each axis apart. */
   rotationOverLifetime3D?: [MinMax, MinMax]
-  sheet?: { tilesX: number; tilesY: number; singleRow: boolean; row: number; frame: MinMax; startFrame: MinMax; cycles: number }
-  noise?: { strength: MinMax; frequency: number; scrollSpeed: number }
+  sheet?: SheetAnimation
+  noise?: ParticleNoise
   /** Systems this one starts at its particles (ParticleSystem fileIDs); they emit only then. */
   subEmitters?: Array<{ id: string; type: SubEmitterType; /** Unity's inherit flags: 1 colour, 2 size, 4 rotation, 8 lifetime. */ inherit: number; probability: number }>
   trail?: ParticleTrail
@@ -631,6 +706,41 @@ export interface ParticleSim {
   custom2?: MinMax[]
   /** The renderer's vertex streams (ParticleSystemVertexStream numbers), in order; absent: Unity's default set. */
   streams?: number[]
+  /** The renderer uses its own vertex streams, so `streams` counts. Present only when true. */
+  customStreams?: boolean
+  /** 0 local, 1 world, 2 custom. Absent: local. */
+  simulationSpace?: number
+  /** 0 hierarchy, 1 local, 2 shape. Absent: local. */
+  scalingMode?: number
+  /** 0 transform, 1 rigidbody. */
+  emitterVelocityMode?: number
+  /** Absent: the system plays on awake. */
+  playOnAwake?: boolean
+  useUnscaledTime?: boolean
+  /** Share of particles that spin the other way, 0 to 1. */
+  flipRotation?: number
+  rateOverDistance?: MinMax
+  velocityOrbit?: VelocityOrbit
+  inheritVelocity?: { mode: number; curve: MinMax }
+  /** Force over Lifetime: in world space. */
+  forceWorld?: boolean
+  /** Force over Lifetime: random per frame. */
+  forceRandomized?: boolean
+  colorBySpeed?: { color: MinMaxColor; range: [number, number] }
+  /** `separate` holds height and depth. */
+  sizeBySpeed?: { size: MinMax; separate?: [MinMax, MinMax]; range: [number, number] }
+  /** Radians per second; `xy` holds X and Y when the axes are separate. */
+  rotationBySpeed?: { z: MinMax; xy?: [MinMax, MinMax]; range: [number, number] }
+  /** The Trigger module is on. */
+  triggers?: boolean
+  /** Renderer: 0 none, 1 by distance, 2 oldest in front, 3 youngest in front. */
+  sortMode?: number
+  /** Smallest size on screen, as a fraction of the view height. */
+  minScreenSize?: number
+  flip?: [number, number, number]
+  cameraVelocityScale?: number
+  normalDirection?: number
+  applyActiveColorSpace?: boolean
 }
 
 export type SubEmitterType = 'birth' | 'collision' | 'death' | 'trigger' | 'manual'
