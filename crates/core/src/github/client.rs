@@ -278,8 +278,16 @@ impl AccountTokens {
         }
     }
 
-    fn set_readers(&self, readers: HashMap<String, Vec<usize>>) {
+    /// Takes the readers of a new listing. An account already known to read a repo stays first: a
+    /// listing can miss a repo, and a read may have found its reader while the listing loaded.
+    fn set_readers(&self, mut readers: HashMap<String, Vec<usize>>) {
         if let Ok(mut kept) = self.readers.lock() {
+            for (repo, accounts) in kept.drain() {
+                let Some(&known) = accounts.first() else { continue };
+                let listed = readers.entry(repo).or_default();
+                listed.retain(|i| *i != known);
+                listed.insert(0, known);
+            }
             *kept = readers;
         }
     }
@@ -444,7 +452,7 @@ impl<F: HttpFetch> GitHubClient<F> {
         let mut failure = None;
         let mut listed = false;
         for (index, token) in self.tokens.all().iter().enumerate() {
-            match self.paginate::<Repo>(Some(token), "/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member").await {
+            match self.paginate::<Repo>(Some(token), None, "/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member").await {
                 Ok(repos) => {
                     listed = true;
                     for repo in repos {
@@ -472,7 +480,7 @@ impl<F: HttpFetch> GitHubClient<F> {
         struct Branch {
             name: String,
         }
-        let branches: Vec<Branch> = self.paginate(None, &format!("/repos/{}/branches?per_page=100", repo_path(repo)?)).await?;
+        let branches: Vec<Branch> = self.paginate(None, Some(repo), &format!("/repos/{}/branches?per_page=100", repo_path(repo)?)).await?;
         Ok(branches.into_iter().map(|b| b.name).collect())
     }
 
@@ -723,12 +731,14 @@ impl<F: HttpFetch> GitHubClient<F> {
         Ok(self.send(&download.href, Outgoing { auth: Some(Auth::Nothing), headers, ..Default::default() }).await?.body)
     }
 
-    async fn paginate<T: for<'de> Deserialize<'de>>(&self, token: Option<&str>, path: &str) -> Result<Vec<T>, SourceError> {
+    /// Every page of a list, with exactly `token` or for `repo`. The pages after the first are linked
+    /// by repo id (`/repositories/{id}/...`), so their URL does not name the repo.
+    async fn paginate<T: for<'de> Deserialize<'de>>(&self, token: Option<&str>, repo: Option<&str>, path: &str) -> Result<Vec<T>, SourceError> {
         let mut items = Vec::new();
         let mut url = Some(path.to_string());
         let mut page = 0;
         while let Some(current) = url.take().filter(|_| page < MAX_PAGES) {
-            let (data, link): (Vec<T>, _) = self.request_for(None, token, &current, None, None).await?;
+            let (data, link): (Vec<T>, _) = self.request_for(repo, token, &current, None, None).await?;
             items.extend(data);
             url = next_link(link.as_deref());
             page += 1;
@@ -1047,6 +1057,39 @@ mod tests {
         let branches = futures::executor::block_on(GitHubClient::new("t", &script).list_branches("a/b")).expect("branches");
         assert_eq!(branches, ["main", "dev"]);
         assert_eq!(script.sent.lock().unwrap()[1].url, "https://api.github.com/p2");
+    }
+
+    #[test]
+    fn every_page_of_a_listing_goes_to_the_account_that_reads_the_repo() {
+        // GitHub links the next page by repo id (`/repositories/{id}/...`), so the URL names no repo.
+        let next = r#"<https://api.github.com/repositories/832437869/branches?per_page=100&page=2>; rel="next""#;
+        let script = Script::new(vec![
+            json(404, r#"{"message":"Not Found"}"#),
+            Ok(HttpResponse { status: 200, headers: vec![("Link".into(), next.into())], body: br#"[{"name":"main"}]"#.to_vec() }),
+            json(200, r#"[{"name":"dev"}]"#),
+        ]);
+        let branches = futures::executor::block_on(two_accounts(&script).list_branches("o/r")).expect("branches");
+        assert_eq!(branches, ["main", "dev"]);
+        let sent = script.sent.lock().unwrap();
+        assert_eq!(sent[2].url, "https://api.github.com/repositories/832437869/branches?per_page=100&page=2");
+        assert_eq!(sent.iter().map(bearer).collect::<Vec<_>>(), ["Bearer active", "Bearer other", "Bearer other"]);
+    }
+
+    #[test]
+    fn a_reader_found_while_the_repos_load_is_kept_after_the_listing() {
+        let script = Script::new(vec![
+            json(404, r#"{"message":"Not Found"}"#),
+            json(200, r#"{"object":{"sha":"c1"}}"#),
+            json(200, "[]"),
+            json(200, "[]"),
+            json(200, r#"{"object":{"sha":"c2"}}"#),
+        ]);
+        let client = two_accounts(&script);
+        futures::executor::block_on(client.get_branch_head("h/r", "main")).expect("head");
+        futures::executor::block_on(client.list_repos()).expect("repos");
+        futures::executor::block_on(client.get_branch_head("h/r", "main")).expect("head");
+        let sent = script.sent.lock().unwrap();
+        assert_eq!(bearer(&sent[4]), "Bearer other", "the account that read it still goes first");
     }
 
     #[test]
