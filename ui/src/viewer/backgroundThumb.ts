@@ -6,6 +6,7 @@ import { unwrap } from '../remoteSource'
 import { FbxViewer, type MaterialSlot, type TextureFile } from './FbxViewer'
 import { fetchTextureFile, guessedSlots, reportSlotPaths } from './textures'
 import { MODEL_THUMB_VERSION } from './thumbVersions'
+import type { ThumbTimer } from './thumbTiming'
 
 /** Keeps background renders light: a few textures, the .mat ones first. Others still count by their size. */
 const MAX_TEXTURES = 8
@@ -59,15 +60,19 @@ async function materialsFor(live: LiveContext, path: string, elsewhere: boolean)
  * nearby) and the textures it names, draws one frame and returns a data URL.
  * Every texture counts toward the size, even one not downloaded.
  */
-export async function renderThumbnail(live: LiveContext, path: string, elsewhere = false): Promise<{ url: string; stats: StatsSummary }> {
+export async function renderThumbnail(live: LiveContext, path: string, elsewhere = false, timer?: ThumbTimer): Promise<{ url: string; stats: StatsSummary }> {
   const [bytes, names, { report, quick }] = await Promise.all([window.api.assets.readFile(live.repo, live.branch, path, true).then(unwrap), parse.fbxTextureNames(live, path, true), materialsFor(live, path, elsewhere)])
+  timer?.mark('fetch')
   const found = names.length ? unwrap(await window.api.assets.findByNames(live.repo, live.branch, names, path, live.root)) : {}
+  timer?.mark('find')
   const slotPaths = reportSlotPaths(report)
   const all = [...new Set([...slotPaths.map((s) => s.path), ...Object.values(found).filter((p): p is string => !!p)])]
   const fetched = await Promise.all(all.slice(0, MAX_TEXTURES).map(async (p) => [p, await fetchTextureFile(live, p, true)] as const))
   const byPath = new Map(fetched.filter((e): e is readonly [string, TextureFile] => !!e[1]))
   const files = [...byPath.values()]
+  timer?.mark('textures')
   const viewer = new FbxViewer(offscreenHost())
+  timer?.mark('setup')
   try {
     await viewer.load(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, new Map(files.map((f) => [f.name.toLowerCase(), f])))
     const slots = slotPaths.flatMap((s): MaterialSlot[] => {
@@ -78,9 +83,12 @@ export async function renderThumbnail(live: LiveContext, path: string, elsewhere
     else if (!viewer.hasColorMaps() && files.length) await viewer.applyMaterialSlots(guessedSlots(files))
     // Measured while the model is loaded anyway: lets results be ranked without opening them.
     // Drawn before its .mat textures were known: no `matTextures`, so the card is drawn again.
+    timer?.mark('load')
     const stats: StatsSummary = { ...summarizeStats(viewer.stats(bytes.byteLength, files), 'thumb'), ...(quick ? {} : { matTextures: true as const }), modelThumb: MODEL_THUMB_VERSION }
     stats.textureBytes += skippedBytes(report, new Set(byPath.keys()))
-    return { url: viewer.snapshot(), stats }
+    const url = viewer.snapshot()
+    timer?.mark('snapshot')
+    return { url, stats }
   } finally {
     viewer.dispose()
     files.forEach((f) => URL.revokeObjectURL(f.url))

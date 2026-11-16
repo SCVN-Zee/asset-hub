@@ -1136,6 +1136,15 @@ export function Browse({
       })
   }, [thumbsLoaded, viewerLoading, thumbQueue.busy, thumbs, modelStats, gridItems, inCatalog, live])
 
+  // The asset the user selected renders before the cards queued behind it (the right panel shows a cube until it has a picture).
+  const priorityAsset = inCatalog ? catalogSelected : live ? selected : undefined
+  const prioritySha = priorityAsset && thumbsLoaded && !thumbs[priorityAsset.sha] && canRender(priorityAsset) && !thumbQueue.failedRecently(priorityAsset.sha) ? priorityAsset.sha : undefined
+  useEffect(() => {
+    // Set before the request so the card starts first even if a visibility request re-queues it later.
+    thumbQueue.prioritize(prioritySha)
+    if (priorityAsset && prioritySha) requestThumb(priorityAsset, -1)
+  }, [prioritySha, inCatalog, live])
+
   /** Counts for the type tabs: of the open branch, or of the cross-branch results. */
   const typeSource: readonly Asset[] = inCatalog ? (catalog.assets ?? []) : assets
   const typeCounts = useMemo(() => {
