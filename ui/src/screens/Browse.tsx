@@ -260,6 +260,7 @@ export function Browse({
   const [onlyFits, setOnlyFits] = useStoredFlag('assethub.filter.onlyFits', false)
   /** Saved thumbnails are known; only then is it worth rendering missing ones. */
   const [thumbsLoaded, setThumbsLoaded] = useState(false)
+  const [catalogThumbsLoaded, setCatalogThumbsLoaded] = useState(false)
   const [mergeCopies, setMergeCopies] = useStoredFlag('assethub.filter.mergeCopies', true)
   const [limit, setLimit] = useState(PAGE)
   const sentinel = useRef<HTMLDivElement>(null)
@@ -558,14 +559,22 @@ export function Browse({
 
   // Saved thumbnails of results from other branches (same content = same thumbnail).
   useEffect(() => {
+    setCatalogThumbsLoaded(false)
     if (!catalog.assets?.length) return
     let cancelled = false
-    void window.api.thumbs.get(catalog.assets.map((a) => a.sha)).then((more) => !cancelled && setThumbs((prev) => ({ ...more, ...prev })))
-    void window.api.stats.get(catalog.assets.map((a) => a.sha)).then((more) => !cancelled && setModelStats((prev) => ({ ...more, ...prev })))
+    const shas = catalog.assets.map((a) => a.sha)
+    void Promise.all([window.api.thumbs.get(shas).catch(() => ({})), window.api.stats.get(shas).catch(() => ({}))]).then(([moreThumbs, moreStats]) => {
+      if (cancelled) return
+      setThumbs((prev) => ({ ...moreThumbs, ...prev }))
+      setModelStats((prev) => ({ ...moreStats, ...prev }))
+      setCatalogThumbsLoaded(true)
+    })
     return () => {
       cancelled = true
     }
   }, [catalog.assets])
+  /** Cards ask for thumbnails once the saved ones of the listing they belong to are in. */
+  const thumbsReady = inCatalog ? catalogThumbsLoaded : thumbsLoaded
 
   /** Selects `repoPath` in the loaded branch: picks its Unity project and clears filters that would hide it. */
   function land(roots: readonly string[], repoPath: string) {
@@ -1125,7 +1134,7 @@ export function Browse({
   // Cards on screen go first; once the queue is empty the rest of the list follows, top first,
   // a few at a time so cards scrolled into view can still jump ahead.
   useEffect(() => {
-    if (!thumbsLoaded || viewerLoading || thumbQueue.busy.size || (!inCatalog && !live)) return
+    if (!thumbsReady || viewerLoading || thumbQueue.busy.size || (!inCatalog && !live)) return
     renderable
       // Models measured before clip names, or before .mat textures counted, get one more render for them.
       .filter((a) => (!thumbs[a.sha] || remeasure(a)) && !thumbQueue.failedRecently(a.sha))
@@ -1134,11 +1143,11 @@ export function Browse({
         if (!modelStats[a.sha]) unmeasuredPrefabs.current.add(a.sha)
         requestThumb(a, 1_000_000 + i)
       })
-  }, [thumbsLoaded, viewerLoading, thumbQueue.busy, thumbs, modelStats, gridItems, inCatalog, live])
+  }, [thumbsReady, viewerLoading, thumbQueue.busy, thumbs, modelStats, gridItems, inCatalog, live])
 
   // The asset the user selected renders before the cards queued behind it (the right panel shows a cube until it has a picture).
   const priorityAsset = inCatalog ? catalogSelected : live ? selected : undefined
-  const prioritySha = priorityAsset && thumbsLoaded && !thumbs[priorityAsset.sha] && canRender(priorityAsset) && !thumbQueue.failedRecently(priorityAsset.sha) ? priorityAsset.sha : undefined
+  const prioritySha = priorityAsset && thumbsReady && !thumbs[priorityAsset.sha] && canRender(priorityAsset) && !thumbQueue.failedRecently(priorityAsset.sha) ? priorityAsset.sha : undefined
   useEffect(() => {
     // Set before the request so the card starts first even if a visibility request re-queues it later.
     thumbQueue.prioritize(prioritySha)
@@ -1464,7 +1473,7 @@ export function Browse({
                     generating={thumbQueue.busy.has(a.sha)}
                     stats={modelStats[a.sha]}
                     onVisible={
-                      thumbsLoaded && canRender(a)
+                      thumbsReady && canRender(a)
                         ? (on) => {
                             if (!on) return thumbQueue.cancel(a.sha)
                             if (thumbs[a.sha] && modelStats[a.sha] && !staleEffect(a) && !staleClip(a) && !staleModel(a) && !staleFlat(a)) return
