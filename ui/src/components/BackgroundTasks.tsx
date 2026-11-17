@@ -35,7 +35,7 @@ export function BackgroundTasks({
   scan,
   exportState
 }: {
-  thumbs: { done: number; total: number }
+  thumbs: { done: number; total: number; busy: number }
   catalog: CatalogStatus
   onPause?(): void
   onResume?(): void
@@ -44,8 +44,10 @@ export function BackgroundTasks({
 }) {
   const { t } = useTranslation()
   const tasks: Task[] = []
-  if (thumbs.total > 0 && thumbs.done < thumbs.total) {
-    tasks.push({ id: 'thumbs', name: t('tasks.thumbnails'), detail: t('browse.loaded', { done: thumbs.done.toLocaleString(), total: thumbs.total.toLocaleString() }), ...thumbs })
+  if (thumbs.done < thumbs.total) {
+    tasks.push({ id: 'thumbs', name: t('tasks.thumbnails'), detail: t('browse.loaded', { done: thumbs.done.toLocaleString(), total: thumbs.total.toLocaleString() }), done: thumbs.done, total: thumbs.total })
+  } else if (thumbs.busy > 0) {
+    tasks.push({ id: 'thumbs', name: t('tasks.thumbnails'), detail: t('browse.rendering', { count: thumbs.busy }) })
   }
   if (catalog.state === 'running' || catalog.state === 'paused') {
     const key = catalog.state === 'running' ? 'catalog.indexing' : 'catalog.paused'

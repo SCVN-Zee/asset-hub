@@ -301,6 +301,23 @@ test('10. no card clips its content', async ({ page }) => {
   expect(clipped, `clipped cards of ${seen.cards} checked`).toEqual([])
 })
 
+test('10b. thumbnails render only for cards on screen, and scrolling renders the newly visible ones', async ({ page }) => {
+  await openApp(page, 'catalog')
+  await waitForCards(page)
+  // Each render attempt reads the file once (the test backend has none, so every attempt fails at once).
+  const reads = () => page.evaluate(() => window.__e2e.calls.filter((c) => c === 'assets_read_file').length)
+  await page.waitForTimeout(1500)
+  const idle = await reads()
+  const rendered = (await measure(page)).cards
+  expect(idle, `file reads with the grid idle: ${idle}, cards in the DOM: ${rendered}`).toBeLessThanOrEqual(rendered)
+  await page.waitForTimeout(1500)
+  expect(await reads(), 'no further reads while idle').toBe(idle)
+  await scrollTo(page, 'end')
+  await settle(page)
+  await expect.poll(reads, { message: 'newly visible cards render' }).toBeGreaterThan(idle)
+  expect(await reads(), 'reads stay far below the list size').toBeLessThan(400)
+})
+
 test.describe('11. branch scope', () => {
   test('bound (case 4)', async ({ page }) => {
     await openApp(page, 'branch')

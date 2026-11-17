@@ -655,9 +655,17 @@ export function Browse({
     return kind === 'image' || kind === 'material' || kind === 'audio' || kind === 'prefab' || kind === 'animation' || kind === 'font' || kind === 'tmpfont' ? kind : 'three'
   }
 
-  /** Cards whose thumbnail is ready, out of those that can have one (huge or EXR files never do). */
-  const renderable = gridItems.filter(canRender)
-  const loadedCount = renderable.filter((a) => thumbs[a.sha]).length
+  /** Cards on screen (or within the 200px margin) that can have a thumbnail; only these render without a click. */
+  const [visibleShas, setVisibleShas] = useState<ReadonlySet<string>>(new Set())
+  const markVisible = (sha: string, on: boolean) =>
+    setVisibleShas((prev) => {
+      if (prev.has(sha) === on) return prev
+      const next = new Set(prev)
+      if (on) next.add(sha)
+      else next.delete(sha)
+      return next
+    })
+  const visibleDone = [...visibleShas].filter((sha) => thumbs[sha]).length
 
   /** Prefab cards drawn without numbers (effects as a plain "FX" before particles were read), or effect / clip cards drawn the old way: tried once per session. */
   const unmeasuredPrefabs = useRef(new Set<string>())
@@ -1231,20 +1239,6 @@ export function Browse({
   const onViewerLoading = useCallback((loading: boolean, sha: string) => setLoadingSha((prev) => (loading ? sha : prev === sha ? undefined : prev)), [])
   const thumbQueue = useThumbnailQueue(live, saveThumb, viewerLoading)
 
-  // Cards on screen go first; once the queue is empty the rest of the list follows, top first,
-  // a few at a time so cards scrolled into view can still jump ahead.
-  useEffect(() => {
-    if (!thumbsReady || viewerLoading || thumbQueue.busy.size || (!inCatalog && !live)) return
-    renderable
-      // Models measured before clip names, or before .mat textures counted, get one more render for them.
-      .filter((a) => (!thumbs[a.sha] || remeasure(a)) && !thumbQueue.failedRecently(a.sha))
-      .slice(0, 4)
-      .forEach((a, i) => {
-        if (!modelStats[a.sha]) unmeasuredPrefabs.current.add(a.sha)
-        requestThumb(a, 1_000_000 + i)
-      })
-  }, [thumbsReady, viewerLoading, thumbQueue.busy, thumbs, modelStats, gridItems, inCatalog, live])
-
   // The asset the user selected renders before the cards queued behind it (the right panel shows a cube until it has a picture).
   const priorityAsset = inCatalog ? catalogSelected : live ? selected : undefined
   const prioritySha = priorityAsset && thumbsReady && !thumbs[priorityAsset.sha] && canRender(priorityAsset) && !thumbQueue.failedRecently(priorityAsset.sha) ? priorityAsset.sha : undefined
@@ -1300,7 +1294,7 @@ export function Browse({
         </div>
         <SearchBox value={query} suggest={inCatalog ? suggestCatalog : suggestHere} onChange={onQuery} />
         <div className="topbar-actions">
-          <BackgroundTasks thumbs={{ done: loadedCount, total: renderable.length }} catalog={catalog.status} onPause={catalog.pause} onResume={catalog.resume} scan={scan} exportState={exportState} />
+          <BackgroundTasks thumbs={{ done: visibleDone, total: visibleShas.size, busy: thumbQueue.busy.size }} catalog={catalog.status} onPause={catalog.pause} onResume={catalog.resume} scan={scan} exportState={exportState} />
           <button
             type="button"
             className="btn icon-btn"
@@ -1528,8 +1522,9 @@ export function Browse({
                     onVisible={
                       thumbsReady && canRender(a)
                         ? (on) => {
+                            markVisible(a.sha, on)
                             if (!on) return thumbQueue.cancel(a.sha)
-                            if (thumbs[a.sha] && modelStats[a.sha] && !staleEffect(a) && !staleClip(a) && !staleModel(a) && !staleFlat(a)) return
+                            if (thumbs[a.sha] && modelStats[a.sha] && !remeasure(a)) return
                             const src = catalogSource(a)
                             thumbQueue.request(a.sha, src.path, i, src.ctx, kindOf(a))
                           }
@@ -1615,8 +1610,9 @@ export function Browse({
                     onVisible={
                       live && thumbsLoaded && canRender(a)
                         ? (on) => {
+                            markVisible(a.sha, on)
                             if (!on) return thumbQueue.cancel(a.sha)
-                            if (thumbs[a.sha] && modelStats[a.sha] && !staleEffect(a) && !staleClip(a) && !staleModel(a) && !staleFlat(a)) return
+                            if (thumbs[a.sha] && modelStats[a.sha] && !remeasure(a)) return
                             thumbQueue.request(a.sha, root + a.path, i, undefined, kindOf(a))
                           }
                         : undefined
