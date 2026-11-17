@@ -326,7 +326,7 @@ impl RepoCatalog {
         by_path.values().map(|(path, branches)| CatalogLocation { repo: self.data.repo.clone(), path: self.data.paths[*path].clone(), branches: branches.clone(), branch_total: None }).collect()
     }
 
-    /// Takes in a catalog made elsewhere (a teammate's shared index): its branch list when it was
+    /// Takes in a catalog made elsewhere (a teammate's team cache copy): its branch list when it was
     /// read more recently, and every listed commit a branch points at that this one has not listed.
     /// Returns how many commits were added.
     pub fn merge(&mut self, other: &RepoCatalog) -> usize {

@@ -4,8 +4,14 @@ What changed in each release of Asset Hub. `bun run release` publishes the secti
 
 ## Unreleased
 
+### Removed
+- **The shared index:** the app no longer reads or writes the GitHub index repo or a shared folder, and Settings no longer has the Shared index section. The team backend now carries the shared catalogs, facts, measurements and thumbnails.
+- **Usage statistics:** the app no longer records or sends how you use it, and Settings no longer has the Usage statistics section. Asset views still count toward the team's popular assets. Settings files written by earlier versions still load.
+- **Feedback:** the Send feedback button and dialog are gone, and the app no longer writes issues to the feedback repo. Reports still waiting in the outbox are not sent.
+- **Old cache leftovers:** at start-up the app deletes the clone of the shared index repo, the shared index record and the usage reports folder it wrote before, which could take close to 1 GB. The old Backblaze thumbnail rows and the legacy `.txt` thumbnail conversion are gone from the team backend and the app.
+
 ### Changed
-- **Every GitHub CLI account is used:** the repos of all accounts signed in to `gh` are listed together, and each repo is read with an account that can read it (the next account is tried when GitHub refuses the first). The shared index is written by the first account with write access to it. Settings shows every account and which one adds to the shared index. Signing out with the GitHub CLI option signs out every account.
+- **Every GitHub CLI account is used:** the repos of all accounts signed in to `gh` are listed together, and each repo is read with an account that can read it (the next account is tried when GitHub refuses the first). Settings shows every account. Signing out with the GitHub CLI option signs out every account.
 
 ## [2.1.1] — 2026-11-11
 

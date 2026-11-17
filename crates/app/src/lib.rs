@@ -24,13 +24,10 @@ pub mod headless;
 pub mod hub;
 pub mod http;
 pub mod http_cache;
-pub mod index_repo;
 pub mod ipc;
 pub mod ogg;
 pub mod paths;
 pub mod settings;
-pub mod shared_index;
-pub mod shared_index_service;
 pub mod state;
 pub mod target_project;
 pub mod team;
@@ -39,8 +36,6 @@ mod test_server;
 pub mod thumb_protocol;
 pub mod unity_editors;
 pub mod updater;
-pub mod usage;
-pub mod usage_env;
 pub mod window;
 pub mod zip;
 
@@ -69,7 +64,6 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
             e::IndexProgress,
             e::PrefabProgress,
             e::KnownProgress,
-            e::SharedIndexProgress,
             e::ExportProgress,
             e::CatalogProgress,
             e::UpdateProgress,
@@ -81,7 +75,6 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
         .constant("DEFAULT_CACHE_LIMIT_GB", c::DEFAULT_CACHE_LIMIT_GB)
         .constant("EXPORT_LAYOUTS", c::EXPORT_LAYOUTS)
         .constant("DEFAULT_EXPORT_LAYOUT", c::DEFAULT_EXPORT_LAYOUT)
-        .constant("FEEDBACK_KINDS", c::FEEDBACK_KINDS)
         .constant("BUILTIN_SHADER_GUIDS", c::BUILTIN_SHADER_GUIDS)
         .constant("BUDGET_KEYS", c::BUDGET_KEYS)
         .constant("BUDGET_PRESETS", c::BUDGET_PRESETS)
@@ -157,9 +150,6 @@ pub fn contract() -> Builder<tauri::Wry> {
             catalog::catalog_where_is,
             caches::thumbs_get,
             caches::thumbs_save,
-            caches::shared_index_status,
-            caches::shared_index_import,
-            caches::shared_index_export,
             caches::cache_usage,
             caches::cache_clear,
             caches::stats_get,
@@ -170,10 +160,9 @@ pub fn contract() -> Builder<tauri::Wry> {
             exporter::exporter_show_in_folder,
             services::update_check,
             services::update_install,
-            services::usage_track,
-            services::feedback_send,
             team::team_status,
             team::team_popular,
+            team::team_note_view,
         ])
 }
 
@@ -245,14 +234,13 @@ pub fn run() {
             app.state::<AppState>().hub.set_emitters(commands::caches::page_emitters(app.handle().clone()));
             // Leftovers and the size limit are dealt with once the app has settled.
             let caches = app.state::<AppState>().caches.clone();
+            let user_data = app.state::<AppState>().paths.user_data.clone();
             tauri::async_runtime::spawn(async move {
+                caches.janitor.clean_retired(user_data).await;
                 tokio::time::sleep(std::time::Duration::from_secs(15)).await;
                 caches.janitor.clean_stale().await;
                 caches.janitor.prune().await;
             });
-            let usage = app.state::<AppState>().usage.clone();
-            crate::usage::install(usage.recorder().clone());
-            usage.start(std::sync::Arc::new(usage_env::AppEnv::new(app.handle().clone())), usage_env::auto_send());
 
             // A link that launched the app: on macOS it arrives only through `on_open_url`, after
             // this setup; `get_current` is empty then, so it is no more than an extra source.
@@ -292,20 +280,6 @@ pub fn run() {
         // Closing the last window does not quit a Mac app; Cmd+Q (no window closed just before) does.
         #[cfg(target_os = "macos")]
         RunEvent::ExitRequested { api, code: None, .. } if window::closed_just_now() => api.prevent_exit(),
-        // The last session is saved, and sent, before the app goes; quitting waits a few seconds at most.
-        RunEvent::ExitRequested { api, code, .. } => {
-            if let Some(state) = handle.try_state::<AppState>() {
-                if state.usage.begin_quit() {
-                    api.prevent_exit();
-                    let usage = state.usage.clone();
-                    let handle = handle.clone();
-                    tauri::async_runtime::spawn(async move {
-                        usage.finish(&usage_env::AppEnv::new(handle.clone()), usage_env::auto_send()).await;
-                        handle.exit(code.unwrap_or(0));
-                    });
-                }
-            }
-        }
         // No gh waiting for the browser is left behind when the app quits.
         RunEvent::Exit => {
             if let Some(state) = handle.try_state::<AppState>() {

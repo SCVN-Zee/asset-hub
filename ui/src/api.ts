@@ -157,15 +157,11 @@ export const api: AssetHubApi = {
     get: (keys) => value(commands.thumbsGet(keys)),
     save: (key, dataUrl) => done(commands.thumbsSave(key, dataUrl))
   },
-  sharedIndex: {
-    status: () => result(commands.sharedIndexStatus()),
-    import: () => result(commands.sharedIndexImport()),
-    export: () => result(commands.sharedIndexExport()),
-    onStatus: (listener) => on(events.sharedIndexProgress, listener)
-  },
   team: {
     status: () => value(commands.teamStatus()),
     popular: (repo) => value<Record<string, number>>(commands.teamPopular(repo)).catch(() => ({})),
+    // Fire and forget: counting never gets in the way of what the user does.
+    noteView: (repo, sha) => void commands.teamNoteView(repo ?? null, sha ?? null).catch(() => undefined),
     onStatus: (listener) => on(events.teamStatusChanged, listener)
   },
   cache: {
@@ -191,15 +187,5 @@ export const api: AssetHubApi = {
     },
     install: (version) => okMessage(commands.updateInstall(version)),
     onProgress: (listener) => on(events.updateProgress, listener)
-  },
-  usage: {
-    // Fire and forget: counting never gets in the way of what the user does.
-    track: (event) => void commands.usageTrack(event).catch(() => undefined)
-  },
-  feedback: {
-    send: async (report) => {
-      const r = await result<{ sent: boolean; url?: string }>(commands.feedbackSend({ ...report, context: report.context ?? null }))
-      return r.ok && r.data.sent && r.data.url ? { sent: true, url: r.data.url } : { sent: false }
-    }
   }
 }

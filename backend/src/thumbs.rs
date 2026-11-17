@@ -15,7 +15,7 @@ use worker::console_error;
 use crate::ctx::RepoCtx;
 use crate::http::{decode_text, json, quote, read_body_small, read_schema, stop, Halt, Handled};
 use crate::js::{fmt_number, js_number, random_uuids};
-use crate::shards::{shard_of, D1Thumbs, D1_MAX_PARAMS, GENERATION_SQL};
+use crate::shards::{shard_of, D1Thumbs, D1_MAX_PARAMS};
 use crate::validate::{is_thumb_name, parse_cursor};
 
 const MAX_LIST: f64 = 1000.0;
@@ -25,9 +25,8 @@ const MAX_PUT_BYTES: usize = 3 * 1024 * 1024;
 /// The most bytes of one thumbnail, shared with the desktop client.
 pub use asset_hub_pack::MAX_THUMB_BYTES;
 /// The generation of the thumbnail storage, sent in the list reply. A client that sees another
-/// number than the one it synced with starts its thumbnail state again. The TypeScript Worker
-/// (thumbnails in B2) sends none, and clients read that as 1. Epoch 3 marks the recreated shard
-/// databases, which started empty, so every client must drop the thumbnails it believes are stored.
+/// number than the one it synced with starts its thumbnail state again. Epoch 3 marks the recreated
+/// shard databases, which started empty, so every client must drop the thumbnails it believes are stored.
 pub const THUMB_EPOCH: u32 = 3;
 const MAX_GET_BODY_BYTES: usize = 8 * 1024;
 /// Shard queries in flight at once. D1 allows six open connections for one request.
@@ -85,8 +84,7 @@ pub async fn list_thumbs(ctx: &RepoCtx<'_>) -> Handled<web_sys::Response> {
     };
 
     let db = ctx.db()?;
-    // Rows with another id than a generation of this Worker name bytes that no shard holds.
-    let base = format!("SELECT name, size, rev FROM thumbs WHERE repo = ? AND schema = ? AND {GENERATION_SQL}");
+    let base = "SELECT name, size, rev FROM thumbs WHERE repo = ? AND schema = ?";
     let order = " ORDER BY rev, name LIMIT ?";
     let fetch_rows = limit as f64 + 1.0;
     let statement = match cursor {

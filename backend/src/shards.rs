@@ -15,19 +15,12 @@ use crate::hex;
 use crate::js::now_ms;
 use crate::storage::{changes, number};
 use crate::thumbs::{GenRef, IndexEntry, NewGen, ThumbErr, ThumbStore};
-use crate::validate::is_generation_id;
 
 pub use asset_hub_pack::{shard_of, SHARDS};
 
 /// A shard refuses a reservation above 300 MiB of payload. The Free plan allows 500 MB per
 /// database, and SQLite pages add up to 1.4 times the payload for thumbnails of about 6 KB.
 pub const SHARD_CAP_BYTES: u64 = 300 * 1024 * 1024;
-
-/// The SQL condition on `version_id` for a generation id that this Worker writes: the shape of a
-/// lower-case UUID. Index rows with any other id (the B2 version ids of the TypeScript Worker)
-/// name bytes that no shard holds. D1 allows patterns of 50 bytes at most, so the shape is a `LIKE`
-/// of 36 characters with a `GLOB` that leaves only lower-case hex digits and dashes.
-pub const GENERATION_SQL: &str = "version_id LIKE '________-____-____-____-____________' AND version_id NOT GLOB '*[^0-9a-f-]*'";
 
 /// `?,?` once for each of `count` slots, for an `IN` list.
 pub fn marks(count: usize) -> String {
@@ -209,8 +202,7 @@ impl ThumbStore for D1Thumbs {
     /// One commit per call: the revision moves up by one and every entry carries it. The batch is
     /// atomic and runs in order, so concurrent writers get distinct revisions and a reader that saw
     /// revision N never misses a later commit. Its first statement reads the rows the upserts then
-    /// replace, so the returned generations are exactly the ones this commit made obsolete. Rows
-    /// from before this Worker (other ids than a generation) are left out.
+    /// replace, so the returned generations are exactly the ones this commit made obsolete.
     async fn commit_index(&self, entries: &[IndexEntry<'_>]) -> Result<Vec<GenRef>, ThumbErr> {
         let slug = self.slug.as_str();
         let schema = number(u64::from(self.schema));
@@ -234,7 +226,7 @@ impl ThumbStore for D1Thumbs {
         }
         let results = self.main.batch(statements).await?;
         let rows: Vec<IndexRow> = results.first().ok_or_else(|| ThumbErr::new("noBatchResult"))?.results()?;
-        Ok(rows.into_iter().filter(|r| is_generation_id(&r.version_id)).map(|r| GenRef { name: r.name, gen: r.version_id }).collect())
+        Ok(rows.into_iter().map(|r| GenRef { name: r.name, gen: r.version_id }).collect())
     }
 
     async fn indexed_gens(&self, names: &[String]) -> Result<Vec<GenRef>, ThumbErr> {
@@ -248,7 +240,7 @@ impl ThumbStore for D1Thumbs {
             .prepare(format!("SELECT name, version_id FROM thumbs WHERE repo = ? AND schema = ? AND name IN ({})", marks(names.len())))
             .bind(&values)?;
         let rows: Vec<IndexRow> = statement.all().await?.results()?;
-        Ok(rows.into_iter().filter(|r| is_generation_id(&r.version_id)).map(|r| GenRef { name: r.name, gen: r.version_id }).collect())
+        Ok(rows.into_iter().map(|r| GenRef { name: r.name, gen: r.version_id }).collect())
     }
 
     async fn delete_gens(&self, shard: usize, gens: &[GenRef]) -> Result<(), ThumbErr> {
@@ -287,15 +279,6 @@ mod tests {
     fn the_cap_is_300_mib() {
         assert_eq!(SHARD_CAP_BYTES, 314_572_800);
         assert!(reserve_sql().ends_with("<= 314572800"));
-    }
-
-    #[test]
-    fn the_generation_condition_keeps_its_patterns_under_the_d1_limit() {
-        for pattern in ["________-____-____-____-____________", "*[^0-9a-f-]*"] {
-            assert!(pattern.len() <= 50);
-            assert!(GENERATION_SQL.contains(pattern));
-        }
-        assert_eq!("________-____-____-____-____________".len(), 36);
     }
 
     #[test]

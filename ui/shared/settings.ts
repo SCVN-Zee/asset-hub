@@ -33,16 +33,12 @@ export interface Settings {
   exportLayout?: PackageLayout
   /** Unity project packages are meant for (read only): exports leave out what it already has. */
   targetProject?: string
-  /** Folder a team shares (network drive, synced folder) holding an index everyone takes in. */
-  sharedIndexDir?: string
   /** Favourites and named collections of assets (see shared/collections). */
   collections?: Collection[]
   /** Assets viewed and exported lately, newest first (kept by the app). */
   recent?: RecentLists
   /** Branches the user follows: new assets since `seen` (a commit) are pointed out. */
   watched?: WatchedBranch[]
-  /** Usage notes sent to the team's feedback repo (absent: on). */
-  usageStats?: boolean
 }
 
 export const EXPORT_LAYOUTS: readonly PackageLayout[] = ['byType', 'grouped', 'source']
@@ -61,7 +57,7 @@ export function isLanguage(value: unknown): value is Language {
 /** Every setting this version knows; anything else in the file was written by another version. */
 export const SETTINGS_KEYS = [
   'language', 'cacheDir', 'cacheLimitGB', 'excludedFolders', 'lastRepo', 'lastBranch', 'budgetPreset', 'customBudget',
-  'exportLayout', 'targetProject', 'sharedIndexDir', 'collections', 'recent', 'watched', 'usageStats'
+  'exportLayout', 'targetProject', 'collections', 'recent', 'watched'
 ] as const satisfies ReadonlyArray<keyof Settings>
 
 /**
@@ -91,9 +87,7 @@ export function sanitizeSettings(raw: unknown, defaults: Settings): Settings {
     ...sanitizeBudget(input.customBudget),
     ...((EXPORT_LAYOUTS as readonly unknown[]).includes(input.exportLayout) ? { exportLayout: input.exportLayout as PackageLayout } : {}),
     ...(typeof input.targetProject === 'string' && input.targetProject.trim() ? { targetProject: input.targetProject } : {}),
-    ...(typeof input.sharedIndexDir === 'string' && input.sharedIndexDir.trim() ? { sharedIndexDir: input.sharedIndexDir } : {}),
     ...(sanitizeCollections(input.collections) ? { collections: sanitizeCollections(input.collections) } : {}),
-    ...(typeof input.usageStats === 'boolean' ? { usageStats: input.usageStats } : {}),
     ...(input.recent && typeof input.recent === 'object'
       ? {
           recent: {

@@ -1,6 +1,5 @@
 import type { BundleMaterial, CatalogListing, CatalogLocation, DependencyReport, FactKind, PrefabMaterialsResult, PrefabScope, RepoRef, SourceErrorCode, StatsSummary, TreeEntry } from './types'
 import type { Settings } from './settings'
-import type { FeedbackReport, FeedbackResult, UsageEvent } from './usage'
 
 /** Error codes that can cross IPC; the UI shows `errors.<code>`. */
 export type AppErrorCode = SourceErrorCode | 'ghNotFound' | 'ghNotLoggedIn' | 'emptyToken' | 'ghInstallFailed'
@@ -122,49 +121,8 @@ export interface CacheUsage {
   other: number
 }
 
-/** What a shared index folder holds (`manifest.json`). */
-export interface SharedIndexManifest {
-  format: 1
-  /** ISO time it was written; a newer one is taken in. */
-  exportedAt: string
-  /** GitHub login of who wrote it. */
-  exportedBy?: string
-  /** Asset types indexed (handler ids); an index made for other types is left alone. */
-  types: string
-  repos: Array<{ repo: string; branches: number; commits: number }>
-  thumbs: number
-  stats: number
-}
-
-/** Counts of what an import took in, or an export wrote. */
-export interface SharedIndexResult {
-  commits: number
-  facts: number
-  stats: number
-  thumbs: number
-}
-
 /** Whether the team backend answers; `offline` while it is out of reach (browsing and previews go on with local data). */
 export type TeamStatus = 'disabled' | 'online' | 'offline'
-
-export interface SharedIndexStatus {
-  state: 'idle' | 'importing' | 'exporting' | 'error'
-  error?: string
-  /** Shared through the GitHub repo (no folder picked) or a folder. */
-  via?: 'github' | 'folder'
-  /** The GitHub repo, `via: 'github'`. */
-  repo?: string
-  /** No signed-in account can write to the GitHub repo (each can read it). */
-  readOnly?: boolean
-  /** The signed-in account that adds to the GitHub repo, once known (several accounts only). */
-  writer?: string
-  /** In the shared folder now. */
-  manifest?: SharedIndexManifest
-  /** `exportedAt` of the index taken in last. */
-  importedAt?: string
-  last?: SharedIndexResult
-  lastAction?: 'imported' | 'exported'
-}
 
 export interface IpcError {
   code: AppErrorCode
@@ -280,21 +238,14 @@ export interface AssetHubApi {
     get(keys: string[]): Promise<Record<string, string>>
     save(key: string, dataUrl: string): Promise<void>
   }
-  /** A catalog, facts, measurements and thumbnails shared through a folder (`Settings.sharedIndexDir`). */
-  sharedIndex: {
-    status(): Promise<IpcResult<SharedIndexStatus>>
-    /** Takes in the folder's index now, even one taken in before. */
-    import(): Promise<IpcResult<SharedIndexStatus>>
-    /** Writes this app's index there (after taking in what is already there). */
-    export(): Promise<IpcResult<SharedIndexStatus>>
-    onStatus(listener: (status: SharedIndexStatus) => void): () => void
-  }
   /** The team backend (shared cache and popularity); its absence never blocks anything. */
   team: {
     status(): Promise<TeamStatus>
     onStatus(listener: (status: TeamStatus) => void): () => void
     /** The team's score of each blob SHA of `repo` that has one. `{}` when the team backend is off or out of reach. */
     popular(repo: string): Promise<Record<string, number>>
+    /** The page showed an asset: the team counts the view (fire and forget). */
+    noteView(repo?: string, sha?: string): void
   }
   cache: {
     /** Bytes the cache folder holds, by kind. */
@@ -324,13 +275,5 @@ export interface AssetHubApi {
     /** Downloads, verifies and installs `version`, then restarts the app (resolves only on failure). */
     install(version: string): Promise<{ ok: false; message: string } | { ok: true }>
     onProgress(listener: (progress: InstallProgress) => void): () => void
-  }
-  usage: {
-    /** Counted in this session's usage notes (fire and forget). */
-    track(event: UsageEvent): void
-  }
-  feedback: {
-    /** Opens an issue in the feedback repo; offline or without access it is kept and sent later. */
-    send(report: FeedbackReport): Promise<FeedbackResult>
   }
 }

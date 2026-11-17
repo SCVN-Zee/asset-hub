@@ -2,9 +2,8 @@
 // non-zero when any check fails or any route is skipped. With --tail it also matches the CPU time of each
 // request in a `wrangler tail` or Workers Logs export.
 //
-// Size limit: the Rust Worker refuses a thumbnail above 128 KiB (413 tooLarge); the TypeScript Worker took 256 KiB and more.
-// thumbs-put-big-1s and thumbs-put-new-256k-1s send 256 KiB and are kept for the TypeScript baseline history only: the Rust
-// Worker rejects them, so they fail the 200 check there. thumbs-put-oversize-1s sends 128 KiB + 1 byte and expects the 413.
+// Size limit: the Worker refuses a thumbnail above 128 KiB (413 tooLarge). thumbs-put-oversize-1s sends 128 KiB + 1 byte and
+// expects the 413.
 //
 // Run:  ASSETHUB_PROBE_TOKEN="$(gh auth token -u SCVN-Zee)" \
 //         node scripts/cpu-probe.mjs --base https://asset-hub-api.asset-hub-team.workers.dev \
@@ -15,16 +14,15 @@
 //   --base <url>          Worker URL. Plain http is allowed for localhost only, so the token never travels in clear.
 //   --routes <a,b,...>    health, events, popular, cache-get-200, cache-get-304, cache-put-small, cache-put-large,
 //                         thumbs-list, thumbs-put, thumbs-put-new, thumbs-put-max, thumbs-get, thumbs-get-max,
-//                         thumbs-put-1s, thumbs-put-new-1s, thumbs-put-big-1s, thumbs-get-1s, thumbs-put-1s-8x,
+//                         thumbs-put-1s, thumbs-put-new-1s, thumbs-get-1s, thumbs-put-1s-8x,
 //                         thumbs-put-64k-1s, thumbs-put-128k-1s, thumbs-put-new-64k-1s, thumbs-put-new-128k-1s,
-//                         thumbs-put-new-256k-1s, thumbs-put-oversize-1s, thumbs-list-empty
+//                         thumbs-put-oversize-1s, thumbs-list-empty
 //                         (default: everything except the thumbs-put and thumbs-get routes).
 //   --n <count>           Requests per route (default 20).
 //   --delay <ms>          Pause between requests (default 150).
 //   --read-schema <n>     Schema header for thumbs-list only (default: the probe schema). Pass 1 to list the real index.
 //   --allow-thumbs        Required for the thumbs-put and thumbs-get routes. A preview of a Worker that shares the production
-//                         databases must not run them, because their index rows would hold generation ids that the live
-//                         TypeScript Worker cannot serve.
+//                         databases must not run them, because their rows would stay in the live thumbnail shards.
 //   --run-id <id>         Run id (1 to 24 letters, digits or dashes). Default: 8 random hex digits.
 //   --tail <file>         After the run, read a `wrangler tail --format json` file (or a Workers Logs JSON export, `--logs` is
 //   --logs <file>         the same option) and print, per route, how many requests were sent, completed and observed, how many
@@ -62,7 +60,6 @@
 // a fixed text for ones on shard ONE_SHARD, so the choice is deterministic. The plan lists the shards of each request.
 //   thumbs-put-1s       8 typical entries (about 48 KiB), one shard. Replaces rows that the setup wrote.
 //   thumbs-put-new-1s   8 typical entries with fresh names for every request, one shard. New rows stay in schema 998.
-//   thumbs-put-big-1s   one 256 KiB entry alone, one shard. The Rust Worker rejects it (TypeScript baseline only).
 //   thumbs-get-1s       21 typical names (about 128 KiB), one shard. The first 8 are the names of thumbs-put-1s.
 //   thumbs-put-1s-8x    the sizes of thumbs-put-1s with one name on each of the 8 shards. It isolates the per-shard cost.
 //   thumbs-put-oversize-1s   one 128 KiB + 1 byte entry, one shard: expects 413 {"error":"tooLarge"}, stores nothing, no read-back.
@@ -71,7 +68,7 @@
 // Single-entry size sweep. One entry, one shard, schema 998. The `put` routes replace the same name every request, the `put-new`
 // routes write a fresh name every request. Every put is read back and compared byte for byte.
 //   thumbs-put-64k-1s, thumbs-put-128k-1s            64 KiB and 128 KiB, same name every request.
-//   thumbs-put-new-64k-1s, -128k-1s, -256k-1s        64, 128 and 256 KiB, fresh name every request (256 KiB: TypeScript baseline only).
+//   thumbs-put-new-64k-1s, -128k-1s                  64 and 128 KiB, fresh name every request.
 // List routes with a controlled size:
 //   thumbs-list        lists schema 998 (or --read-schema). The summary prints the row count and the response bytes of the last reply.
 //   thumbs-list-empty  lists schema 997, which no probe writes, so the reply holds no rows (a few dozen bytes).
@@ -109,9 +106,8 @@ const LARGE_BYTES = 15 * 1024 * 1024
 const MAX_BAD_STREAK = 3
 const LIVE_MAX_THUMB = 62 * 1024
 const WORKER_MAX_THUMB = 128 * 1024 // the limit of the Rust Worker
-const LEGACY_MAX_THUMB = 256 * 1024 // the old limit, sent only by the baseline routes
 const EMPTY_LIST_SCHEMA = '997' // read-only: no probe route writes this schema
-const SWEEP_SIZES = { '64k': 64 * 1024, '128k': 128 * 1024, '256k': LEGACY_MAX_THUMB }
+const SWEEP_SIZES = { '64k': 64 * 1024, '128k': 128 * 1024 }
 const PUT_ENTRIES = 20
 const GET_NAMES = 40
 const SHARDS = 8
@@ -119,7 +115,7 @@ const ONE_SHARD = 3
 const ONE_SHARD_PUT = 8
 const ONE_SHARD_GET = 21
 const DEFAULT_ROUTES = ['health', 'events', 'popular', 'cache-get-200', 'cache-get-304', 'cache-put-small', 'cache-put-large', 'thumbs-list']
-const THUMB_ROUTES = ['thumbs-put', 'thumbs-put-new', 'thumbs-put-max', 'thumbs-get', 'thumbs-get-max', 'thumbs-put-1s', 'thumbs-put-new-1s', 'thumbs-put-big-1s', 'thumbs-get-1s', 'thumbs-put-1s-8x', 'thumbs-put-64k-1s', 'thumbs-put-128k-1s', 'thumbs-put-new-64k-1s', 'thumbs-put-new-128k-1s', 'thumbs-put-new-256k-1s', 'thumbs-put-oversize-1s']
+const THUMB_ROUTES = ['thumbs-put', 'thumbs-put-new', 'thumbs-put-max', 'thumbs-get', 'thumbs-get-max', 'thumbs-put-1s', 'thumbs-put-new-1s', 'thumbs-get-1s', 'thumbs-put-1s-8x', 'thumbs-put-64k-1s', 'thumbs-put-128k-1s', 'thumbs-put-new-64k-1s', 'thumbs-put-new-128k-1s', 'thumbs-put-oversize-1s']
 const ALL_ROUTES = [...DEFAULT_ROUTES, ...THUMB_ROUTES, 'thumbs-list-empty']
 const EXIT_FAILED = 1
 const EXIT_USAGE = 2
@@ -295,10 +291,6 @@ const oneShardNewEntries = (ctx) => {
   const run = ctx.newPacks++
   return namesOnShard(`assethub-cpu-probe-thumb-new-1s-${ctx.runId}-${run}`, ONE_SHARD, ONE_SHARD_PUT).map((name, k) => ({ name, bytes: thumbBytes(name, typicalSize(k)) }))
 }
-const bigEntry = () => {
-  const [name] = namesOnShard('assethub-cpu-probe-thumb-big-1s', ONE_SHARD, 1)
-  return [{ name, bytes: thumbBytes(name, LEGACY_MAX_THUMB) }]
-}
 const oversizeEntry = () => {
   const [name] = namesOnShard('assethub-cpu-probe-thumb-oversize-1s', ONE_SHARD, 1)
   return [{ name, bytes: thumbBytes(name, WORKER_MAX_THUMB + 1) }]
@@ -469,14 +461,12 @@ const ROUTES = {
   'thumbs-get-max': { seed: 'max', request: () => getRequest(maxEntries()) },
   'thumbs-put-1s': { seed: 'oneShard', request: () => putRequest(oneShardEntries(ONE_SHARD_PUT)) },
   'thumbs-put-new-1s': { request: (ctx) => putRequest(oneShardNewEntries(ctx)) },
-  'thumbs-put-big-1s': { request: () => putRequest(bigEntry()) },
   'thumbs-get-1s': { seed: 'oneShard', request: () => getRequest(oneShardEntries(ONE_SHARD_GET)) },
   'thumbs-put-1s-8x': { seed: 'spread', request: () => putRequest(spreadEntries()) },
   'thumbs-put-64k-1s': { request: () => putRequest(sweepEntry('64k', SWEEP_SIZES['64k'])) },
   'thumbs-put-128k-1s': { request: () => putRequest(sweepEntry('128k', SWEEP_SIZES['128k'])) },
   'thumbs-put-new-64k-1s': { request: (ctx) => putRequest(sweepNewEntry(ctx, '64k', SWEEP_SIZES['64k'])) },
   'thumbs-put-new-128k-1s': { request: (ctx) => putRequest(sweepNewEntry(ctx, '128k', SWEEP_SIZES['128k'])) },
-  'thumbs-put-new-256k-1s': { request: (ctx) => putRequest(sweepNewEntry(ctx, '256k', SWEEP_SIZES['256k'])) },
   'thumbs-put-oversize-1s': { request: () => rejectedPutRequest(oversizeEntry()) }
 }
 

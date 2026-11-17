@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { allowRepo, api, b2, db, repoPath, reservedBytes, restoreShardTable, runScheduled, SCHEMA, sha, shardDb, THUMB_SHARDS, unsizedBody, useContract, waitForLog } from './harness'
+import { allowRepo, api, b2, repoPath, reservedBytes, restoreShardTable, runScheduled, SCHEMA, sha, shardDb, THUMB_SHARDS, unsizedBody, useContract, waitForLog } from './harness'
 import { expectErrorReplies, expectNoCors, headerNames, JSON_TYPE, snapshot, type Snapshot } from './raw'
 import {
   ageBlobs,
@@ -16,7 +16,6 @@ import {
   putPack,
   seedBlob,
   seedBlobs,
-  seedThumbs,
   setShardUsage,
   shardOf,
   shardUsage,
@@ -403,32 +402,6 @@ describe('thumbnails in D1 shards', () => {
     const row = await (await shardDb(0)).prepare('SELECT created FROM blobs').first<{ created: number }>()
     expect(row!.created).toBeGreaterThanOrEqual(before - 1000)
     expect(row!.created).toBeLessThanOrEqual(Date.now() + 1000)
-  })
-
-  describe('rows of the TypeScript Worker', () => {
-    const b2Version = '4_z27c88f1d182b150646ff0b16_f2142e4dc1b0e0c88_d20250101_m000000_c004_v0402005_t0001_u01735689600000'
-
-    it('are not served even when a shard row has the same id', async () => {
-      allowRepo('game', true)
-      await seedThumbs([{ repo: 'supercent-io/game', schema: 1, name: sha(1), rev: 1, versionId: b2Version }])
-      await seedBlob({ repo: 'supercent-io/game', schema: 1, name: sha(1), gen: b2Version, bytes: new Uint8Array([1, 2, 3]) })
-      const res = await getPack([sha(1)])
-      expect(res.status).toBe(200)
-      expect((await res.arrayBuffer()).byteLength).toBe(0)
-      expect((await list()).body.items).toEqual([])
-    })
-
-    it('are replaced by a PUT of the same name, which lists again and serves the new bytes', async () => {
-      allowRepo('game', true)
-      await seedThumbs([{ repo: 'supercent-io/game', schema: 1, name: sha(1), rev: 5, versionId: b2Version }])
-      await db().then((d) => d.prepare("INSERT INTO thumb_rev (repo, schema, rev) VALUES ('supercent-io/game', 1, 5)").run())
-      expect((await putPack([entry(1)])).status).toBe(200)
-      const { body } = await list()
-      expect(body.items).toEqual([{ name: sha(1), size: 4, rev: 6 }])
-      expect(await indexedGen(sha(1))).toBe((await blobRows())[0].gen)
-      expect(decodePack(new Uint8Array(await (await getPack([sha(1)])).arrayBuffer()))[0].bytes).toEqual(bytesFor(1))
-      expect(await shardUsage(0)).toBe(4)
-    })
   })
 })
 

@@ -149,12 +149,6 @@ export const commands = {
 	thumbsGet: (keys: string[]) => typedError<{ [key in string]: string }, IpcError_Serialize>(__TAURI_INVOKE("thumbs_get", { keys })),
 	/**  Keeps a rendered thumbnail. */
 	thumbsSave: (key: string, dataUrl: string) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("thumbs_save", { key, dataUrl })),
-	/**  What the shared index folder holds. */
-	sharedIndexStatus: () => typedError<SharedIndexStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("shared_index_status")),
-	/**  Takes in the folder's index now, even one taken in before. */
-	sharedIndexImport: () => typedError<SharedIndexStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("shared_index_import")),
-	/**  Writes this app's index there (after taking in what is already there). */
-	sharedIndexExport: () => typedError<SharedIndexStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("shared_index_export")),
 	/**  Bytes the cache folder holds, by kind. */
 	cacheUsage: () => typedError<CacheUsage, IpcError_Serialize>(__TAURI_INVOKE("cache_usage")),
 	/**  Empties downloaded files (thumbnails and measurements stay). */
@@ -178,10 +172,6 @@ export const commands = {
 	updateCheck: () => typedError<UpdateInfo_Serialize | null, IpcError_Serialize>(__TAURI_INVOKE("update_check")),
 	/**  Downloads, verifies and installs `version`, then restarts the app (answers only on failure). */
 	updateInstall: (version: string) => typedError<OkMessage_Serialize, IpcError_Serialize>(__TAURI_INVOKE("update_install", { version })),
-	/**  Counted in this session's usage notes (fire and forget). */
-	usageTrack: (event: UsageEvent_Deserialize) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("usage_track", { event })),
-	/**  Opens an issue in the feedback repo; offline or without access it is kept and sent later. */
-	feedbackSend: (report: FeedbackReport_Deserialize) => typedError<FeedbackResult_Serialize, IpcError_Serialize>(__TAURI_INVOKE("feedback_send", { report })),
 	/**
 	 *  `disabled` when nobody is signed in or the client is off, `offline` while a breaker is open,
 	 *  and `online` otherwise. The page also hears every change as an event.
@@ -192,6 +182,11 @@ export const commands = {
 	 *  team backend is off or out of reach, or it has nothing: the page then sorts as it did before.
 	 */
 	teamPopular: (repo: string) => typedError<{ [key in string]: number | null }, IpcError_Serialize>(__TAURI_INVOKE("team_popular", { repo })),
+	/**
+	 *  The page showed an asset: the team counts the view. Fire and forget; nothing happens when
+	 *  nobody is signed in, and an asset that does not name its repo and blob SHA is not counted.
+	 */
+	teamNoteView: (repo: string | null, sha: string | null) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("team_note_view", { repo, sha })),
 };
 
 /** Events */
@@ -203,7 +198,6 @@ export const events = {
 	indexProgress: makeEvent<IndexProgress, IndexProgress>("index-progress"),
 	knownProgress: makeEvent<KnownProgress_Serialize, KnownProgress_Deserialize>("known-progress"),
 	prefabProgress: makeEvent<PrefabProgress, PrefabProgress>("prefab-progress"),
-	sharedIndexProgress: makeEvent<SharedIndexProgress_Serialize, SharedIndexProgress_Deserialize>("shared-index-progress"),
 	teamStatusChanged: makeEvent<TeamStatusChanged, TeamStatusChanged>("team-status-changed"),
 	toolsInstallProgress: makeEvent<ToolsInstallProgress, ToolsInstallProgress>("tools-install-progress"),
 	updateProgress: makeEvent<UpdateProgress, UpdateProgress>("update-progress"),
@@ -227,8 +221,6 @@ export const DEFAULT_EXCLUDED_FOLDERS = ["_ThirdParty"] as const;
 export const DEFAULT_EXPORT_LAYOUT = "byType" as const;
 
 export const EXPORT_LAYOUTS = ["byType","grouped","source"] as const;
-
-export const FEEDBACK_KINDS = ["bug","idea","other"] as const;
 
 export const LANGUAGES = ["en","ko","vi"] as const;
 
@@ -708,56 +700,6 @@ export type ExportStage = "resolve" | "download" | "write";
 
 /**  Kinds of assets known only by reading them. */
 export type FactKind = "effects" | "uiPrefabs" | "sprites" | "tmpFonts";
-
-/**  Where the user was, when they chose to include it. */
-export type FeedbackContext = FeedbackContext_Serialize | FeedbackContext_Deserialize;
-
-/**  Where the user was, when they chose to include it. */
-export type FeedbackContext_Deserialize = {
-	repo?: string | null,
-	branch?: string | null,
-	asset?: string | null,
-};
-
-/**  Where the user was, when they chose to include it. */
-export type FeedbackContext_Serialize = {
-	repo?: string,
-	branch?: string,
-	asset?: string,
-};
-
-export type FeedbackKind = "bug" | "idea" | "other";
-
-export type FeedbackReport = FeedbackReport_Serialize | FeedbackReport_Deserialize;
-
-export type FeedbackReport_Deserialize = {
-	kind: FeedbackKind,
-	title: string,
-	body: string,
-	context?: FeedbackContext_Deserialize | null,
-};
-
-export type FeedbackReport_Serialize = {
-	kind: FeedbackKind,
-	title: string,
-	body: string,
-	context?: FeedbackContext_Serialize,
-};
-
-/**  Sent: the issue's link. Not sent (offline, no access): kept and retried on a later launch. */
-export type FeedbackResult = FeedbackResult_Serialize | FeedbackResult_Deserialize;
-
-/**  Sent: the issue's link. Not sent (offline, no access): kept and retried on a later launch. */
-export type FeedbackResult_Deserialize = {
-	sent: boolean,
-	url?: string | null,
-};
-
-/**  Sent: the issue's link. Not sent (offline, no access): kept and retried on a later launch. */
-export type FeedbackResult_Serialize = {
-	sent: boolean,
-	url?: string,
-};
 
 export type GhInstalled = {
 	version: string,
@@ -1421,13 +1363,9 @@ export type Settings_Deserialize = {
 	exportLayout?: PackageLayout | null,
 	/**  Unity project packages are meant for (read only). */
 	targetProject?: string | null,
-	/**  Folder a team shares, holding an index everyone takes in. */
-	sharedIndexDir?: string | null,
 	collections?: Collection_Deserialize[] | null,
 	recent?: RecentLists_Deserialize | null,
 	watched?: WatchedBranch[] | null,
-	/**  Usage notes sent to the team's feedback repo (absent: on). */
-	usageStats?: boolean | null,
 };
 
 /**  The user's settings. */
@@ -1449,13 +1387,9 @@ export type Settings_Serialize = {
 	exportLayout?: PackageLayout,
 	/**  Unity project packages are meant for (read only). */
 	targetProject?: string,
-	/**  Folder a team shares, holding an index everyone takes in. */
-	sharedIndexDir?: string,
 	collections?: Collection_Serialize[],
 	recent?: RecentLists_Serialize,
 	watched?: WatchedBranch[],
-	/**  Usage notes sent to the team's feedback repo (absent: on). */
-	usageStats?: boolean,
 };
 
 export type ShaderKind = "builtin" | "package" | "project";
@@ -1475,111 +1409,6 @@ export type ShaderRef_Serialize = {
 	kind: ShaderKind,
 	path?: string,
 };
-
-export type SharedIndexAction = "imported" | "exported";
-
-/**  What a shared index folder holds (`manifest.json`). */
-export type SharedIndexManifest = SharedIndexManifest_Serialize | SharedIndexManifest_Deserialize;
-
-/**  What a shared index folder holds (`manifest.json`). */
-export type SharedIndexManifest_Deserialize = {
-	format: number,
-	/**  ISO time it was written; a newer one is taken in. */
-	exportedAt: string,
-	/**  GitHub login of who wrote it. */
-	exportedBy?: string | null,
-	/**  Asset types indexed (handler ids). */
-	types: string,
-	repos: SharedIndexRepo[],
-	thumbs: number | null,
-	stats: number | null,
-};
-
-/**  What a shared index folder holds (`manifest.json`). */
-export type SharedIndexManifest_Serialize = {
-	format: number,
-	/**  ISO time it was written; a newer one is taken in. */
-	exportedAt: string,
-	/**  GitHub login of who wrote it. */
-	exportedBy?: string,
-	/**  Asset types indexed (handler ids). */
-	types: string,
-	repos: SharedIndexRepo[],
-	thumbs: number | null,
-	stats: number | null,
-};
-
-/**  The shared index changed state. */
-export type SharedIndexProgress = SharedIndexProgress_Serialize | SharedIndexProgress_Deserialize;
-
-/**  The shared index changed state. */
-export type SharedIndexProgress_Deserialize = SharedIndexStatus_Deserialize;
-
-/**  The shared index changed state. */
-export type SharedIndexProgress_Serialize = SharedIndexStatus_Serialize;
-
-export type SharedIndexRepo = {
-	repo: string,
-	branches: number | null,
-	commits: number | null,
-};
-
-/**  Counts of what an import took in, or an export wrote. */
-export type SharedIndexResult = {
-	commits: number | null,
-	facts: number | null,
-	stats: number | null,
-	thumbs: number | null,
-};
-
-export type SharedIndexState = "idle" | "importing" | "exporting" | "error";
-
-export type SharedIndexStatus = SharedIndexStatus_Serialize | SharedIndexStatus_Deserialize;
-
-export type SharedIndexStatus_Deserialize = {
-	state: SharedIndexState,
-	error?: string | null,
-	via?: SharedIndexVia | null,
-	/**  The GitHub repo, `via: github`. */
-	repo?: string | null,
-	/**  No signed-in account can write to the GitHub repo (each can read it). */
-	readOnly?: boolean | null,
-	/**
-	 *  The signed-in account that pushes to the repo, once known (only checked when there is a
-	 *  choice of accounts and a push or the page's status check needs it).
-	 */
-	writer?: string | null,
-	/**  In the shared folder now. */
-	manifest?: SharedIndexManifest_Deserialize | null,
-	/**  `exportedAt` of the index taken in last. */
-	importedAt?: string | null,
-	last?: SharedIndexResult | null,
-	lastAction?: SharedIndexAction | null,
-};
-
-export type SharedIndexStatus_Serialize = {
-	state: SharedIndexState,
-	error?: string,
-	via?: SharedIndexVia,
-	/**  The GitHub repo, `via: github`. */
-	repo?: string,
-	/**  No signed-in account can write to the GitHub repo (each can read it). */
-	readOnly?: boolean,
-	/**
-	 *  The signed-in account that pushes to the repo, once known (only checked when there is a
-	 *  choice of accounts and a push or the page's status check needs it).
-	 */
-	writer?: string,
-	/**  In the shared folder now. */
-	manifest?: SharedIndexManifest_Serialize,
-	/**  `exportedAt` of the index taken in last. */
-	importedAt?: string,
-	last?: SharedIndexResult,
-	lastAction?: SharedIndexAction,
-};
-
-/**  Shared through the GitHub repo (no folder picked) or a folder. */
-export type SharedIndexVia = "github" | "folder";
 
 export type SheetAnimation = SheetAnimation_Serialize | SheetAnimation_Deserialize;
 
@@ -1894,23 +1723,6 @@ export type UrpInfo_Serialize = {
 	/**  Materials that still need URP after conversion. */
 	needed?: number | null,
 };
-
-/**  What the page reports itself; the rest is seen in the backend. */
-export type UsageEvent = UsageEvent_Serialize | UsageEvent_Deserialize;
-
-/**  What the page reports itself; the rest is seen in the backend. */
-export type UsageEvent_Deserialize = { kind: "view"; type: string; 
-/**  The repo and blob SHA of the asset, so the team can count the view. */
-repo?: string | null; sha?: string | null } | 
-/**  How long the preview of an asset took to show, in milliseconds. */
-{ kind: "preview"; ms: number | null; repo?: string | null; sha?: string | null } | { kind: "search" } | { kind: "feedback" };
-
-/**  What the page reports itself; the rest is seen in the backend. */
-export type UsageEvent_Serialize = { kind: "view"; type: string; 
-/**  The repo and blob SHA of the asset, so the team can count the view. */
-repo?: string; sha?: string } | 
-/**  How long the preview of an asset took to show, in milliseconds. */
-{ kind: "preview"; ms: number | null; repo?: string; sha?: string } | { kind: "search" } | { kind: "feedback" };
 
 export type VelocityLimit = VelocityLimit_Serialize | VelocityLimit_Deserialize;
 

@@ -25,18 +25,11 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<Settings, IpcErr
 pub async fn set_settings(state: State<'_, AppState>, patch: JsonObject) -> Result<Settings, IpcError> {
     traced("set_settings", async {
         let limit_changed = patch.0.contains_key("cacheLimitGB");
-        let index_changed = patch.0.contains_key("sharedIndexDir");
         let saved = state.settings()?.set(&Value::Object(patch.0)).map_err(|e| IpcError::unknown(format!("could not save the settings: {e}")))?;
         state.caches.config.apply(&saved);
         if limit_changed {
             let caches = state.caches.clone();
             tauri::async_runtime::spawn(async move { caches.janitor.prune().await });
-        }
-        // A new shared folder is read at once.
-        if index_changed {
-            if let Ok(session) = state.session() {
-                tauri::async_runtime::spawn(async move { session.shared_index.check().await });
-            }
         }
         Ok(saved)
     })

@@ -16,7 +16,7 @@ use crate::dto::{BudgetPreset, CollectionItem, Collection, CustomBudget, Languag
 const RECENT_LIMIT: usize = 30;
 
 /// Every setting this version knows; anything else in the file was written by another version.
-pub const SETTINGS_KEYS: [&str; 15] = [
+pub const SETTINGS_KEYS: [&str; 13] = [
     "language",
     "cacheDir",
     "cacheLimitGB",
@@ -27,11 +27,9 @@ pub const SETTINGS_KEYS: [&str; 15] = [
     "customBudget",
     "exportLayout",
     "targetProject",
-    "sharedIndexDir",
     "collections",
     "recent",
     "watched",
-    "usageStats",
 ];
 
 /// Settings this version does not know, as they are in the file: an older and a newer copy of the
@@ -197,11 +195,9 @@ pub fn sanitize_settings(raw: &Value, defaults: &Settings) -> Settings {
         custom_budget: sanitize_budget(input.get("customBudget")),
         export_layout: layout_of(input.get("exportLayout")),
         target_project: non_blank_string(input.get("targetProject")),
-        shared_index_dir: non_blank_string(input.get("sharedIndexDir")),
         collections: sanitize_collections(input.get("collections")),
         recent,
         watched: input.get("watched").and_then(Value::as_array).map(|list| sanitize_watched(list)),
-        usage_stats: input.get("usageStats").and_then(Value::as_bool),
     }
 }
 
@@ -284,11 +280,9 @@ pub fn default_settings(cache_dir: &Path) -> Settings {
         custom_budget: None,
         export_layout: None,
         target_project: None,
-        shared_index_dir: None,
         collections: None,
         recent: None,
         watched: None,
-        usage_stats: None,
     }
 }
 
@@ -327,10 +321,10 @@ mod tests {
         let file = dir.path().join("a.json");
         fs::write(&file, json!({ "language": "vi", "cacheDir": "/c", "excludedFolders": [], "futureThing": { "on": true } }).to_string()).unwrap();
         let mut store = SettingsStore::new(&file, store_defaults());
-        store.set(&json!({ "usageStats": false })).unwrap();
+        store.set(&json!({ "lastRepo": "o/r" })).unwrap();
         let saved = read(&file);
         assert_eq!(saved["language"], "vi");
-        assert_eq!(saved["usageStats"], false);
+        assert_eq!(saved["lastRepo"], "o/r");
         assert_eq!(saved["futureThing"], json!({ "on": true }));
     }
 
@@ -412,7 +406,7 @@ mod tests {
 
     #[test]
     fn unknown_settings_are_the_keys_this_version_has_no_setting_for() {
-        let raw = json!({ "language": "en", "x": 1, "usageStats": true });
+        let raw = json!({ "language": "en", "x": 1 });
         assert_eq!(Value::Object(unknown_settings(&raw)), json!({ "x": 1 }));
         assert!(unknown_settings(&json!([1, 2])).is_empty());
         assert!(unknown_settings(&Value::Null).is_empty());
@@ -525,10 +519,24 @@ mod tests {
     }
 
     #[test]
-    fn keeps_the_flags_that_are_booleans() {
-        let s = sanitize_settings(&json!({ "usageStats": false, "targetProject": "  ", "sharedIndexDir": "/team" }), &defaults());
-        assert_eq!(s.usage_stats, Some(false));
-        assert_eq!((s.target_project, s.shared_index_dir.as_deref()), (None, Some("/team")));
+    fn drops_a_blank_target_project() {
+        let s = sanitize_settings(&json!({ "targetProject": "  " }), &defaults());
+        assert_eq!(s.target_project, None);
+    }
+
+    #[test]
+    fn a_file_from_an_older_version_loads_and_keeps_its_removed_settings_aside() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("old.json");
+        fs::write(&file, json!({ "language": "vi", "cacheDir": "/c", "excludedFolders": [], "usageStats": false, "sharedIndexDir": "/team" }).to_string()).unwrap();
+        let mut store = SettingsStore::new(&file, store_defaults());
+        let loaded = store.get();
+        assert_eq!(serde_json::to_value(&loaded).unwrap(), json!({ "language": "vi", "cacheDir": "/c", "excludedFolders": [] }));
+        // Nothing the page can read or send: the settings are the same after a save.
+        assert_eq!(store.set(&json!({ "lastRepo": "o/r" })).unwrap().last_repo.as_deref(), Some("o/r"));
+        let saved = read(&file);
+        assert_eq!((saved["usageStats"].clone(), saved["sharedIndexDir"].clone()), (json!(false), json!("/team")));
+        assert!(sanitize_settings(&json!({ "usageStats": false, "sharedIndexDir": "/team" }), &defaults()) == defaults());
     }
 
     #[test]

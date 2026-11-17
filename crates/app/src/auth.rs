@@ -416,7 +416,7 @@ impl AuthService {
         self.account().map(|(_, token)| token)
     }
 
-    /// The active login and its token, for sending usage notes as that account.
+    /// The active login and its token, 
     pub fn account(&self) -> Option<(String, String)> {
         self.session.lock().ok()?.as_ref()?.accounts.first().cloned()
     }

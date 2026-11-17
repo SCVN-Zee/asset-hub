@@ -473,7 +473,7 @@ body.resizing * { cursor: inherit !important; }
 .card p { margin: 0; }
 .action-sep { width: 1px; height: 22px; margin: 0 4px; background: var(--line); }
 .icon-count { font-size: var(--fs-xs); font-weight: 600; color: var(--text); }
-/* Dialogs (feedback, shortcuts): the settings panel's graphite, border and heading, centred over a scrim. */
+/* Dialogs (shortcuts): the settings panel's graphite, border and heading, centred over a scrim. */
 .dialog-layer { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: var(--sp-4); background: rgba(10, 10, 10, 0.55); }
 .dialog-card { width: min(480px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--r-lg); background: var(--panel); box-shadow: var(--shadow-pop); font-size: var(--fs-md); animation: dialog-in 0.14s var(--ease-out); }
 .dialog-card.dialog-narrow { width: min(360px, 100%); }
@@ -488,12 +488,6 @@ body.resizing * { cursor: inherit !important; }
 .shortcut-list > div { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: var(--sp-3); }
 .shortcut-list dt, .shortcut-list dd { margin: 0; }
 .shortcut-list kbd { padding: 2px 8px; border-radius: var(--r-sm); border: 1px solid var(--line-strong); background: var(--raise); font: 500 var(--fs-sm) var(--mono); }
-.feedback-kinds { display: flex; gap: 6px; }
-/* A long repo, branch and asset path wraps inside the dialog; the box stays by the first line. */
-.check.feedback-where { display: flex; align-items: flex-start; min-width: 0; }
-.feedback-where input { flex: none; margin-top: 1px; }
-.feedback-where span { min-width: 0; overflow-wrap: anywhere; }
-.feedback-body { height: auto; padding: 10px 12px; resize: vertical; font: inherit; line-height: 1.5; }
 /* Import into Unity: the button, an arrow when several editors are open, and their list. */
 .unity-button { position: relative; display: inline-flex; }
 .unity-button > .btn:first-child:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }

@@ -27,8 +27,7 @@ export const uuidFor = (n: number): string => `00000000-0000-4000-8000-${n.toStr
 
 /**
  * Writes index rows straight into D1, so a list test needs no upload. The one place that knows where
- * the index lives. A row names a generation of the Rust Worker unless `versionId` says otherwise
- * (`''` or a B2 version id make a row of the TypeScript Worker).
+ * the index lives. A row gets a lower-case UUID generation unless `versionId` says otherwise.
  */
 export async function seedThumbs(rows: Array<{ repo: string; schema: number; name: string; rev: number; versionId?: string }>): Promise<void> {
   const database = await db()

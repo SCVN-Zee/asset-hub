@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { CatalogAsset, CatalogFacets } from '@shared/types'
 import type { CatalogStatus } from '@shared/ipc'
 import { unwrap } from './remoteSource'
-import { useSharedImports } from './useSharedIndex'
 
 /** Where a search looks: the open branch, every branch of the repo, or every repo. */
 export type SearchScope = 'branch' | 'repo' | 'all'
@@ -35,7 +34,6 @@ export function useCatalog(
   const readTime = useRef(0)
   const active = enabled && scope !== 'branch' && (scope === 'all' || !!repo)
   const target = scope === 'repo' ? repo : null
-  const imports = useSharedImports()
 
   useEffect(() => {
     if (!enabled) return
@@ -54,11 +52,6 @@ export function useCatalog(
       setVersion((v) => v + 1)
     })
   }, [active, target])
-
-  // A teammate's index taken in: results read again.
-  useEffect(() => {
-    if (active && imports) setVersion((v) => v + 1)
-  }, [imports])
 
   // New branches listed: read the results again, but not on every step.
   useEffect(() => {

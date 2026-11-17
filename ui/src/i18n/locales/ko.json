@@ -157,27 +157,6 @@
     "cacheNoLimit": "제한 없음",
     "cacheClear": "다운로드 파일 삭제",
     "cacheUsage": "다운로드 {{downloads}} · 썸네일 {{thumbs}} · 기타 {{other}}",
-    "sharedIndex": "공유 인덱스",
-    "sharedIndexNone": "GitHub({{repo}})로 공유하거나 폴더를 선택하세요",
-    "sharedIndexStop": "공유 중지",
-    "sharedIndexThere": "공유 인덱스: {{when}}에 {{who}}가 기록 · 저장소 {{repos}}개 · 썸네일 {{thumbs}}개",
-    "sharedIndexEmpty": "아직 공유 인덱스가 없습니다. 먼저 기록하세요.",
-    "sharedIndexTaken": "{{when}}에 가져옴",
-    "sharedIndexImport": "지금 가져오기",
-    "sharedIndexImporting": "가져오는 중…",
-    "sharedIndexExport": "내 인덱스 기록",
-    "sharedIndexExporting": "기록 중…",
-    "sharedIndexImported": "브랜치 목록 {{commits}}개, 정보 {{facts}}개, 수치 {{stats}}개, 썸네일 {{thumbs}}개를 가져왔습니다.",
-    "sharedIndexExported": "브랜치 목록 {{commits}}개, 정보 {{facts}}개, 수치 {{stats}}개, 새 썸네일 {{thumbs}}개를 기록했습니다.",
-    "sharedIndexFailed": "공유 인덱스 오류: {{error}}",
-    "sharedIndexAuto": "자동으로 최신 상태 유지: 팀원이 추가하면 바로 받아오고, 공유본이 2시간보다 오래되면 내 인덱스를 추가합니다.",
-    "sharedIndexReadOnly": "GitHub 계정이 {{repo}}를 읽을 수만 있고 쓸 수는 없습니다: 팀 인덱스는 받지만 추가하지는 않습니다.",
-    "sharedIndexReadOnlyMany": "로그인된 GitHub 계정 중 {{repo}}에 쓸 수 있는 계정이 없습니다: 팀 인덱스는 받지만 추가하지는 않습니다.",
-    "sharedIndexWriter": "내 인덱스는 {{login}} 계정으로 추가됩니다.",
-    "sharedIndexNoGit": "공유 안 함: git(Xcode Command Line Tools) 또는 폴더가 필요합니다.",
-    "usage": "사용 통계",
-    "usageStats": "팀에 사용 통계 보내기",
-    "usageNote": "GitHub 이름, 앱 사용 시간, 작업 횟수(연 브랜치, 본 에셋 유형, 검색, 내보내기, 오류)를 보냅니다. 검색어나 파일 내용은 절대 보내지 않습니다. 개선 방향을 정하는 데 도움이 됩니다.",
     "cliTitle": "명령줄 도구",
     "cliInstall": "명령줄 도구 설치",
     "cliNote": "Claude Code, Codex 같은 코딩 에이전트가 앱 창이 닫힌 상태에서도 에셋을 검색하고 내보낼 수 있게 합니다. asset-hub-cli를 ~/.local/bin에 연결합니다.",
@@ -861,30 +840,6 @@
     "collection": "컬렉션",
     "watch": "브랜치 고정",
     "watching": "고정됨"
-  },
-  "feedback": {
-    "title": "피드백 보내기",
-    "kind": "유형",
-    "kinds": {
-      "bug": "버그",
-      "idea": "아이디어",
-      "other": "기타"
-    },
-    "titlePlaceholder": "간단한 요약…",
-    "bodyPlaceholder": {
-      "bug": "무슨 일이 있었고, 무엇을 기대했나요? 재현 단계를 적어 주시면 큰 도움이 됩니다.",
-      "idea": "앱이 무엇을 할 수 있으면 좋을까요? 어떤 용도인가요?",
-      "other": "Asset Hub에 대해 하고 싶은 말을 자유롭게 적어 주세요."
-    },
-    "withContext": "현재 위치 포함: {{where}}",
-    "note": "GitHub 이름과 앱 버전이 함께 팀에 전송됩니다.",
-    "cancel": "취소",
-    "send": "보내기",
-    "sending": "보내는 중…",
-    "sent": "감사합니다! 피드백이 팀에 전달되었습니다.",
-    "queued": "저장되었습니다. 지금은 보낼 수 없어 다음에 앱을 열 때 자동으로 전송됩니다.",
-    "open": "GitHub에서 열기",
-    "close": "닫기"
   },
   "sidebar": {
     "yours": "내 항목"

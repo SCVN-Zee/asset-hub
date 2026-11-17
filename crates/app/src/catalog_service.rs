@@ -48,7 +48,7 @@ pub fn now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 
-/// A repo as a file name (`owner/name` to `owner__name`), as the catalog and the shared index write it.
+/// A repo as a file name (`owner/name` to `owner__name`), as the catalog writes it.
 pub fn repo_slug(repo: &str) -> String {
     repo.replacen('/', "__", 1).chars().map(|c| if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') { c } else { '_' }).collect()
 }
@@ -603,7 +603,7 @@ impl CatalogService {
             .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not list the catalog: {e}")))
     }
 
-    /// Every saved repo's catalog, as stored (for a shared index).
+    /// Every saved repo's catalog, as stored (for the team cache).
     pub async fn snapshot(&self) -> Vec<RepoCatalogData> {
         let mut out = Vec::new();
         for repo in self.saved_repos().await {
@@ -640,7 +640,7 @@ impl CatalogService {
         self.load(repo).await.lock().await.data().blobs.iter().map(|(sha, _)| sha.clone()).collect()
     }
 
-    /// Takes in a catalog from a shared index (see [`RepoCatalog::merge`]); returns how many commits it added.
+    /// Takes in a catalog from the team cache (see [`RepoCatalog::merge`]); returns how many commits it added.
     pub async fn merge(self: &Arc<Self>, raw: &Value) -> usize {
         let Some(repo) = raw.get("repo").and_then(Value::as_str).filter(|r| r.contains('/')) else { return 0 };
         // Made for other asset types: nothing to take in (its commits would be listed again anyway).
@@ -1129,7 +1129,7 @@ mod tests {
     }
 
     #[test]
-    fn repos_become_file_names_the_way_the_shared_index_writes_them() {
+    fn repos_become_file_names_the_way_the_catalog_writes_them() {
         assert_eq!(repo_slug("org/hero"), "org__hero");
         assert_eq!(repo_slug("My Org/re po.x"), "My_Org__re_po.x");
         // Only the first slash is the owner's.

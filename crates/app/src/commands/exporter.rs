@@ -9,7 +9,7 @@ use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use tauri_specta::Event;
 
-use super::{traced, traced_with};
+use super::traced;
 use crate::dto::{ExportRequest, ExportResult, ExportStage, RunningUnity};
 use crate::events::ExportProgress;
 use crate::exporter::{export_package, ExportInput, Exported};
@@ -20,7 +20,6 @@ use crate::state::AppState;
 use crate::team::TeamEventKind;
 use crate::target_project::is_unity_project;
 use crate::unity_editors::{list_running_unity, open_in_process};
-use crate::usage::Outcome;
 
 /// Asks where to save a file; `None` when the user canceled. The dialog starts in Downloads.
 pub(super) async fn ask_save_path(app: &AppHandle, window: &WebviewWindow, title: &str, name: String, filter: Option<(String, String)>) -> Result<Option<PathBuf>, IpcError> {
@@ -109,15 +108,11 @@ fn canceled(unity: Option<String>) -> ExportResult {
     ExportResult { canceled: true, path: None, assets: None, bytes: None, skipped: None, target: None, unity, scripts_removed: None }
 }
 
-fn outcome(result: &ExportResult) -> Outcome {
-    Outcome::Done { canceled: result.canceled, assets: result.assets.unwrap_or(0.0) as u64 }
-}
-
 /// Asks where to save, then builds the .unitypackage.
 #[tauri::command]
 #[specta::specta]
 pub async fn exporter_unity_package(app: AppHandle, window: WebviewWindow, state: State<'_, AppState>, request: ExportRequest) -> Result<ExportResult, IpcError> {
-    traced_with("exporter_unity_package", None, outcome, async {
+    traced("exporter_unity_package", async {
         let _foreground = state.hub.foreground.enter();
         let session = state.session()?;
         let suggested = safe_name(&request.suggested_name);
@@ -150,7 +145,7 @@ pub async fn exporter_unity_editors() -> Result<Vec<RunningUnity>, IpcError> {
 #[tauri::command]
 #[specta::specta]
 pub async fn exporter_import_to_unity(app: AppHandle, state: State<'_, AppState>, request: ExportRequest, pid: u32) -> Result<ExportResult, IpcError> {
-    traced_with("exporter_import_to_unity", None, outcome, async {
+    traced("exporter_import_to_unity", async {
         let _foreground = state.hub.foreground.enter();
         let session = state.session()?;
         let editor = list_running_unity().await.into_iter().find(|e| e.pid == pid).ok_or_else(|| IpcError::unknown("That Unity editor is no longer open"))?;

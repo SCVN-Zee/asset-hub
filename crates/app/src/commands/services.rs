@@ -1,17 +1,16 @@
-//! Installing tools, updates, usage notes and feedback.
+//! Installing tools and updates.
 
 use tauri::{AppHandle, State};
 use tauri_specta::Event;
 
 use super::traced;
-use crate::dto::{FeedbackReport, FeedbackResult, GhInstalled, InstallProgress, OkMessage, UpdateInfo, UsageEvent};
+use crate::dto::{GhInstalled, InstallProgress, OkMessage, UpdateInfo};
 use crate::events::{ToolsInstallProgress, UpdateProgress};
 use crate::gh_installer::{install_gh, RELEASES};
 use crate::http;
 use crate::ipc::{AppErrorCode, IpcError};
 use crate::state::AppState;
 use crate::updater;
-use crate::usage_env::AppEnv;
 
 /// Downloads and verifies GitHub CLI into the app's own folder.
 #[tauri::command]
@@ -81,38 +80,6 @@ pub async fn update_install(app: AppHandle, version: String) -> Result<OkMessage
         let _ = UpdateProgress(InstallProgress::Extract).emit(&app);
         update.install(bytes).map_err(|error| failed(error.to_string()))?;
         app.restart()
-    })
-    .await
-}
-
-/// Counted in this session's usage notes (fire and forget).
-#[tauri::command]
-#[specta::specta]
-pub async fn usage_track(state: State<'_, AppState>, event: UsageEvent) -> Result<(), IpcError> {
-    traced("usage_track", async {
-        state.usage.note_event(&event);
-        // The team counts views of assets, and knows which previews were warm.
-        if let Some(session) = state.hub.current() {
-            match &event {
-                UsageEvent::View { repo, sha, .. } => session.team.events.note_view(repo.as_deref(), sha.as_deref()),
-                UsageEvent::Preview { repo: Some(repo), sha: Some(sha), .. } if session.prefetch.was_prefetched(repo, sha) => {
-                    state.usage.recorder().with(|s| s.bump("preview.warm", 1));
-                }
-                _ => {}
-            }
-        }
-        Ok(())
-    })
-    .await
-}
-
-/// Opens an issue in the feedback repo; offline or without access it is kept and sent later.
-#[tauri::command]
-#[specta::specta]
-pub async fn feedback_send(app: AppHandle, state: State<'_, AppState>, report: FeedbackReport) -> Result<FeedbackResult, IpcError> {
-    traced("feedback_send", async {
-        let env = AppEnv::new(app);
-        Ok(state.usage.feedback(&env, report).await)
     })
     .await
 }

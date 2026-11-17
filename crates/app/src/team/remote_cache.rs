@@ -1,6 +1,5 @@
 //! The team's shared cache on the Worker: catalogs, facts, measurements and thumbnails that one
-//! machine worked out and others take in, per repo. It does what the shared index repo did, over
-//! the team client.
+//! machine worked out and others take in, per repo, over the team client.
 //!
 //! Everything here runs in the background and never blocks the user: each request batch waits for
 //! the foreground to be idle, each pull or contribution has a deadline, and every error is traced
@@ -33,7 +32,7 @@ use crate::catalog_service::{catalog_json, now_ms, repo_slug};
 use crate::commands::trace;
 use crate::dto::TeamStatus;
 use crate::hub::Foreground;
-use crate::shared_index::{canonical, catalog_adds, core_stats, facts_add, gzip_json, key_of, parse_stats_map, repo_facts, repo_stats, save_newer_cards, Counts, Deps, FactsFile};
+use super::merge::{canonical, catalog_adds, core_stats, facts_add, gzip_json, key_of, parse_stats_map, repo_facts, repo_stats, save_newer_cards, Counts, Deps, FactsFile};
 
 /// The most a gunzipped object may hold.
 const MAX_JSON: u64 = 64 * 1024 * 1024;
@@ -1328,7 +1327,7 @@ fn is_cursor(text: &str) -> bool {
 mod fixtures {
     use super::super::TeamOptions;
     use super::*;
-    use crate::shared_index::tests::{hero, machine, Machine};
+    use crate::team::merge::tests::{hero, machine, Machine};
     use crate::test_server::{serve_full, Full, Reply};
     use asset_hub_core::github::client::AccountTokens;
     use asset_hub_core::types::{EntryType, TreeEntry};
@@ -1529,7 +1528,7 @@ mod fixtures {
         pub(super) client: Arc<TeamClient>,
         pub(super) foreground: Foreground,
         pub(super) catalog: Arc<crate::catalog_service::CatalogService>,
-        pub(super) facts: Arc<crate::shared_index::tests::MemFacts>,
+        pub(super) facts: Arc<crate::team::merge::tests::MemFacts>,
         pub(super) caches: Arc<crate::cache::Caches>,
         pub(super) dir: PathBuf,
         pub(super) _tmp: tempfile::TempDir,
@@ -1580,7 +1579,7 @@ mod fixtures {
 
 #[cfg(test)]
 mod pull {
-    use crate::shared_index::tests::stat;
+    use crate::team::merge::tests::stat;
     use super::fixtures::*;
     use super::*;
     use serde_json::json;
@@ -2087,7 +2086,7 @@ mod pull {
 
 #[cfg(test)]
 mod contribute {
-    use crate::shared_index::tests::stat;
+    use crate::team::merge::tests::stat;
     use super::fixtures::*;
     use super::*;
     use serde_json::json;
@@ -2489,7 +2488,7 @@ mod run {
 
 #[cfg(test)]
 mod live {
-    use crate::shared_index::tests::{machine, machine_of_types, Machine};
+    use crate::team::merge::tests::{machine, machine_of_types, Machine};
     use super::super::TeamOptions;
     use asset_hub_core::github::client::AccountTokens;
     use std::path::{Path, PathBuf};

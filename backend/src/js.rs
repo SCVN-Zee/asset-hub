@@ -269,7 +269,7 @@ mod tests {
         assert_eq!(uuid_v4([0xff; 16]), "ffffffff-ffff-4fff-bfff-ffffffffffff");
         let sample = uuid_v4([0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88]);
         assert_eq!(sample, "12345678-9abc-4ef0-9122-334455667788");
-        assert!(crate::validate::is_generation_id(&sample));
+        assert!(crate::validate::is_uuid(&sample));
     }
 
     #[test]

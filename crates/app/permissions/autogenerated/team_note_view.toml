@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-team-note-view"
+description = "Enables the team_note_view command without any pre-configured scope."
+commands.allow = ["team_note_view"]
+
+[[permission]]
+identifier = "deny-team-note-view"
+description = "Denies the team_note_view command without any pre-configured scope."
+commands.deny = ["team_note_view"]

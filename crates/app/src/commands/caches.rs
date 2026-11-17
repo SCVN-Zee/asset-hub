@@ -1,9 +1,9 @@
-//! Thumbnails, measurements, the cache folder and the shared index.
+//! Thumbnails, measurements and the cache folder.
 
 use tauri::State;
 
 use super::traced;
-use crate::dto::{CacheUsage, SharedIndexStatus, StatsSummary};
+use crate::dto::{CacheUsage, StatsSummary};
 use crate::ipc::IpcError;
 use crate::state::AppState;
 
@@ -54,53 +54,13 @@ pub async fn cache_clear(state: State<'_, AppState>) -> Result<(), IpcError> {
     traced("cache_clear", async { state.caches.janitor.clear().await.map_err(|e| IpcError::unknown(format!("could not empty the cache: {e}"))) }).await
 }
 
-/// What the shared index folder holds.
-#[tauri::command]
-#[specta::specta]
-pub async fn shared_index_status(state: State<'_, AppState>) -> Result<SharedIndexStatus, IpcError> {
-    traced("shared_index_status", async {
-        let shared = state.session()?.shared_index.clone();
-        shared.resolve_writer().await;
-        Ok(shared.status().await)
-    })
-    .await
-}
-
-/// Takes in the folder's index now, even one taken in before.
-#[tauri::command]
-#[specta::specta]
-pub async fn shared_index_import(state: State<'_, AppState>) -> Result<SharedIndexStatus, IpcError> {
-    traced("shared_index_import", async {
-        let shared = state.session()?.shared_index.clone();
-        shared.import_now().await;
-        Ok(shared.status().await)
-    })
-    .await
-}
-
-/// Writes this app's index there (after taking in what is already there).
-#[tauri::command]
-#[specta::specta]
-pub async fn shared_index_export(state: State<'_, AppState>) -> Result<SharedIndexStatus, IpcError> {
-    traced("shared_index_export", async {
-        let shared = state.session()?.shared_index.clone();
-        shared.export_now().await;
-        Ok(shared.status().await)
-    })
-    .await
-}
-
-/// The page's end of the catalog and shared index progress: events on the app's windows.
+/// The page's end of the catalog and team progress: events on the app's windows.
 pub fn page_emitters(app: tauri::AppHandle) -> crate::hub::Emitters {
     use tauri_specta::Event;
     let for_catalog = app.clone();
-    let for_shared_index = app.clone();
     crate::hub::Emitters {
         catalog: std::sync::Arc::new(move |status| {
             let _ = crate::events::CatalogProgress(status).emit(&for_catalog);
-        }),
-        shared_index: std::sync::Arc::new(move |status| {
-            let _ = crate::events::SharedIndexProgress(status).emit(&for_shared_index);
         }),
         team: std::sync::Arc::new(move |status| {
             let _ = crate::events::TeamStatusChanged(status).emit(&app);

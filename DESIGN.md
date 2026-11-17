@@ -217,7 +217,7 @@ A neutral graphite shell around a mid-grey stage, with colour reserved for actio
 
 ## Layout
 
-The app is a fixed desktop shell. A 48px top bar holds the brand, a fused repo / branch breadcrumb, a search field with its scope tabs joined to its left edge, and the actions (pin, reload, feedback, account). Under it, a four-column grid: a 232px sidebar, the centre column, a resize bar, and a 380px inspector (`--details-w`, user-resizable). At 1200px and below, the sidebar is 208px and the inspector is 340px. The inspector can be turned off, and the centre then takes its width.
+The app is a fixed desktop shell. A 48px top bar holds the brand, a fused repo / branch breadcrumb, a search field with its scope tabs joined to its left edge, and the actions (pin, reload, account). Under it, a four-column grid: a 232px sidebar, the centre column, a resize bar, and a 380px inspector (`--details-w`, user-resizable). At 1200px and below, the sidebar is 208px and the inspector is 340px. The inspector can be turned off, and the centre then takes its width.
 
 The centre column has a sticky 48px toolbar (title, count, ranking, filters, active pills, cell-size toggle), the grid, and the export strip docked flush at its foot. The grid fills columns of at least 120px (small) or 180px (large), with 12px row gaps and 8px column gaps. The export strip is one 48px row at rest and grows upward when opened, to at most 32vh or 300px. Under a 760px container width, it drops the budget name and shortens the meter so both buttons stay on the row.
 

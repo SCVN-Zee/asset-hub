@@ -15,14 +15,12 @@ use asset_hub_core::registry::HandlerRegistry;
 
 use crate::cache::Caches;
 use crate::catalog_service::{CatalogConfig, CatalogService};
-use crate::dto::{CatalogStatus, SharedIndexStatus, TeamStatus};
+use crate::dto::{CatalogStatus, TeamStatus};
 use crate::git_tree::GitTree;
 use crate::github_net::{CacheBridge, EtagFetch, GitHooks};
 use crate::http::API;
-use crate::index_repo::{IndexRepo, INDEX_REPO};
 use crate::ipc::{AppErrorCode, IpcError};
-use crate::shared_index::{Deps, CHECK_EVERY};
-use crate::shared_index_service::{SharedIndexConfig, SharedIndexService};
+use crate::team::merge::Deps;
 use crate::team::remote_cache::RemoteCache;
 use crate::team::prefetch::Prefetch;
 use crate::team::Team;
@@ -31,12 +29,13 @@ pub type Source = GitHubAssetSource<EtagFetch>;
 
 /// The repo list is kept this long (catalog scans ask for it often).
 const REPOS_KEPT: Duration = Duration::from_secs(10 * 60);
+/// The team cache is looked at this often while signed in.
+const CHECK_EVERY: Duration = Duration::from_secs(30 * 60);
 
 /// Where the services of a session tell the page about their progress.
 #[derive(Clone)]
 pub struct Emitters {
     pub catalog: Arc<dyn Fn(CatalogStatus) + Send + Sync>,
-    pub shared_index: Arc<dyn Fn(SharedIndexStatus) + Send + Sync>,
     pub team: Arc<dyn Fn(TeamStatus) + Send + Sync>,
 }
 
@@ -45,8 +44,6 @@ pub struct Session {
     pub registry: Arc<HandlerRegistry>,
     /// The background index of every branch.
     pub catalog: Arc<CatalogService>,
-    /// The team's shared index.
-    pub shared_index: Arc<SharedIndexService>,
     /// The client of the team backend, and the events it sends.
     pub team: Arc<Team>,
     /// The team's shared cache, taken in and given to in the background.
@@ -69,7 +66,6 @@ impl Session {
     /// Ends the background work of the session (signed out, or replaced by another account's).
     fn end(&self) {
         self.catalog.stop();
-        self.shared_index.stop();
         self.remote_cache.stop();
         self.prefetch.end();
         self.team.end();
@@ -127,10 +123,6 @@ pub struct Hub {
     git: Arc<GitTree>,
     api: String,
     emitters: OnceLock<Emitters>,
-    /// Where the shared index repo is fetched from; the team's repo on GitHub unless a test says otherwise.
-    index_remote: Option<String>,
-    /// Whether the shared index may be written to its GitHub repo without being asked.
-    auto_contribute: bool,
     /// The team backend's URL; none for a hub without a team client (the CLI, the MCP server, most tests).
     team_url: Option<String>,
 }
@@ -149,18 +141,8 @@ impl Hub {
             git: GitTree::new(caches.config.clone()),
             api: api.to_owned(),
             emitters: OnceLock::new(),
-            index_remote: None,
-            auto_contribute: crate::usage_env::auto_contribute(),
             team_url: None,
         }
-    }
-
-    /// Tests: the shared index repo is read from `url` and may be written to without being asked.
-    #[cfg(test)]
-    pub fn with_index_remote(mut self, url: String) -> Self {
-        self.index_remote = Some(url);
-        self.auto_contribute = true;
-        self
     }
 
     /// Tests: the team backend is at `url`.
@@ -175,7 +157,7 @@ impl Hub {
         self.current.lock().ok().and_then(|current| current.clone())
     }
 
-    /// Where the progress of the catalog and the shared index goes (the page, once the app has a window).
+    /// Where the progress of the catalog and the team goes (the page, once the app has a window).
     pub fn set_emitters(&self, emitters: Emitters) {
         let _ = self.emitters.set(emitters);
     }
@@ -205,7 +187,7 @@ impl Hub {
         let options = GitHubSourceOptions { hooks: Arc::new(hooks), cache: Some(bridge.clone()), blob_cache: Some(bridge), registry: Some(self.registry.clone()) };
         let client = GitHubClient::with_tokens(tokens.clone(), EtagFetch::new(caches.clone(), self.api.clone())).with_api_base(self.api.clone());
         let source = Arc::new(GitHubAssetSource::new(client, options));
-        let (catalog, shared_index) = self.services(&source, &accounts, caches);
+        let catalog = self.catalog(&source, caches);
         let team = self.team(&login, tokens, caches);
         let remote_cache = Arc::new(RemoteCache::new(
             team.client.clone(),
@@ -218,7 +200,7 @@ impl Hub {
             }),
         ));
         let prefetch = Arc::new(Prefetch::new(source.clone(), team.popular.clone(), self.foreground.clone()));
-        let session = Arc::new(Session { source, registry: self.registry.clone(), catalog, shared_index, team, remote_cache, prefetch, login, accounts, repos: Mutex::new(None) });
+        let session = Arc::new(Session { source, registry: self.registry.clone(), catalog, team, remote_cache, prefetch, login, accounts, repos: Mutex::new(None) });
         if let Some(old) = current.replace(session.clone()) {
             old.end();
         }
@@ -244,15 +226,14 @@ impl Hub {
         ))
     }
 
-    /// The catalog and the shared index of one session.
-    fn services(&self, source: &Arc<Source>, accounts: &[(String, String)], caches: &Arc<Caches>) -> (Arc<CatalogService>, Arc<SharedIndexService>) {
-        let emitters = self.emitters.get().cloned();
+    /// The catalog of one session.
+    fn catalog(&self, source: &Arc<Source>, caches: &Arc<Caches>) -> Arc<CatalogService> {
+        let sink = self.emitters.get().cloned();
         let types = self.registry.all().iter().map(|h| h.id).collect::<Vec<_>>().join(",");
         let (is_asset, type_of) = (self.registry.clone(), self.registry.clone());
         let config = caches.config.clone();
         let foreground = self.foreground.clone();
-        let catalog_sink = emitters.clone();
-        let catalog = CatalogService::new(
+        CatalogService::new(
             source.clone(),
             CatalogConfig::new(
                 Box::new({
@@ -265,42 +246,19 @@ impl Hub {
                     type_of.classify(&entry).map(|h| h.id.to_owned())
                 }),
                 Box::new(move || foreground.busy()),
-                types.clone(),
+                types,
                 Box::new(move |status| {
-                    if let Some(sink) = &catalog_sink {
+                    if let Some(sink) = &sink {
                         (sink.catalog)(status);
                     }
                 }),
             ),
-        );
-        let url = self.index_remote.clone().unwrap_or_else(|| format!("https://github.com/{INDEX_REPO}.git"));
-        let repo = IndexRepo::with_accounts(config.dir().join("shared-index-repo"), accounts.to_vec(), INDEX_REPO.to_owned(), url, Some(self.api.clone()));
-        let shared_index = SharedIndexService::new(
-            Deps { catalog: catalog.clone(), facts: source.clone(), caches: caches.clone() },
-            SharedIndexConfig {
-                types,
-                login: Some(accounts[0].0.clone()),
-                dir: Box::new({
-                    let config = config.clone();
-                    move || config.shared_index_dir()
-                }),
-                seen_file: Box::new(move || config.dir().join("shared-index.json")),
-                repo: Some(repo),
-                emit: Box::new(move |status| {
-                    if let Some(sink) = &emitters {
-                        (sink.shared_index)(status);
-                    }
-                }),
-                auto_contribute: self.auto_contribute,
-            },
-        );
-        (catalog, shared_index)
+        )
     }
 
-    /// Starts the work that follows a sign-in: the shared index and the team cache are looked at now and every 30 minutes
+    /// Starts the work that follows a sign-in: the team cache is looked at now and every 30 minutes
     /// (a newer one is taken in). Safe to call again; it starts once per session.
     pub fn begin(&self, session: &Session) {
-        session.shared_index.start_checks(CHECK_EVERY);
         session.remote_cache.start(CHECK_EVERY);
     }
 
@@ -425,7 +383,7 @@ mod tests {
         let hub = Hub::with_api(&caches, "http://127.0.0.1:1").with_team_api(team);
         let statuses: Arc<Mutex<Vec<TeamStatus>>> = Arc::default();
         let recorded = statuses.clone();
-        hub.set_emitters(Emitters { catalog: Arc::new(|_| {}), shared_index: Arc::new(|_| {}), team: Arc::new(move |status| recorded.lock().unwrap().push(status)) });
+        hub.set_emitters(Emitters { catalog: Arc::new(|_| {}), team: Arc::new(move |status| recorded.lock().unwrap().push(status)) });
         let budget = Duration::from_secs(2);
         let first = hub.session(Some(("a".into(), "t1".into())), &caches).unwrap();
         assert_eq!(first.team.client.status(), TeamStatus::Online);

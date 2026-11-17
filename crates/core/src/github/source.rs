@@ -401,7 +401,7 @@ impl<F: HttpFetch + 'static> GitHubAssetSource<F> {
         Ok(facts)
     }
 
-    /// Adds facts found elsewhere (a shared index) to what this app knows, in the object the scans write
+    /// Adds facts found elsewhere (the team cache) to what this app knows, in the object the scans write
     /// to, so a later save keeps them. Facts already known stay. Returns how many were added.
     pub async fn merge_shared_facts(&self, kind: &str, repo: &str, facts: &Map<String, Value>) -> Result<usize, SourceError> {
         let rec = self.inner.shared_cache(kind, repo).await?;

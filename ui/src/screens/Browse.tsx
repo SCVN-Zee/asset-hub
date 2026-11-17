@@ -15,11 +15,10 @@ import { Dropdown } from '../components/Dropdown'
 import { Picker } from '../components/Picker'
 import { ErrorNote } from '../components/ErrorNote'
 import { FolderTree } from '../components/FolderTree'
-import { CloseIcon, PinIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, GearIcon, LinkIcon, MessageIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
+import { CloseIcon, PinIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, GearIcon, LinkIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
 import { useContextMenu, type MenuItem } from '../components/ContextMenu'
 import { preferredEditor, rememberEditor, useUnityEditors } from '../components/UnityButton'
 import { assetLink } from '@shared/deeplink'
-import { FeedbackDialog } from '../components/FeedbackDialog'
 import { TeamStatus } from '../components/TeamStatus'
 import { VersionBadge } from '../components/VersionBadge'
 import { SearchBox } from '../components/SearchBox'
@@ -34,7 +33,6 @@ import { parseAssetLink } from '@shared/deeplink'
 import type { ExportRequest, RunningUnity } from '@shared/ipc'
 import { FX_THUMB_VERSION, motionKey } from '../viewer/particleThumb'
 import { ANIM_THUMB_VERSION, FLAT_THUMB_VERSION, MODEL_THUMB_VERSION } from '../viewer/thumbVersions'
-import { useSharedImports } from '../useSharedIndex'
 import { Splitter, useStoredSize } from '../components/Splitter'
 import { CollectionsNav, CollectionView } from '../components/Collections'
 import { addCollection, deleteCollection, FAVORITES, inCollection, pushRecent, RECENT_EXPORTED, RECENT_VIEWED, renameCollection, toggleItem, withFavorites, type Collection, type CollectionItem, type RecentLists } from '@shared/collections'
@@ -862,7 +860,6 @@ export function Browse({
     void pending.reduce((previous, kind) => previous.then(() => run(kind)), Promise.resolve())
   }, [tabFacts, tagScans, live])
 
-  const sharedImports = useSharedImports()
   // Saved thumbnails and measurements of an open collection's assets, from any repo or branch (by content).
   const collectionShas = shownCollection?.items.map((i) => i.sha).join(',') ?? ''
   useEffect(() => {
@@ -891,8 +888,7 @@ export function Browse({
     return () => {
       cancelled = true
     }
-    // Read again when a teammate's index brought thumbnails and numbers in.
-  }, [source, assets, sharedImports])
+  }, [source, assets])
 
   /** Saves a package, or with `unity` opens it in that editor (its import dialog). */
   const sendPackage = async (request: ExportRequest, unity?: RunningUnity) =>
@@ -1101,18 +1097,11 @@ export function Browse({
       const item = inCatalog && catalogSelected ? catalogItem(catalogSelected) : !inCatalog && selected ? itemOf(selected) : undefined
       if (!item) return
       remember('viewed', [item])
-      window.api.usage.track({ kind: 'view', type: item.type, repo: item.repo, sha: item.sha })
+      window.api.team.noteView(item.repo, item.sha)
     }, 1500)
     return () => window.clearTimeout(timer)
   }, [viewedKey])
 
-  // A search counts once it has settled (only that one happened, never what was typed).
-  useEffect(() => {
-    if (!query.trim()) return
-    const timer = window.setTimeout(() => window.api.usage.track({ kind: 'search' }), 1500)
-    return () => window.clearTimeout(timer)
-  }, [query])
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   // Keyboard shortcuts (`?` lists them). Single keys only act when nothing is being typed.
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -1192,28 +1181,6 @@ export function Browse({
   // A viewer that stops loading clears only its own asset, so a late stop of the previous viewer
   // cannot hide the load of the new one.
   const onViewerLoading = useCallback((loading: boolean, sha: string) => setLoadingSha((prev) => (loading ? sha : prev === sha ? undefined : prev)), [])
-  const viewedSha = inCatalog ? catalogSelected?.sha : selected?.sha
-  // How long a preview takes: from the selection of an asset until its viewer has loaded. A selection
-  // that changes first sends nothing. Only a load of the selected asset counts.
-  const previewClock = useRef<{ key?: string; at: number; seen: boolean; sent: boolean }>({ at: 0, seen: false, sent: false })
-  useEffect(() => {
-    const p = previewClock.current
-    const loadingNow = !!viewedSha && loadingSha === viewedSha
-    if (p.key !== (viewedKey || undefined)) {
-      previewClock.current = { key: viewedKey || undefined, at: performance.now(), seen: loadingNow, sent: false }
-      return
-    }
-    if (!p.key || p.sent) return
-    if (loadingNow) {
-      p.seen = true
-      return
-    }
-    if (!p.seen) return
-    p.sent = true
-    const item = inCatalog && catalogSelected ? catalogItem(catalogSelected) : !inCatalog && selected ? itemOf(selected) : undefined
-    window.api.usage.track({ kind: 'preview', ms: performance.now() - p.at, repo: item?.repo, sha: item?.sha })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewedKey, loadingSha])
   const thumbQueue = useThumbnailQueue(live, saveThumb, viewerLoading)
 
   // Cards on screen go first; once the queue is empty the rest of the list follows, top first,
@@ -1307,9 +1274,6 @@ export function Browse({
             onClick={() => setReloadKey((k) => k + 1)}
           >
             <RefreshIcon />
-          </button>
-          <button type="button" className="btn icon-btn" aria-label={t('feedback.title')} title={t('feedback.title')} onClick={() => setFeedbackOpen(true)}>
-            <MessageIcon />
           </button>
           <button type="button" className="btn icon-btn" aria-label={t('common.settings')} title={t('common.settings')} onClick={onSettings}>
             <GearIcon />
@@ -1767,12 +1731,6 @@ export function Browse({
         </div>
       )}
       {shortcutsOpen && <ShortcutHelp onClose={() => setShortcutsOpen(false)} />}
-      {feedbackOpen && (
-        <FeedbackDialog
-          context={repo ? { repo, branch, asset: inCatalog ? catalogSelected?.locations[0]?.path : selected && root + selected.path } : undefined}
-          onClose={() => setFeedbackOpen(false)}
-        />
-      )}
     </div>
   )
 }

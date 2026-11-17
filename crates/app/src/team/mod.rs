@@ -7,6 +7,7 @@
 
 mod client;
 mod events;
+pub mod merge;
 pub mod pack;
 pub mod popular;
 pub mod prefetch;
@@ -60,9 +61,9 @@ fn checked(url: &str, debug: bool) -> Option<String> {
 }
 
 /// Whether this build may write team data. A development build reads the team's data but writes
-/// only when `ASSETHUB_INDEX_CONTRIBUTE` is set, as with the shared index.
+/// only when `ASSETHUB_INDEX_CONTRIBUTE` is set.
 pub fn writes_enabled() -> bool {
-    crate::usage_env::auto_contribute()
+    !cfg!(debug_assertions) || std::env::var_os("ASSETHUB_INDEX_CONTRIBUTE").is_some_and(|v| !v.is_empty())
 }
 
 /// The team work of one session: the client and the queue of events it sends.

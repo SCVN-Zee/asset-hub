@@ -18,8 +18,8 @@ fn copy_to_clipboard(text: &str) {
     }
 }
 
-/// Makes the GitHub session of an account that is signed in now, so its background work (a newer
-/// shared index) starts at sign-in and not at the first request.
+/// Makes the GitHub session of an account that is signed in now, so its background work (the team
+/// cache) starts at sign-in and not at the first request.
 fn with_session(state: &AppState, status: Result<AuthStatus, IpcError>) -> Result<AuthStatus, IpcError> {
     if status.as_ref().is_ok_and(|s| s.signed_in) {
         if let Ok(session) = state.session() {

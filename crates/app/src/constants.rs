@@ -11,7 +11,6 @@ pub const CACHE_LIMITS_GB: [u32; 5] = [1, 2, 5, 10, 0];
 pub const DEFAULT_CACHE_LIMIT_GB: u32 = 2;
 pub const EXPORT_LAYOUTS: [&str; 3] = ["byType", "grouped", "source"];
 pub const DEFAULT_EXPORT_LAYOUT: &str = "byType";
-pub const FEEDBACK_KINDS: [&str; 3] = ["bug", "idea", "other"];
 /// Shaders shipped with Unity itself (built-in extra and default resources).
 pub const BUILTIN_SHADER_GUIDS: [&str; 2] = ["0000000000000000f000000000000000", "0000000000000000e000000000000000"];
 

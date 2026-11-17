@@ -9,7 +9,6 @@ use crate::hub::{Hub, Session};
 use crate::ipc::{IpcError, Stash};
 use crate::paths::AppPaths;
 use crate::settings::SettingsStore;
-use crate::usage::{feedback_repo, os_label, UsageService};
 
 pub struct AppState {
     pub paths: AppPaths,
@@ -19,7 +18,6 @@ pub struct AppState {
     pending_link: Mutex<Option<String>>,
     pub stash: Stash,
     pub auth: AuthService,
-    pub usage: Arc<UsageService>,
     /// Downloads, thumbnails and measurements in the cache folder of the settings.
     pub caches: Arc<Caches>,
     /// The GitHub session of the signed-in account.
@@ -35,11 +33,9 @@ fn lock<T>(mutex: &Mutex<T>) -> Result<MutexGuard<'_, T>, IpcError> {
 impl AppState {
     pub fn new(paths: AppPaths, settings: SettingsStore) -> Self {
         let auth = AuthService::new(paths.auth_file.clone(), paths.tools_dir.clone(), Arc::new(KeychainVault::new(paths.keychain_service.clone())));
-        let language = serde_json::to_value(settings.get().language).ok().and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_else(|| "en".into());
-        let usage = Arc::new(UsageService::new(&paths.user_data.join("usage"), env!("CARGO_PKG_VERSION"), &os_label(), &language, feedback_repo(), crate::http::API));
         let caches = Arc::new(Caches::new(CacheConfig::from_settings(&settings.get())));
         let hub = Hub::new(&caches);
-        Self { paths, settings: Mutex::new(settings), caches, hub, pending_link: Mutex::new(None), stash: Stash::default(), auth, usage, saved_files: Mutex::default() }
+        Self { paths, settings: Mutex::new(settings), caches, hub, pending_link: Mutex::new(None), stash: Stash::default(), auth, saved_files: Mutex::default() }
     }
 
     /// The GitHub session; `unauthorized` when nobody is signed in.

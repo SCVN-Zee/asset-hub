@@ -164,27 +164,6 @@
     "cacheNoLimit": "No limit",
     "cacheClear": "Clear downloads",
     "cacheUsage": "Downloads {{downloads}} · thumbnails {{thumbs}} · other {{other}}",
-    "sharedIndex": "Shared index",
-    "sharedIndexNone": "Shared through GitHub ({{repo}}), or pick a folder",
-    "sharedIndexStop": "Stop sharing",
-    "sharedIndexThere": "Shared index: written {{when}} by {{who}} · {{repos}} repos · {{thumbs}} thumbnails",
-    "sharedIndexEmpty": "No shared index yet. Write yours to start.",
-    "sharedIndexTaken": "taken in {{when}}",
-    "sharedIndexImport": "Take in now",
-    "sharedIndexImporting": "Taking in…",
-    "sharedIndexExport": "Write my index there",
-    "sharedIndexExporting": "Writing…",
-    "sharedIndexImported": "Took in {{commits}} branch listings, {{facts}} facts, {{stats}} measurements, {{thumbs}} thumbnails.",
-    "sharedIndexExported": "Wrote {{commits}} branch listings, {{facts}} facts, {{stats}} measurements and {{thumbs}} new thumbnails.",
-    "sharedIndexFailed": "Shared index failed: {{error}}",
-    "sharedIndexAuto": "Kept up to date on its own: taken in when a teammate adds to it, and yours is added when it is more than 2 hours old.",
-    "sharedIndexReadOnly": "Your GitHub account can read {{repo}} but not write to it: you get the team's index without adding to it.",
-    "sharedIndexReadOnlyMany": "None of your signed-in GitHub accounts can write to {{repo}}: you get the team's index without adding to it.",
-    "sharedIndexWriter": "Your index is added as {{login}}.",
-    "sharedIndexNoGit": "Not shared: needs git (Xcode Command Line Tools) or a folder.",
-    "usage": "Usage statistics",
-    "usageStats": "Send usage statistics to the team",
-    "usageNote": "Your GitHub name, time spent in the app, and counts of what you do (branches opened, asset types viewed, searches, exports, errors). Never search text or file contents. Helps us decide what to improve.",
     "cliTitle": "Command-line tool",
     "cliInstall": "Install command-line tool",
     "cliNote": "Lets coding agents such as Claude Code and Codex search and export assets with the window closed. Links asset-hub-cli into ~/.local/bin.",
@@ -917,30 +896,6 @@
     "collection": "Collection",
     "watch": "Pin branch",
     "watching": "Pinned"
-  },
-  "feedback": {
-    "title": "Send feedback",
-    "kind": "Type",
-    "kinds": {
-      "bug": "Bug",
-      "idea": "Idea",
-      "other": "Other"
-    },
-    "titlePlaceholder": "In a few words…",
-    "bodyPlaceholder": {
-      "bug": "What happened, and what did you expect? Steps to make it happen again help a lot.",
-      "idea": "What would you like the app to do, and what for?",
-      "other": "Anything on your mind about Asset Hub."
-    },
-    "withContext": "Include where I am: {{where}}",
-    "note": "Sent to the team with your GitHub name and app version.",
-    "cancel": "Cancel",
-    "send": "Send",
-    "sending": "Sending…",
-    "sent": "Thanks! Your feedback reached the team.",
-    "queued": "Saved. It could not be sent right now and will go out automatically next time the app opens.",
-    "open": "Open on GitHub",
-    "close": "Close"
   },
   "sidebar": {
     "yours": "Yours"

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { allowRepo, api, applyMainMigration, db, repoPath, SCHEMA, sha, useContract } from './harness'
+import { allowRepo, api, repoPath, SCHEMA, sha, useContract } from './harness'
 import { expectNoCors, JSON_TYPE } from './raw'
-import { list, seedThumbs, uuidFor } from './thumbs-helpers'
+import { list, seedThumbs } from './thumbs-helpers'
 
 useContract()
 
@@ -85,49 +85,10 @@ describe('thumbnail index raw bytes and headers', () => {
 })
 
 describe('thumbnail index', () => {
-  const legacy = ['', '4_z27c88f1d182b150646ff0b16_f2142e4dc1b0e0c88_d20250101_m000000_c004_v0402005_t0001_u01735689600000']
-
   it('says which storage epoch it serves', async () => {
     allowRepo('game')
     const { res, body } = await list()
     expect(res.status).toBe(200)
     expect(body).toEqual({ items: [], epoch: 3 })
-  })
-
-  it('does not list a row that names no generation of its own', async () => {
-    allowRepo('game')
-    await seedThumbs([
-      { repo: 'supercent-io/game', schema: 1, name: sha(1), rev: 1, versionId: legacy[0] },
-      { repo: 'supercent-io/game', schema: 1, name: sha(2), rev: 2, versionId: legacy[1] },
-      { repo: 'supercent-io/game', schema: 1, name: sha(3), rev: 3, versionId: uuidFor(3) },
-      { repo: 'supercent-io/game', schema: 1, name: sha(4), rev: 4, versionId: uuidFor(10).toUpperCase() }
-    ])
-    const { body } = await list()
-    expect(body.items.map((i) => i.name)).toEqual([sha(3)])
-    // A page is cut by the rows it lists, so a legacy row never takes a place of the limit.
-    const first = await list('?limit=1')
-    expect(first.body.items.map((i) => i.name)).toEqual([sha(3)])
-    expect(first.body.next).toBeUndefined()
-  })
-})
-
-describe('migration 0003', () => {
-  const rows = (names: number[]) => names.map((n) => ({ repo: 'supercent-io/game', schema: 1, name: sha(n), rev: n }))
-
-  it('deletes only the rows of the B2 era, keeps thumb_rev and can run again', async () => {
-    await seedThumbs([
-      { ...rows([1])[0], versionId: '' },
-      { ...rows([2])[0], versionId: '4_zb2version' },
-      { ...rows([3])[0], versionId: uuidFor(3) },
-      { ...rows([4])[0], versionId: uuidFor(10).toUpperCase() }
-    ])
-    const database = await db()
-    await database.prepare("INSERT INTO thumb_rev (repo, schema, rev) VALUES ('supercent-io/game', 1, 7)").run()
-    await applyMainMigration('0003_thumbs_d1.sql')
-    const left = await database.prepare('SELECT name FROM thumbs ORDER BY name').all<{ name: string }>()
-    expect(left.results.map((r) => r.name)).toEqual([sha(3)])
-    expect((await database.prepare('SELECT rev FROM thumb_rev').first<{ rev: number }>())!.rev).toBe(7)
-    await applyMainMigration('0003_thumbs_d1.sql')
-    expect((await database.prepare('SELECT COUNT(*) AS n FROM thumbs').first<{ n: number }>())!.n).toBe(1)
   })
 })

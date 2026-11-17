@@ -89,13 +89,13 @@ impl StatsStore {
         keys.iter().filter_map(|key| all.get(key).map(|summary| (key.clone(), summary.clone()))).collect()
     }
 
-    /// Every measurement, for a shared index.
+    /// Every measurement, for the team cache.
     pub async fn all(&self) -> HashMap<String, StatsSummary> {
         let mut state = self.inner.state.lock().await;
         self.load(&mut state).await.clone()
     }
 
-    /// Measurements from a shared index: taken where none is known here, or where it is fuller (a
+    /// Measurements from the team cache: taken where none is known here, or where it is fuller (a
     /// viewer measurement over a thumbnail one). Returns how many were taken.
     pub async fn import_many(&self, raw: &Value) -> usize {
         let Some(entries) = raw.as_object() else { return 0 };
@@ -250,7 +250,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn takes_measurements_from_a_shared_index_where_none_is_known_or_where_fuller() {
+    async fn takes_measurements_from_the_team_cache_where_none_is_known_or_where_fuller() {
         let dir = tempfile::tempdir().unwrap();
         let store = store(dir.path());
         store.save("have-viewer", &summary("viewer", json!({ "triangles": 1 }))).await;

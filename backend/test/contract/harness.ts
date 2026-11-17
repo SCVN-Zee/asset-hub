@@ -78,15 +78,6 @@ export async function restoreShardTable(shard: number, table: string): Promise<v
   await (await shardDb(shard)).prepare(ddl).run()
 }
 
-/** Runs the statements of one migration file of the main database, as `wrangler d1 migrations apply` would. */
-export async function applyMainMigration(fileName: string): Promise<void> {
-  const statements = readFileSync(join(backendDir, 'migrations', fileName), 'utf8')
-    .split(/;\s*(?:\n|$)/)
-    .map((sql) => sql.replace(/^--.*$/gm, '').trim())
-    .filter(Boolean)
-  await applyMigrations(await db(), statements)
-}
-
 /** Bytes the Worker counts against its storage cap. */
 export async function reservedBytes(): Promise<number> {
   return (await (await db()).prepare('SELECT reserved_bytes AS n FROM storage WHERE id = 1').first<{ n: number }>())!.n

@@ -124,13 +124,9 @@ dto! {
         pub export_layout: Option<PackageLayout>,
         /// Unity project packages are meant for (read only).
         pub target_project: Option<String>,
-        /// Folder a team shares, holding an index everyone takes in.
-        pub shared_index_dir: Option<String>,
         pub collections: Option<Vec<Collection>>,
         pub recent: Option<RecentLists>,
         pub watched: Option<Vec<WatchedBranch>>,
-        /// Usage notes sent to the team's feedback repo (absent: on).
-        pub usage_stats: Option<bool>,
     }
 }
 
@@ -721,7 +717,7 @@ dto! {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Catalog, caches, shared index, stats
+// Catalog, caches, stats
 // ---------------------------------------------------------------------------------------------
 
 dto! {
@@ -802,74 +798,6 @@ dto! {
         pub thumbs: f64,
         /// Git clones, measurements and the rest.
         pub other: f64,
-    }
-
-    pub struct SharedIndexRepo {
-        pub repo: String,
-        pub branches: f64,
-        pub commits: f64,
-    }
-
-    /// What a shared index folder holds (`manifest.json`).
-    pub struct SharedIndexManifest {
-        pub format: u8,
-        /// ISO time it was written; a newer one is taken in.
-        pub exported_at: String,
-        /// GitHub login of who wrote it.
-        pub exported_by: Option<String>,
-        /// Asset types indexed (handler ids).
-        pub types: String,
-        pub repos: Vec<SharedIndexRepo>,
-        pub thumbs: f64,
-        pub stats: f64,
-    }
-
-    /// Counts of what an import took in, or an export wrote.
-    pub struct SharedIndexResult {
-        pub commits: f64,
-        pub facts: f64,
-        pub stats: f64,
-        pub thumbs: f64,
-    }
-
-    #[derive(Copy, Eq)]
-    pub enum SharedIndexState {
-        Idle,
-        Importing,
-        Exporting,
-        Error,
-    }
-
-    /// Shared through the GitHub repo (no folder picked) or a folder.
-    #[derive(Copy, Eq)]
-    pub enum SharedIndexVia {
-        Github,
-        Folder,
-    }
-
-    #[derive(Copy, Eq)]
-    pub enum SharedIndexAction {
-        Imported,
-        Exported,
-    }
-
-    pub struct SharedIndexStatus {
-        pub state: SharedIndexState,
-        pub error: Option<String>,
-        pub via: Option<SharedIndexVia>,
-        /// The GitHub repo, `via: github`.
-        pub repo: Option<String>,
-        /// No signed-in account can write to the GitHub repo (each can read it).
-        pub read_only: Option<bool>,
-        /// The signed-in account that pushes to the repo, once known (only checked when there is a
-        /// choice of accounts and a push or the page's status check needs it).
-        pub writer: Option<String>,
-        /// In the shared folder now.
-        pub manifest: Option<SharedIndexManifest>,
-        /// `exportedAt` of the index taken in last.
-        pub imported_at: Option<String>,
-        pub last: Option<SharedIndexResult>,
-        pub last_action: Option<SharedIndexAction>,
     }
 
     #[derive(Copy, Eq)]
@@ -1025,7 +953,7 @@ dto! {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Update, usage, feedback
+// Update
 // ---------------------------------------------------------------------------------------------
 
 dto! {
@@ -1037,49 +965,6 @@ dto! {
         pub can_install: bool,
         /// The release page, for installing by hand.
         pub page: String,
-    }
-
-    /// What the page reports itself; the rest is seen in the backend.
-    #[serde(tag = "kind")]
-    pub enum UsageEvent {
-        View {
-            #[serde(rename = "type")]
-            asset_type: String,
-            /// The repo and blob SHA of the asset, so the team can count the view.
-            repo: Option<String>,
-            sha: Option<String>,
-        },
-        /// How long the preview of an asset took to show, in milliseconds.
-        Preview { ms: f64, repo: Option<String>, sha: Option<String> },
-        Search,
-        Feedback,
-    }
-
-    #[derive(Copy, Eq)]
-    pub enum FeedbackKind {
-        Bug,
-        Idea,
-        Other,
-    }
-
-    /// Where the user was, when they chose to include it.
-    pub struct FeedbackContext {
-        pub repo: Option<String>,
-        pub branch: Option<String>,
-        pub asset: Option<String>,
-    }
-
-    pub struct FeedbackReport {
-        pub kind: FeedbackKind,
-        pub title: String,
-        pub body: String,
-        pub context: Option<FeedbackContext>,
-    }
-
-    /// Sent: the issue's link. Not sent (offline, no access): kept and retried on a later launch.
-    pub struct FeedbackResult {
-        pub sent: bool,
-        pub url: Option<String>,
     }
 }
 

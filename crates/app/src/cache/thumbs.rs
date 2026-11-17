@@ -17,7 +17,7 @@ pub const THUMB_SCHEME: &str = "assethub-thumb";
 /// runaway page from filling the disk.
 pub const MAX_THUMB_BYTES: usize = 8 * 1024 * 1024;
 
-/// The image type of a file, read from its first bytes. A shared index holds WebP (1.x pages and
+/// The image type of a file, read from its first bytes. The team cache holds WebP (1.x pages and
 /// every thumbnail saved here), PNG (thumbnails of earlier 2.x versions) and JPEG. Anything else is
 /// not an image the app wrote.
 pub fn image_type(bytes: &[u8]) -> Option<&'static str> {
@@ -58,8 +58,7 @@ struct Index {
 }
 
 /// `<cacheDir>/thumbs/<key>.img`, keyed by the asset's content hash. Pages get URLs on
-/// [`THUMB_SCHEME`] and load only the images on screen. Thumbnails saved as data-URL text
-/// (`.txt`) by earlier versions are served too, and converted when read.
+/// [`THUMB_SCHEME`] and load only the images on screen.
 pub struct ThumbnailStore {
     config: Arc<CacheConfig>,
     index: tokio::sync::Mutex<Index>,
@@ -83,7 +82,7 @@ impl ThumbnailStore {
             if let Ok(mut entries) = tokio::fs::read_dir(&dir).await {
                 while let Ok(Some(entry)) = entries.next_entry().await {
                     let name = entry.file_name().to_string_lossy().into_owned();
-                    if let Some(key) = name.strip_suffix(".img").or_else(|| name.strip_suffix(".txt")) {
+                    if let Some(key) = name.strip_suffix(".img") {
                         versions.insert(key.to_owned(), 0);
                     }
                 }
@@ -106,16 +105,8 @@ impl ThumbnailStore {
             return None;
         }
         let file = self.dir().join(format!("{name}.img"));
-        if let Ok(bytes) = tokio::fs::read(&file).await {
-            return image_type(&bytes).map(|content_type| Thumbnail { bytes, content_type });
-        }
-        // Not converted yet: an earlier version's data URL.
-        let legacy = self.dir().join(format!("{name}.txt"));
-        let bytes = decode_data_url(&tokio::fs::read_to_string(&legacy).await.ok()?)?;
-        let content_type = image_type(&bytes)?;
-        write_atomic(&file, &bytes).await.ok()?;
-        let _ = tokio::fs::remove_file(&legacy).await;
-        Some(Thumbnail { bytes, content_type })
+        let bytes = tokio::fs::read(&file).await.ok()?;
+        image_type(&bytes).map(|content_type| Thumbnail { bytes, content_type })
     }
 
     /// Keeps a rendered thumbnail. A PNG (what WKWebView answers when asked for WebP) is stored as
@@ -132,21 +123,20 @@ impl ThumbnailStore {
         };
         let name = safe(key);
         write_atomic(&self.dir().join(format!("{name}.img")), &bytes).await?;
-        let _ = tokio::fs::remove_file(self.dir().join(format!("{name}.txt"))).await;
         let mut index = self.index().await;
         let next = index.versions.get(&name).map_or(0, |v| v + 1).max(now_ms());
         index.versions.insert(name, next);
         Ok(())
     }
 
-    /// Names of every thumbnail on disk (keys as stored), for a shared index.
+    /// Names of every thumbnail on disk (keys as stored), for the team cache.
     pub async fn names(&self) -> Vec<String> {
         let mut names: Vec<String> = self.index().await.versions.keys().cloned().collect();
         names.sort();
         names
     }
 
-    /// Adds a thumbnail from a shared index; one already here stays unless `replace` (a newer kind
+    /// Adds a thumbnail from the team cache; one already here stays unless `replace` (a newer kind
     /// of card). A file that is not an image is refused.
     pub async fn import_file(&self, name: &str, bytes: &[u8], replace: bool) -> std::io::Result<bool> {
         if !is_plain_name(name) || image_type(bytes).is_none() {
@@ -155,7 +145,6 @@ impl ThumbnailStore {
         if self.index().await.versions.contains_key(name) && !replace {
             return Ok(false);
         }
-        let _ = tokio::fs::remove_file(self.dir().join(format!("{name}.txt"))).await;
         write_atomic(&self.dir().join(format!("{name}.img")), bytes).await?;
         let mut index = self.index().await;
         let next = index.versions.get(name).map_or(0, |v| v + 1).max(now_ms());
@@ -276,17 +265,6 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn serves_and_converts_data_url_thumbnails_of_earlier_versions() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("thumbs")).unwrap();
-        std::fs::write(dir.path().join("thumbs/old.txt"), PNG).unwrap();
-        let store = store(dir.path());
-        assert_eq!(store.get_many(&["old".into()]).await.len(), 1);
-        assert_eq!(store.read("old").await.unwrap().content_type, "image/png");
-        assert_eq!(names(&dir.path().join("thumbs")), ["old.img"]);
-    }
-
-    #[tokio::test]
     async fn changes_the_url_when_a_thumbnail_is_drawn_again() {
         let dir = tempfile::tempdir().unwrap();
         let store = store(dir.path());
@@ -315,7 +293,7 @@ pub mod tests {
     }
 
     #[tokio::test]
-    async fn imports_from_a_shared_index_keeping_what_is_here_unless_told_to_replace() {
+    async fn imports_from_the_team_cache_keeping_what_is_here_unless_told_to_replace() {
         let dir = tempfile::tempdir().unwrap();
         let store = store(dir.path());
         assert!(store.import_file("a", &webp(), false).await.unwrap());

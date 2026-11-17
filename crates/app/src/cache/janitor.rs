@@ -13,6 +13,11 @@ use crate::dto::CacheUsage;
 pub const DOWNLOADS: [&str; 4] = ["blobs", "tree", "guids", "http"];
 /// Folders older versions wrote and nothing reads any more.
 const STALE: [&str; 3] = ["prefabfx", "prefabfx2", "prefabfx3"];
+/// Files and folders in the cache folder that the removed shared index wrote: the clone of the
+/// index repository and the record of the index it last read.
+const RETIRED_IN_CACHE: [&str; 2] = ["shared-index-repo", "shared-index.json"];
+/// The same for the user data folder: the usage reports, with their outbox and sessions.
+const RETIRED_IN_DATA: [&str; 1] = ["usage"];
 /// Below the limit by this much after a cleanup, so it does not run again on the next download.
 const PRUNE_TO: f64 = 0.9;
 /// Downloads written between two checks of the limit.
@@ -45,6 +50,21 @@ pub fn files_under(dir: &Path) -> Vec<CachedFile> {
         }
     }
     files
+}
+
+/// Removes `name` inside `root`. A symbolic link goes without being followed, so nothing outside
+/// `root` is touched. A missing path or a failure is ignored.
+fn remove_inside(root: &Path, name: &str) {
+    let path = root.join(name);
+    let Ok(meta) = std::fs::symlink_metadata(&path) else { return };
+    let _ = if meta.is_dir() { std::fs::remove_dir_all(&path) } else { std::fs::remove_file(&path) };
+}
+
+/// Removes what features that no longer exist left on disk. Only the exact names above, inside the
+/// two folders the app owns; the live cache is never touched.
+pub fn remove_retired(user_data: &Path, cache_dir: &Path) {
+    RETIRED_IN_CACHE.iter().for_each(|name| remove_inside(cache_dir, name));
+    RETIRED_IN_DATA.iter().for_each(|name| remove_inside(user_data, name));
 }
 
 /// Removes the files of `folders` (inside `root`), least recently used first, until they take no
@@ -127,6 +147,12 @@ impl CacheJanitor {
             }
         })
         .await;
+    }
+
+    /// Removes the leftovers of the shared index and the usage reports, once and in the background.
+    pub async fn clean_retired(&self, user_data: PathBuf) {
+        let cache_dir = self.config.dir();
+        let _ = tokio::task::spawn_blocking(move || remove_retired(&user_data, &cache_dir)).await;
     }
 
     /// Empties the downloads (they come back as they are needed); thumbnails and measurements stay.
@@ -236,6 +262,44 @@ mod tests {
         janitor(root, 15).prune().await;
         assert_eq!(names(&root.join("blobs/ke")), ["key1"]);
         assert!(names(&root.join("blobs/ot")).is_empty());
+    }
+
+    #[tokio::test]
+    async fn removes_the_leftovers_of_retired_features_and_keeps_the_live_cache() {
+        let dir = tempfile::tempdir().unwrap();
+        let (data, cache) = (dir.path().join("data"), dir.path().join("data/AssetHubCache"));
+        put(&cache, "shared-index-repo/thumbs/a.img", 10, 0);
+        put(&cache, "shared-index.json", 3, 0);
+        put(&data, "usage/outbox/r.json", 3, 0);
+        put(&data, "usage/issues.json", 3, 0);
+        for live in ["blobs/aa/f", "thumbs/x.img", "tree/o__r/c.json.gz", "http/ab/f", "stats.json"] {
+            put(&cache, live, 5, 0);
+        }
+        put(&data, "AgentCache/blobs/aa/f", 5, 0);
+        put(&data, "settings.json", 5, 0);
+        janitor(&cache, 0).clean_retired(data.clone()).await;
+        assert!(!cache.join("shared-index-repo").exists());
+        assert!(!cache.join("shared-index.json").exists());
+        assert!(!data.join("usage").exists());
+        assert_eq!(names(&cache), ["blobs", "http", "stats.json", "thumbs", "tree"]);
+        assert!(data.join("AgentCache/blobs/aa/f").exists() && data.join("settings.json").exists());
+        janitor(&cache, 0).clean_retired(data).await;
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_retired_name_that_is_a_link_is_removed_without_touching_its_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let (data, cache, outside) = (dir.path().join("data"), dir.path().join("cache"), dir.path().join("outside"));
+        put(&outside, "keep.txt", 5, 0);
+        std::fs::create_dir_all(&cache).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        std::os::unix::fs::symlink(&outside, cache.join("shared-index-repo")).unwrap();
+        std::os::unix::fs::symlink(&outside, data.join("usage")).unwrap();
+        janitor(&cache, 0).clean_retired(data.clone()).await;
+        assert!(std::fs::symlink_metadata(cache.join("shared-index-repo")).is_err());
+        assert!(std::fs::symlink_metadata(data.join("usage")).is_err());
+        assert!(outside.join("keep.txt").exists());
     }
 
     #[tokio::test]

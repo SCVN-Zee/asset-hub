@@ -59,7 +59,7 @@ pub struct EventRow {
 }
 
 /// Score = sum of weight x 0.5^(ageDays / 14) per sha, per repo. Repos and shas keep the order in
-/// which they first appear, so the sums add up in the same order as in the TypeScript Worker.
+/// which they first appear, so the sums add up in a fixed order.
 pub fn score_events(rows: &[EventRow], now: f64) -> Vec<(String, Vec<(String, f64)>)> {
     let mut repos: Vec<(String, Vec<(String, f64)>)> = Vec::new();
     let mut repo_at: HashMap<&str, usize> = HashMap::new();

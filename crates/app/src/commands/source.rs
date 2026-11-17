@@ -4,12 +4,11 @@ use std::time::Duration;
 
 use tauri::State;
 
-use super::{traced, traced_with};
+use super::traced;
 use crate::dto::{RepoRef, TreeEntry, WatchCheck};
 use crate::github_net::{convert, ipc_error};
 use crate::ipc::IpcError;
 use crate::state::AppState;
-use crate::usage::Outcome;
 
 /// The branch's GUID index starts building this long after the listing, so opening a model
 /// finds its dependencies at once.
@@ -37,7 +36,7 @@ pub async fn source_list_branches(state: State<'_, AppState>, repo: String) -> R
 #[tauri::command]
 #[specta::specta]
 pub async fn source_list_tree(state: State<'_, AppState>, repo: String, branch: String) -> Result<Vec<TreeEntry>, IpcError> {
-    traced_with("source_list_tree", Some(&repo), |_| Outcome::OK, async {
+    traced("source_list_tree", async {
         let _foreground = state.hub.foreground.enter();
         let session = state.session()?;
         let source = session.source.clone();

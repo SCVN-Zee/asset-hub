@@ -12,7 +12,7 @@ The goldens are frozen from the 1.x TypeScript code and are not regenerated. The
 - `inputs/repo/proj/...`: the synthetic Unity project (textures, PSD and TIFF variants, materials, a shader, binary and ASCII FBX, prefabs, animation clips, a controller, TMP and TTF/OTF fonts, audio, `.gitattributes`, project settings).
 - `expected/<module>/<function>-<hash>.json`: one case per distinct argument set from the unit tests. Hand-written cases are named `<function>.<label>.json`.
 - `expected/blobs/<sha256-20>.bin`: binary values larger than 1024 bytes, referenced by hash.
-- `expected/cache-formats/<name>/`: cache files written by the real TS writers (`commit-cache`, `blob-cache`, `thumbnails`, `stats`, `catalog-files`, `shared-index`). Each scenario JSON lists every file with its size and SHA-256.
+- `expected/cache-formats/<name>/`: cache files written by the real TS writers (`commit-cache`, `blob-cache`, `thumbnails`, `stats`, `catalog-files`). Each scenario JSON lists every file with its size and SHA-256.
 - `expected/skipped-nondeterministic.json`: calls whose outcome differed between repeats (currently none).
 
 Every case JSON has `source: {path, commit, sha256}` (the TS file, the last commit that touched it, and its content hash), and `origin` (`unit-test-input` or `synthetic`). It then has `args`, optional `argsAfter` (arguments after the call, for mutating functions), and `result` or `throws`.
@@ -21,9 +21,9 @@ Every case JSON has `source: {path, commit, sha256}` (the TS file, the last comm
 
 - Tagged JSON: `{"$":"bytes","b64":...}` or `{"$":"bytes","blob":"<hash>"}` (typed arrays carry a `type`), `map`, `set`, `regexp`, `date`, `error`, `bigint`, `num` (`NaN`, `Infinity`, `-0`), `undefined` (array elements and top-level values only; object keys with `undefined` are dropped), and `{"$":"file","path":...}` (a path inside `inputs/repo`). Plain JSON stays plain.
 - Dependency context: build it from `inputs/repo`. GUIDs come from the `.meta` files. The tree entry `sha` is the git blob SHA-1 of the file and `size` is its byte length. The root prefix is `proj/`. `pathsByName` is a case-insensitive basename scan. Reading texts and bytes uses the file listing.
-- Clock: cases that stamp the current time (`tar`, `unityPackageTar`, `zipFiles`, thumbnail URL versions, the shared-index manifest) ran at `2026-11-09T09:00:00Z`. Time zone is UTC.
+- Clock: cases that stamp the current time (`tar`, `unityPackageTar`, `zipFiles`, thumbnail URL versions) ran at `2026-11-09T09:00:00Z`. Time zone is UTC.
 - Floats: compare with 1e-6 relative tolerance.
-- Thumbnails: the store reads PNG, WebP and JPEG `.img` files plus a legacy `.txt` data URL, which it converts on first read. The WebKit webview returns PNG where Chromium returned WebP, so all three must load.
+- Thumbnails: the store reads PNG, WebP and JPEG `.img` files. The WebKit webview returns PNG where Chromium returned WebP, so all three must load.
 
 ## Captured functions (case counts)
 
@@ -63,10 +63,8 @@ Every case JSON has `source: {path, commit, sha256}` (the TS file, the last comm
 - `src/core/unity/tmpFont.ts`: isTmpFontAsset (4), parseTmpFont (4), tmpAtlas (3)
 - `src/core/unity/yaml.ts`: builtAudioBytes (3), effectiveAudioImport (5), extractFbxTextureNames (8), guessTextureRole (11), importedTextureSize (3), materialKeywords (11), metaGuid (57), parseAudioMeta (7), parseEmbeddedTexture (2), parseFbxMeta (11), parseMaterial (18), parseMaterialLook (14), parseMaterialProps (27), parseSpriteMeta (13), parseTextureMeta (14), shaderBlend (7), shaderDefaults (2), shaderName (2), shaderTextureProps (4)
 - `src/main/caches.ts`: FileBlobCache (1), FileCommitCache (1), StatsStore (1), ThumbnailStore (1)
-- `src/main/feedbackRepo.ts`: assertFeedbackWrite (7)
 - `src/main/ghPrompt.ts`: parseGhLoginPrompt (4)
 - `src/main/gitTree.ts`: gitEnv (2), parseCatFileBatch (1)
-- `src/main/sharedIndex.ts`: exportIndex (1)
 - `src/main/targetProject.ts`: contentHash (1)
 - `src/main/unityEditors.ts`: parseUnityProcesses (1)
 - `src/main/zip.ts`: zipFiles (1)
@@ -74,7 +72,6 @@ Every case JSON has `source: {path, commit, sha256}` (the TS file, the last comm
 - `src/shared/deeplink.ts`: assetLink (1), parseAssetLink (8)
 - `src/shared/displayName.ts`: displayName (6)
 - `src/shared/settings.ts`: sanitizeSettings (18), unknownSettings (4)
-- `src/shared/usage.ts`: feedbackIssue (1), isWorthSending (3), newSession (1), noteEvent (3), noteIpc (6), parseUsageComment (2), sanitizeFeedback (3), usageComment (1)
 - `src/shared/version.ts`: isNewer (6)
 
 Also captured as scenarios: the full registry rules truth table (`alsoShows` and `unlisted` per handler), `RepoCatalog` operations, `AssetSearch` over Vietnamese, Korean and English names, the `shaderMapper` over the synthetic project, and the cache formats listed above.
@@ -85,4 +82,4 @@ Also captured as scenarios: the full registry rules truth table (`alsoShows` and
 - `sampleCurve`, `evalMinMax`, `evalGradient`, `evalMinMaxColor`, `streamTexcoords` (particle evaluators): they stay in TypeScript, so the Rust port has no counterpart.
 - File-system and process-bound helpers in `src/main` (temp-dir and spawn functions, `gitEnv` with the live environment): outputs depend on the machine. `gitEnv` has a hand case with a replaced environment. Cache classes are covered through the cache-format scenarios instead.
 - `GitHubClient`, `GitHubAssetSource`, `src/core/source.ts` request paths: they need HTTP, and no trace was recorded (no network use allowed). Pure helpers (`assertReadOnly`, `nextLink`, LFS parsing) are captured.
-- `CatalogService` runtime behaviour, `SettingsStore`, `CodexClient`, and the 1.x-only modules (`index`, `auth`, `ai`, `blender`, `exporter`, `github`, `catalog` IPC glue, `updater`, `usage` sender, installers): no pure behaviour to freeze. Catalog files written by `CatalogService` are covered in `catalog-files`.
+- `CatalogService` runtime behaviour, `SettingsStore`, `CodexClient`, and the 1.x-only modules (`index`, `auth`, `ai`, `blender`, `exporter`, `github`, `catalog` IPC glue, `updater`, installers): no pure behaviour to freeze. Catalog files written by `CatalogService` are covered in `catalog-files`.

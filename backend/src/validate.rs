@@ -1,4 +1,4 @@
-//! The input patterns the TypeScript Worker checks with regular expressions. Hand-written, so the
+//! The input patterns the Worker checks. Hand-written instead of regular expressions, so the
 //! Wasm stays small. Every class is ASCII, as the JavaScript originals are.
 
 fn all_lower_hex(text: &str) -> bool {
@@ -15,11 +15,6 @@ pub fn is_uuid(text: &str) -> bool {
     let groups: Vec<&str> = text.split('-').collect();
     groups.len() == 5
         && groups.iter().zip([8, 4, 4, 4, 12]).all(|(group, len)| group.len() == len && group.bytes().all(|b| b.is_ascii_hexdigit()))
-}
-
-/// A generation id that this Worker writes: a UUID in lower case.
-pub fn is_generation_id(text: &str) -> bool {
-    is_uuid(text) && !text.bytes().any(|b| b.is_ascii_uppercase())
 }
 
 /// A `sha40` with an optional `.fx` suffix.
@@ -58,15 +53,6 @@ mod tests {
         assert!(!is_sha40(&format!("{SHA}0")));
         assert!(!is_sha40(&format!("{}g", &SHA[1..])));
         assert!(!is_sha40(&format!("{SHA}\n")));
-    }
-
-    #[test]
-    fn a_generation_id_is_a_lower_case_uuid() {
-        assert!(is_generation_id("00000000-0000-4000-8000-00000000000a"));
-        assert!(!is_generation_id("00000000-0000-4000-8000-00000000000A"));
-        for legacy in ["", "4_z0123456789abcdef_d20260101_m000000_c000_v0001_t0000", "g0", "zzzz-newer"] {
-            assert!(!is_generation_id(legacy), "{legacy:?}");
-        }
     }
 
     #[test]

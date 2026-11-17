@@ -166,14 +166,6 @@ export const ClockIcon = ({ size = 16 }: IconProps) => (
   </svg>
 )
 
-/** Feedback: a speech bubble. */
-export const MessageIcon = ({ size = 16 }: IconProps) => (
-  <svg {...base(size)}>
-    <path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z" />
-    <path d="M8 10h8M8 13h5" />
-  </svg>
-)
-
 /** Exported lately: a package with an arrow going out. */
 export const ShippedIcon = ({ size = 16 }: IconProps) => (
   <svg {...base(size)}>

@@ -1,8 +1,8 @@
 //! Every command of the app and the legacy channel it stands for.
 //!
 //! `build.rs` includes this file to declare the app's command permissions, and the command wrapper
-//! counts calls under the channel names of `src/shared/ipc.ts` (`IPC`), so the usage notes keep
-//! their keys. A test checks the table against `ipc.ts` and against the generated bindings.
+//! names calls in its trace by the channel names of `src/shared/ipc.ts` (`IPC`). A test checks the
+//! table against the generated bindings.
 
 macro_rules! command_table {
     ($(($command:literal, $channel:literal)),* $(,)?) => {
@@ -10,13 +10,13 @@ macro_rules! command_table {
         pub const CHANNELS: &[(&str, &str)] = &[$(($command, $channel)),*];
         /// Every command callable from the page: the contract, the commands 2.x added and the raw
         /// byte upload.
-        pub const COMMANDS: &[&str] = &[$($command,)* "audio_ogg_to_wav", "unity_mesh", "material", "shader_info", "embedded_texture", "decoded_image", "texture_info", "anim_clip", "prefab_scene", "fbx_info", "mesh_for_file_id", "audio_info", "audio_built_bytes", "font_info", "tmp_font", "tmp_font_atlas", "fbx_texture_names", "model_bundle_materials_for", "prefab_bundle_materials_for", "particle_totals", "handler_descriptors", "browse_assets", "search_build", "search_query", "search_words", "search_suggest", "search_folders", "agent_cli_install", "team_status", "team_popular", STASH_COMMAND];
+        pub const COMMANDS: &[&str] = &[$($command,)* "audio_ogg_to_wav", "unity_mesh", "material", "shader_info", "embedded_texture", "decoded_image", "texture_info", "anim_clip", "prefab_scene", "fbx_info", "mesh_for_file_id", "audio_info", "audio_built_bytes", "font_info", "tmp_font", "tmp_font_atlas", "fbx_texture_names", "model_bundle_materials_for", "prefab_bundle_materials_for", "particle_totals", "handler_descriptors", "browse_assets", "search_build", "search_query", "search_words", "search_suggest", "search_folders", "agent_cli_install", "team_status", "team_popular", "team_note_view", STASH_COMMAND];
     };
 }
 
 /// Commands that have no channel in `src/shared/ipc.ts` because 1.x had no such call. They are in
-/// the bindings and the capability like the others; calls to them are not counted in the usage notes.
-pub const APP_ONLY_COMMANDS: &[&str] = &["audio_ogg_to_wav", "unity_mesh", "material", "shader_info", "embedded_texture", "decoded_image", "texture_info", "anim_clip", "prefab_scene", "fbx_info", "mesh_for_file_id", "audio_info", "audio_built_bytes", "font_info", "tmp_font", "tmp_font_atlas", "fbx_texture_names", "model_bundle_materials_for", "prefab_bundle_materials_for", "particle_totals", "handler_descriptors", "browse_assets", "search_build", "search_query", "search_words", "search_suggest", "search_folders", "agent_cli_install", "team_status", "team_popular"];
+/// the bindings and the capability like the others.
+pub const APP_ONLY_COMMANDS: &[&str] = &["audio_ogg_to_wav", "unity_mesh", "material", "shader_info", "embedded_texture", "decoded_image", "texture_info", "anim_clip", "prefab_scene", "fbx_info", "mesh_for_file_id", "audio_info", "audio_built_bytes", "font_info", "tmp_font", "tmp_font_atlas", "fbx_texture_names", "model_bundle_materials_for", "prefab_bundle_materials_for", "particle_totals", "handler_descriptors", "browse_assets", "search_build", "search_query", "search_words", "search_suggest", "search_folders", "agent_cli_install", "team_status", "team_popular", "team_note_view"];
 
 /// Uploads raw bytes (previews, a GLB) that a later command takes by id.
 pub const STASH_COMMAND: &str = "stash_bytes";
@@ -55,9 +55,6 @@ command_table! {
     ("catalog_where_is", "catalog:where"),
     ("thumbs_get", "thumbs:get"),
     ("thumbs_save", "thumbs:save"),
-    ("shared_index_status", "sharedIndex:status"),
-    ("shared_index_import", "sharedIndex:import"),
-    ("shared_index_export", "sharedIndex:export"),
     ("cache_usage", "cache:usage"),
     ("cache_clear", "cache:clear"),
     ("stats_get", "stats:get"),
@@ -68,6 +65,4 @@ command_table! {
     ("exporter_show_in_folder", "shell:show-item"),
     ("update_check", "update:check"),
     ("update_install", "update:install"),
-    ("usage_track", "usage:track"),
-    ("feedback_send", "feedback:send"),
 }

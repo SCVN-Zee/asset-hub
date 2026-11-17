@@ -157,27 +157,6 @@
     "cacheNoLimit": "Không giới hạn",
     "cacheClear": "Xoá file đã tải",
     "cacheUsage": "File đã tải {{downloads}} · thumbnail {{thumbs}} · khác {{other}}",
-    "sharedIndex": "Chỉ mục dùng chung",
-    "sharedIndexNone": "Dùng chung qua GitHub ({{repo}}), hoặc chọn một thư mục",
-    "sharedIndexStop": "Ngừng dùng chung",
-    "sharedIndexThere": "Chỉ mục dùng chung: ghi lúc {{when}} bởi {{who}} · {{repos}} repo · {{thumbs}} thumbnail",
-    "sharedIndexEmpty": "Chưa có chỉ mục dùng chung. Ghi chỉ mục của bạn để bắt đầu.",
-    "sharedIndexTaken": "đã nhập lúc {{when}}",
-    "sharedIndexImport": "Nhập ngay",
-    "sharedIndexImporting": "Đang nhập…",
-    "sharedIndexExport": "Ghi chỉ mục của tôi vào đó",
-    "sharedIndexExporting": "Đang ghi…",
-    "sharedIndexImported": "Đã nhập {{commits}} danh sách branch, {{facts}} dữ kiện, {{stats}} thông số, {{thumbs}} thumbnail.",
-    "sharedIndexExported": "Đã ghi {{commits}} danh sách branch, {{facts}} dữ kiện, {{stats}} thông số và {{thumbs}} thumbnail mới.",
-    "sharedIndexFailed": "Lỗi chỉ mục dùng chung: {{error}}",
-    "sharedIndexAuto": "Tự cập nhật: nhận ngay khi đồng đội thêm vào, và tự đóng góp phần của bạn khi bản chung cũ hơn 2 giờ.",
-    "sharedIndexReadOnly": "Tài khoản GitHub của bạn chỉ đọc được {{repo}}, không ghi được: bạn vẫn nhận chỉ mục của team nhưng không đóng góp.",
-    "sharedIndexReadOnlyMany": "Không tài khoản GitHub nào đang đăng nhập ghi được vào {{repo}}: bạn vẫn nhận chỉ mục của team nhưng không đóng góp.",
-    "sharedIndexWriter": "Chỉ mục của bạn được đóng góp bằng tài khoản {{login}}.",
-    "sharedIndexNoGit": "Chưa dùng chung: cần git (Xcode Command Line Tools) hoặc chọn một thư mục.",
-    "usage": "Thống kê sử dụng",
-    "usageStats": "Gửi thống kê sử dụng cho team",
-    "usageNote": "Tên GitHub, thời gian dùng app và số lần thao tác (branch đã mở, loại asset đã xem, tìm kiếm, xuất, lỗi). Không bao giờ gửi nội dung tìm kiếm hay file. Giúp team biết cần cải thiện gì.",
     "cliTitle": "Công cụ dòng lệnh",
     "cliInstall": "Cài công cụ dòng lệnh",
     "cliNote": "Cho phép các agent lập trình như Claude Code và Codex tìm và xuất asset khi cửa sổ app đã đóng. Liên kết asset-hub-cli vào ~/.local/bin.",
@@ -870,30 +849,6 @@
     "collection": "Sưu tập",
     "watch": "Ghim branch",
     "watching": "Đã ghim"
-  },
-  "feedback": {
-    "title": "Gửi phản hồi",
-    "kind": "Loại",
-    "kinds": {
-      "bug": "Lỗi",
-      "idea": "Ý tưởng",
-      "other": "Khác"
-    },
-    "titlePlaceholder": "Vài chữ tóm tắt…",
-    "bodyPlaceholder": {
-      "bug": "Chuyện gì đã xảy ra, và bạn mong đợi điều gì? Các bước để lặp lại lỗi sẽ giúp rất nhiều.",
-      "idea": "Bạn muốn app làm được gì, và để làm gì?",
-      "other": "Bất cứ điều gì bạn muốn nói về Asset Hub."
-    },
-    "withContext": "Kèm vị trí hiện tại: {{where}}",
-    "note": "Gửi cho team kèm tên GitHub và phiên bản app của bạn.",
-    "cancel": "Huỷ",
-    "send": "Gửi",
-    "sending": "Đang gửi…",
-    "sent": "Cảm ơn bạn! Phản hồi đã tới team.",
-    "queued": "Đã lưu. Hiện chưa gửi được, app sẽ tự gửi lần mở sau.",
-    "open": "Mở trên GitHub",
-    "close": "Đóng"
   },
   "sidebar": {
     "yours": "Của bạn"

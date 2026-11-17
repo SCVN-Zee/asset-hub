@@ -1,7 +1,7 @@
 //! PNG thumbnails re-encoded as lossy WebP.
 //!
 //! WKWebView ignores `toDataURL('image/webp')` and answers PNG, six to seven times larger than the
-//! WebP that 1.x pages saved. The cache, the shared index pushes and the bundle of a team all carry
+//! WebP that 1.x pages saved. The cache, the team cache and the bundle of a team all carry
 //! those files, so a PNG is re-encoded before it is stored.
 
 use std::io::Cursor;

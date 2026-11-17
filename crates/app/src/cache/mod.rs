@@ -33,14 +33,12 @@ pub type OnWrite = Arc<dyn Fn(u64) + Send + Sync>;
 pub struct CacheConfig {
     dir: RwLock<PathBuf>,
     limit: AtomicU64,
-    /// The folder the user picked to share the index through (none: the team's GitHub repo does).
-    shared_index_dir: RwLock<Option<PathBuf>>,
 }
 
 impl CacheConfig {
     /// `limit` in bytes; 0 for no limit.
     pub fn new(dir: PathBuf, limit: u64) -> Arc<Self> {
-        Arc::new(Self { dir: RwLock::new(dir), limit: AtomicU64::new(limit), shared_index_dir: RwLock::new(None) })
+        Arc::new(Self { dir: RwLock::new(dir), limit: AtomicU64::new(limit) })
     }
 
     pub fn from_settings(settings: &Settings) -> Arc<Self> {
@@ -63,17 +61,6 @@ impl CacheConfig {
             *dir = PathBuf::from(&settings.cache_dir);
         }
         self.limit.store(limit_bytes(settings.cache_limit_gb), Ordering::Relaxed);
-        self.set_shared_index_dir(settings.shared_index_dir.as_deref().filter(|d| !d.is_empty()).map(PathBuf::from));
-    }
-
-    pub fn shared_index_dir(&self) -> Option<PathBuf> {
-        self.shared_index_dir.read().ok().and_then(|d| d.clone())
-    }
-
-    pub fn set_shared_index_dir(&self, dir: Option<PathBuf>) {
-        if let Ok(mut kept) = self.shared_index_dir.write() {
-            *kept = dir;
-        }
     }
 }
 

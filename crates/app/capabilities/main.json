@@ -68,9 +68,6 @@
     "allow-catalog-where-is",
     "allow-thumbs-get",
     "allow-thumbs-save",
-    "allow-shared-index-status",
-    "allow-shared-index-import",
-    "allow-shared-index-export",
     "allow-cache-usage",
     "allow-cache-clear",
     "allow-stats-get",
@@ -81,10 +78,9 @@
     "allow-exporter-show-in-folder",
     "allow-update-check",
     "allow-update-install",
-    "allow-usage-track",
-    "allow-feedback-send",
     "allow-team-status",
     "allow-team-popular",
+    "allow-team-note-view",
     "allow-stash-bytes"
   ]
 }
