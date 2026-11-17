@@ -41,6 +41,7 @@ import { addCollection, deleteCollection, FAVORITES, inCollection, pushRecent, R
 import { MultiBar } from '../components/MultiBar'
 import { ShortcutHelp } from '../components/ShortcutHelp'
 import { Popover } from '../components/Popover'
+import { BackgroundTasks } from '../components/BackgroundTasks'
 import { SideGroup } from '../components/Section'
 import { useStoredFlag } from '../useStoredState'
 
@@ -1252,6 +1253,7 @@ export function Browse({
         </div>
         <SearchBox value={query} suggest={inCatalog ? suggestCatalog : suggestHere} onChange={onQuery} />
         <div className="topbar-actions">
+          <BackgroundTasks thumbs={{ done: loadedCount, total: renderable.length }} catalog={catalog.status} scan={scan} exportState={exportState} />
           <button
             type="button"
             className="btn icon-btn"
@@ -1351,16 +1353,6 @@ export function Browse({
             <span className="num toolbar-count" title={t('browse.assetCount', { count: gridCount })}>
               {gridCount.toLocaleString()}
             </span>
-            {/* Thumbnails still loading: a thin bar, the numbers on hover. */}
-            {renderable.length > 0 && loadedCount < renderable.length && (
-              <progress
-                className="loaded-bar"
-                max={renderable.length}
-                value={loadedCount}
-                aria-label={t('browse.loaded', { done: loadedCount.toLocaleString(), total: renderable.length.toLocaleString() })}
-                title={`${t('browse.loaded', { done: loadedCount.toLocaleString(), total: renderable.length.toLocaleString() })} · ${t('browse.loadedHint')}`}
-              />
-            )}
             {(inCatalog ? catalogShown.length : shown.length) > 0 && (
               <>
                 <Dropdown<SortMode>

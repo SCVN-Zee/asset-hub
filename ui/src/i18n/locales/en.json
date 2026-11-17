@@ -741,6 +741,15 @@
     "speed": "Speed",
     "summary": "{{count}} emitters"
   },
+  "tasks": {
+    "title": "Background tasks",
+    "running_one": "{{count}} background task running",
+    "running_other": "{{count}} background tasks running",
+    "thumbnails": "Thumbnails",
+    "catalog": "Catalog index",
+    "scan": "Project scan",
+    "export": "Export"
+  },
   "scan": {
     "starting": "Looking for {{what}} in this branch…",
     "reading": "Looking for {{what}}… {{done}} / {{total}} (read once, then instant)",

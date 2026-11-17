@@ -698,6 +698,14 @@
     "speed": "속도",
     "summary": "이미터 {{count}}개"
   },
+  "tasks": {
+    "title": "백그라운드 작업",
+    "running_other": "백그라운드 작업 {{count}}개 실행 중",
+    "thumbnails": "썸네일",
+    "catalog": "카탈로그 색인",
+    "scan": "프로젝트 스캔",
+    "export": "내보내기"
+  },
   "scan": {
     "starting": "이 브랜치에서 {{what}} 찾는 중…",
     "reading": "{{what}} 찾는 중… {{done}} / {{total}} (한 번만 읽고 이후 즉시)",

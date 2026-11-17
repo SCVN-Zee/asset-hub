@@ -706,6 +706,14 @@
     "speed": "Tốc độ",
     "summary": "{{count}} emitter"
   },
+  "tasks": {
+    "title": "Tác vụ nền",
+    "running_other": "{{count}} tác vụ nền đang chạy",
+    "thumbnails": "Ảnh thu nhỏ",
+    "catalog": "Chỉ mục danh mục",
+    "scan": "Quét dự án",
+    "export": "Xuất"
+  },
   "scan": {
     "starting": "Đang tìm {{what}} trong branch…",
     "reading": "Đang tìm {{what}}… {{done}} / {{total}} (chỉ đọc một lần, lần sau tức thì)",
