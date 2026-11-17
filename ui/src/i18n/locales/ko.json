@@ -806,7 +806,8 @@
     "animation": "애니메이션",
     "ui": "UI",
     "particleSystem": "파티클 시스템",
-    "filter": "태그로 필터",
+    "static": "정적",
+    "other": "기타",
     "animationHint": "애니메이션 클립이 있는 모델",
     "uiHint": "UI 오브젝트(RectTransform 또는 Canvas)가 있는 프리팹",
     "particleSystemHint": "파티클 시스템이 있는 프리팹"

@@ -862,7 +862,8 @@
     "animation": "Animation",
     "ui": "UI",
     "particleSystem": "Particle System",
-    "filter": "Filter by tag",
+    "static": "Static",
+    "other": "Other",
     "animationHint": "A model with animation clips",
     "uiHint": "A prefab with UI objects (RectTransform or Canvas)",
     "particleSystemHint": "A prefab with a particle system"

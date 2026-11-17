@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Asset, AssetFacts, AssetSource, CatalogAsset, DependencyReport, FactKind, RepoRef, StatsSummary } from '@shared/types'
 import { formatBytes } from '../format'
 import type { HandlerRegistry } from '../handlers'
 import { parse } from '../parse'
 import { useSearch } from '../useSearch'
-import { ASSET_TAGS, tagsOf, type AssetTag } from '../tags'
+import { inSubCategory, SUB_ALL, SUB_CATEGORIES, subCategoriesOf, tagsOf, type AssetTag, type SubCategory } from '../tags'
+import { prefabScanTargets } from '../catalogScan'
 import { AssetCard, SkeletonCard } from '../components/AssetCard'
 import { AssetDetails } from '../components/AssetDetails'
 import { ExportBar, packCapacity, type ExportOptions, type ExportState, type PackItem } from '../components/ExportBar'
@@ -25,8 +26,8 @@ import { SearchBox } from '../components/SearchBox'
 import { DRAWABLE } from '../viewer/formats'
 import { CatalogDetails, CatalogStatusLine, githubUrl, locationNote } from '../components/CatalogPanel'
 import { useCatalog, type SearchScope } from '../useCatalog'
-import type { BudgetPreset } from '@shared/types'
 import { filterOf, selectionOf, targetOf, type Selection } from '../scopeTree'
+import type { BudgetPreset } from '@shared/types'
 import { BUDGET_PRESETS, rankForPlayable, summaryIssues, type SortMode } from '../playable'
 import { usePopularity } from '../usePopularity'
 import { useBudget } from '../budget'
@@ -255,9 +256,9 @@ export function Browse({
   const [folder, setFolder] = useState('')
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<SearchScope>('branch')
-  /** Selected result in the other-branches / other-repos views (its blob SHA). */
   /** What is checked in the scope picker while the catalog is searched; the open branch is the selection otherwise. */
   const [scopeSel, setScopeSel] = useState<Selection>({ repos: 'all', branches: 'all' })
+  /** Selected result in the other-branches / other-repos views (its blob SHA). */
   const [catalogSel, setCatalogSel] = useState<string>()
   /** Where to land once a branch opened from another view has loaded. */
   const nav = useRef<{ repo: string; branch: string; path: string }>()
@@ -462,16 +463,11 @@ export function Browse({
   const catalogShown = catalogFound.assets
   const catalogSelected = catalogShown.find((a) => a.sha === catalogSel)
   const inCatalog = scope !== 'branch'
-  /** The tags of the cards in the open view, and how many cards of the tab have each (for the filter chips). */
+  /** The tags of the cards in the open view. */
   const viewTags = inCatalog ? catalogTags : branchTags
-  const tagCounts = useMemo(() => {
-    const counts = new Map<AssetTag, number>()
-    for (const tags of viewTags.values()) for (const tag of tags) counts.set(tag, (counts.get(tag) ?? 0) + 1)
-    return counts
-  }, [viewTags])
-  const [tagFilter, setTagFilter] = useState<AssetTag>()
-  // A tag that no card of the list has any more (another tab, another branch) cannot stay selected.
-  useEffect(() => setTagFilter((on) => (on && tagCounts.has(on) ? on : undefined)), [tagCounts])
+  // The sub-category picked under a tab of the sidebar. Another tab starts again on All.
+  const [subSel, setSubSel] = useState<{ tab: string; sub: SubCategory }>()
+  const subTab = subSel?.tab === typeFilter ? subSel.sub : SUB_ALL
   /** Cards in the grid, whichever view is open. */
   // Ordered and filtered for reuse in playables (measurements come from thumbnails and opened models).
   // Watched branches: what was added since each was last marked seen (checked on opening, every 30 minutes, on coming back).
@@ -516,6 +512,10 @@ export function Browse({
     setScope('branch')
     setOpenCollection(undefined)
     if (toRepo !== repo) {
+      nav.current = { repo: toRepo, branch: toBranch, path: '' }
+      setRepo(toRepo)
+    } else setBranch(toBranch)
+  }
   /** One repo and one branch checked opens that branch; anything else searches the catalog. */
   const pickScope = (next: Selection) => {
     const to = targetOf(next, repoNames)
@@ -531,10 +531,6 @@ export function Browse({
     [pickedRepos, branches, catalog.facets]
   )
   const defaultBranches = useMemo(() => new Set(pickedRepos.flatMap((r) => repoList.find((x) => x.fullName === r)?.defaultBranch ?? [])), [pickedRepos, repoList])
-      nav.current = { repo: toRepo, branch: toBranch, path: '' }
-      setRepo(toRepo)
-    } else setBranch(toBranch)
-  }
 
   /** Quick filters over the cards; those on measurements only keep measured assets. */
   const [chips, setChips] = useState<QuickChip[]>([])
@@ -544,13 +540,13 @@ export function Browse({
   const passesChips = useCallback(
     (a: Asset) => {
       if (newOnly && !newHere.has(root + a.path)) return false
-      if (tagFilter && !viewTags.get(a.id)?.includes(tagFilter)) return false
+      if (!inSubCategory(typeFilter, subTab, viewTags.get(a.id))) return false
       const s = modelStats[a.sha]
       return chips.every((c) =>
         c === 'small' ? (a.size ?? Infinity) <= 500 * 1024 : c === 'lowPoly' ? !!s && s.triangles > 0 && s.triangles <= 5000 : a.type === 'animation' || (!!s && s.clips > 0)
       )
     },
-    [chips, modelStats, newOnly, newHere, root, tagFilter, viewTags]
+    [chips, modelStats, newOnly, newHere, root, typeFilter, subTab, viewTags]
   )
   const teamScores = usePopularity(repo || undefined, branch)
   /** The user's own history: a favorite counts 2, a recently viewed or exported asset 1. */
@@ -607,7 +603,10 @@ export function Browse({
   /** The inspector column only exists while an asset is selected; otherwise the grid takes the width. */
   const hasSelection = inCatalog ? !!catalogSelected : !!selected
   const packIds = useMemo(() => new Set(pack.map((i) => i.asset.id)), [pack])
-  const typeLabel = typeFilter === ALL ? t('browse.allAssets') : t(registry.get(typeFilter)?.labelKey ?? 'browse.allAssets')
+  const typeLabel =
+    typeFilter === ALL
+      ? t('browse.allAssets')
+      : t(registry.get(typeFilter)?.labelKey ?? 'browse.allAssets') + (subTab === SUB_ALL ? '' : ` · ${t(`tags.${subTab}`)}`)
   const gridTitle = inCatalog ? t(`catalog.title.${scope}`, { repo: repo.split('/').pop() }) : folder && typeFilter !== ALL ? `${folder} · ${typeLabel}` : folder || typeLabel
   const gridCount = inCatalog ? rankedCatalog.length : rankedShown.length
   const measuredCount = (inCatalog ? catalogShown : shown).filter((a) => modelStats[a.sha]).length
@@ -834,15 +833,17 @@ export function Browse({
   // the second one is answered from what the first one cached, so no prefab is downloaded twice.
   const tabFacts = registry.get(typeFilter)?.facts
   const tagScans = typeFilter === ALL || typeFilter === 'prefab' || tabFacts === 'effects'
-  useEffect(() => {
-    if (!live) return
-    const kinds: FactKind[] = [...new Set<FactKind>([...(tabFacts ? [tabFacts] : []), ...(tagScans ? TAG_FACTS : [])])]
-    const keyOf = (kind: FactKind) => `${kind}:${live.repo}@${live.branch}`
-    const pending = kinds.filter((kind) => !scans.current.has(keyOf(kind)))
+  /** Scans run one at a time, whichever branch asks: two at once would read the same files twice. */
+  const scanChain = useRef<Promise<void>>(Promise.resolve())
+  /** Branches whose scan failed: not asked for again by the catalog (the open branch tries again when its tab is opened). */
+  const scanFailed = useRef(new Set<string>())
+  const scanKey = (kind: FactKind, repo: string, branch: string) => `${kind}:${repo}@${branch}`
+  const startScans = useCallback((at: { repo: string; branch: string }, kinds: readonly FactKind[]) => {
+    const pending = kinds.filter((kind) => !scans.current.has(scanKey(kind, at.repo, at.branch)))
     if (!pending.length) return
-    for (const kind of pending) scans.current.add(keyOf(kind))
+    for (const kind of pending) scans.current.add(scanKey(kind, at.repo, at.branch))
     const run = async (kind: FactKind) => {
-      const key = keyOf(kind)
+      const key = scanKey(kind, at.repo, at.branch)
       const add = (shas: readonly string[]) => setKnown((prev) => ({ ...prev, [kind]: new Set([...(prev[kind] ?? []), ...shas]) }))
       setScan({ kind, status: 'scanning', done: 0, total: 0 })
       const off = window.api.assets.onKnownProgress((k, { found, ...p }) => {
@@ -852,18 +853,30 @@ export function Browse({
         if (found?.length) add(found)
       })
       try {
-        add(await window.api.assets.knownAssets(live.repo, live.branch, kind).then(unwrap))
+        add(await window.api.assets.knownAssets(at.repo, at.branch, kind).then(unwrap))
         setScan((s) => (s?.kind === kind ? undefined : s))
       } catch {
         // Tried again the next time the tab is opened.
         scans.current.delete(key)
+        scanFailed.current.add(key)
         setScan({ kind, status: 'error', done: 0, total: 0 })
       } finally {
         off()
       }
     }
-    void pending.reduce((previous, kind) => previous.then(() => run(kind)), Promise.resolve())
-  }, [tabFacts, tagScans, live])
+    scanChain.current = scanChain.current.then(() => pending.reduce((previous, kind) => previous.then(() => run(kind)), Promise.resolve()))
+  }, [])
+  useEffect(() => {
+    if (!live) return
+    startScans(live, [...new Set<FactKind>([...(tabFacts ? [tabFacts] : []), ...(tagScans ? TAG_FACTS : [])])])
+  }, [tabFacts, tagScans, live, startScans])
+  // Across branches or repos, the prefabs of other branches are read too (the ones no scan has read yet, by SHA), so
+  // their tags are known: the fewest branches that between them hold every prefab listed, one after the other.
+  useEffect(() => {
+    if (!inCatalog || !tagScans || !catalog.assets) return
+    const scanned = (r: string, b: string) => scans.current.has(scanKey(TAG_FACTS[0], r, b)) || scanFailed.current.has(scanKey(TAG_FACTS[0], r, b))
+    for (const target of prefabScanTargets(catalog.assets, scanned)) startScans(target, TAG_FACTS)
+  }, [inCatalog, tagScans, catalog.assets, startScans])
 
   // Saved thumbnails and measurements of an open collection's assets, from any repo or branch (by content).
   const collectionShas = shownCollection?.items.map((i) => i.sha).join(',') ?? ''
@@ -1220,6 +1233,16 @@ export function Browse({
     for (const h of registry.all()) if (h.alsoShows) counts.set(h.id, (counts.get(h.id) ?? 0) + typeSource.filter((a) => a.type !== h.id && inTab(a, h.id)).length)
     return counts
   }, [typeSource, registry, inTab])
+  /** Under Model and Prefab: how many of the same list the tab counts have each sub-category. */
+  const subCounts = useMemo(() => {
+    const byTab = new Map<string, Map<SubCategory, number>>()
+    for (const tab of Object.keys(SUB_CATEGORIES)) {
+      const tagged = typeSource.filter((a) => inTab(a, tab)).map((a) => tagsOf(a, modelStats[a.sha], known))
+      byTab.set(tab, new Map(subCategoriesOf(tab).map((sub) => [sub, tagged.filter((tags) => inSubCategory(tab, sub, tags)).length])))
+    }
+    return byTab
+    // modelStats matters only through which models hold clips.
+  }, [typeSource, inTab, known, withClips])
 
   return (
     <div className="browse">
@@ -1284,18 +1307,33 @@ export function Browse({
           <div className="side-group">
             <span className="label-caps side-title">{t('browse.types')}</span>
             <div className="tabs" role="group" aria-label={t('browse.types')}>
-              <button type="button" className="tab" aria-pressed={typeFilter === ALL} onClick={() => { setTypeFilter(ALL); setOpenCollection(undefined) }}>
+              <button type="button" className="tab" aria-pressed={typeFilter === ALL} onClick={() => { setTypeFilter(ALL); setSubSel(undefined); setOpenCollection(undefined) }}>
                 <span className="type-dot" style={{ background: 'var(--text)' }} />
                 <span className="tab-label">{t('assetTypes.all')}</span>
                 <span className="num">{typeSource.filter((a) => !registry.get(a.type)?.hidden).length}</span>
               </button>
               {/* A type with nothing in this view is left out, unless it is the one being filtered on. */}
               {registry.all().filter((h) => !h.hidden && ((typeCounts.get(h.id) ?? 0) > 0 || typeFilter === h.id)).map((h) => (
-                <button key={h.id} type="button" className="tab" aria-pressed={typeFilter === h.id} onClick={() => { setTypeFilter(h.id); setOpenCollection(undefined) }}>
-                  <span className="type-dot" style={{ background: `var(--type-${h.id}, var(--mute))` }} />
-                  <span className="tab-label">{t(h.labelKey)}</span>
-                  <span className="num">{typeCounts.get(h.id) ?? 0}</span>
-                </button>
+                <Fragment key={h.id}>
+                  <button
+                    type="button"
+                    className="tab"
+                    aria-pressed={typeFilter === h.id && subTab === SUB_ALL}
+                    data-contains={typeFilter === h.id && subTab !== SUB_ALL ? 'true' : undefined}
+                    onClick={() => { setTypeFilter(h.id); setSubSel(undefined); setOpenCollection(undefined) }}
+                  >
+                    <span className="type-dot" style={{ background: `var(--type-${h.id}, var(--mute))` }} />
+                    <span className="tab-label">{t(h.labelKey)}</span>
+                    <span className="num">{typeCounts.get(h.id) ?? 0}</span>
+                  </button>
+                  {/* The sub-categories of a type sit under it, always shown; choosing one filters that type. */}
+                  {subCategoriesOf(h.id).filter((sub) => sub !== SUB_ALL).map((sub) => (
+                    <button key={sub} type="button" className="tab tab-sub" aria-pressed={typeFilter === h.id && subTab === sub} onClick={() => { setTypeFilter(h.id); setSubSel({ tab: h.id, sub }); setOpenCollection(undefined) }}>
+                      <span className="tab-label">{t(`tags.${sub}`)}</span>
+                      <span className="num">{subCounts.get(h.id)?.get(sub) ?? 0}</span>
+                    </button>
+                  ))}
+                </Fragment>
               ))}
             </div>
           </div>
@@ -1454,16 +1492,6 @@ export function Browse({
             )}
             <CellSizeToggle value={cellSize} onChange={setCellSize} />
           </div>
-          {tagCounts.size > 0 && (
-            <div className="tag-filter" role="group" aria-label={t('tags.filter')}>
-              {ASSET_TAGS.filter((tag) => tagCounts.has(tag)).map((tag) => (
-                <button key={tag} type="button" className="chip" aria-pressed={tagFilter === tag} title={t(`tags.${tag}Hint`)} onClick={() => setTagFilter((on) => (on === tag ? undefined : tag))}>
-                  {t(`tags.${tag}`)}
-                  <span className="num">{tagCounts.get(tag)}</span>
-                </button>
-              ))}
-            </div>
-          )}
           {inCatalog && <CatalogStatusLine status={catalog.status} error={catalog.error} onPause={catalog.pause} onResume={catalog.resume} />}
           {(searchFound.related.length > 0 || searchFound.typos.length > 0) && (
             <p className="related-line">

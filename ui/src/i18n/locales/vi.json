@@ -815,7 +815,8 @@
     "animation": "Animation",
     "ui": "UI",
     "particleSystem": "Particle System",
-    "filter": "Lọc theo tag",
+    "static": "Tĩnh",
+    "other": "Khác",
     "animationHint": "Model có animation clip",
     "uiHint": "Prefab có đối tượng UI (RectTransform hoặc Canvas)",
     "particleSystemHint": "Prefab có particle system"

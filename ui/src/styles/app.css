@@ -442,9 +442,19 @@ body.resizing * { cursor: inherit !important; }
 .cell-tags { position: absolute; left: 6px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 36px); }
 .cell-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r-sm); font-weight: 500; }
 .cell-tag-new { color: var(--ok); }
-/* Tags: filter chips above the grid, and the inspector's static chips. */
-.tag-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 16px 0; }
-.tag-filter .num { margin-left: 4px; }
+/* Sub-categories under a type in the sidebar: indented and quieter than the type; the type shows a lighter state while one is chosen. */
+.tab-sub { position: relative; height: 26px; padding-left: 25px; font-size: var(--fs-xs); }
+/* Tree branches: a trunk down from the parent's dot (x = 12px), an elbow into each sub-row. */
+.tab-sub::before, .tab-sub::after { content: ''; position: absolute; left: 12px; pointer-events: none; border-color: var(--line); border-style: solid; border-width: 0; }
+.tab-sub::before { top: -2px; bottom: 0; border-left-width: 1px; }
+.tab-sub::after { top: 50%; width: 7px; border-top-width: 1px; }
+/* The first sub-row reaches up past the gap to just under the parent's dot. */
+.tab:not(.tab-sub) + .tab-sub::before { top: -12px; }
+/* The last sub-row ends the trunk in a rounded elbow. */
+.tab-sub:not(:has(+ .tab-sub))::before { bottom: calc(50% - 1px); width: 7px; border-bottom-width: 1px; border-bottom-left-radius: 4px; }
+.tab-sub:not(:has(+ .tab-sub))::after { display: none; }
+.tab[data-contains='true'] { color: var(--text); }
+/* Tags: the inspector's static chips. */
 .tag-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .tag-chip { height: 18px; padding: 0 6px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--text-2); font: 500 var(--fs-xs)/16px var(--font); white-space: nowrap; }
 .star-badge { position: absolute; right: 6px; bottom: 8px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(31, 31, 32, 0.88); color: var(--text); line-height: 1; }
