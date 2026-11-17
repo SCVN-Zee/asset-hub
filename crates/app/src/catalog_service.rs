@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use asset_hub_core::catalog::{catalog_facets, group_catalog, list_catalog, plan_scan, where_is, CatalogAsset, CatalogBranch, CatalogFacets, CatalogFilter, CatalogListing, CatalogLocation, RepoCatalog, RepoCatalogData, ScanTask};
+use asset_hub_core::catalog::{catalog_facets, group_catalog_until, list_catalog, plan_scan, where_is, CatalogAsset, CatalogBranch, CatalogFacets, CatalogFilter, CatalogListing, CatalogLocation, RepoCatalog, RepoCatalogData, ScanTask};
 use asset_hub_core::errors::{SourceError, SourceErrorCode};
 use asset_hub_core::github::client::BranchHead;
 use asset_hub_core::types::{RepoRef, TreeEntry};
@@ -148,6 +148,8 @@ pub struct CatalogService {
     /// Bumped on every change.
     version: AtomicU64,
     listed: AsyncMutex<Option<Listed>>,
+    /// Tickets of the page's listing requests: only the newest is worked out.
+    requests: Arc<AtomicU64>,
 }
 
 /// The repo and branch a listing is limited to.
@@ -176,6 +178,7 @@ impl CatalogService {
             saves: Mutex::default(),
             version: AtomicU64::new(0),
             listed: AsyncMutex::new(None),
+            requests: Arc::new(AtomicU64::new(0)),
         })
     }
 
@@ -543,26 +546,48 @@ impl CatalogService {
     /// `repos` (all saved repos when empty) grouped by content and made small enough for a page,
     /// limited to `filter`'s repo and branch (see [`list_catalog`]).
     pub async fn listing(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter) -> Result<CatalogListing, SourceError> {
+        self.list_with(repos, excluded_folders, filter, None).await?.ok_or_else(|| SourceError::new(SourceErrorCode::Unknown, "the listing was given up"))
+    }
+
+    /// [`listing`](Self::listing) for the page, where the newest request wins: a request that a
+    /// newer one overtook, while it waited or while it was grouping, returns none without finishing.
+    pub async fn listing_latest(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter) -> Result<Option<CatalogListing>, SourceError> {
+        let ticket = self.requests.fetch_add(1, Ordering::SeqCst) + 1;
+        self.list_with(repos, excluded_folders, filter, Some(ticket)).await
+    }
+
+    async fn list_with(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter, ticket: Option<u64>) -> Result<Option<CatalogListing>, SourceError> {
+        let requests = self.requests.clone();
+        let stale = move || ticket.is_some_and(|t| requests.load(Ordering::SeqCst) != t);
         let names = if repos.is_empty() { self.saved_repos().await } else { repos.to_vec() };
         let key = serde_json::to_string(&(&names, excluded_folders)).unwrap_or_default();
         let version = self.version.load(Ordering::SeqCst);
         let mut slot = self.listed.lock().await;
+        if stale() {
+            return Ok(None);
+        }
         if slot.as_ref().is_none_or(|l| l.key != key || l.version != version) {
             let mut guards = Vec::with_capacity(names.len());
             for name in &names {
                 guards.push(self.load(name).await.lock_owned().await);
+                if stale() {
+                    return Ok(None);
+                }
             }
             let (type_of, excluded) = (self.config.type_of.clone(), excluded_folders.to_vec());
+            let stale_in_group = stale.clone();
             let assets = tauri::async_runtime::spawn_blocking(move || {
                 let refs: Vec<&RepoCatalog> = guards.iter().map(|g| &**g).collect();
                 let excluded: Vec<&str> = excluded.iter().map(String::as_str).collect();
-                group_catalog(&refs, &*type_of, &excluded)
+                group_catalog_until(&refs, &*type_of, &excluded, &stale_in_group)
             })
             .await
             .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not group the catalog: {e}")))?;
+            // A grouping that was given up is not kept.
+            let Some(assets) = assets else { return Ok(None) };
             *slot = Some(Listed { key, version, assets: Arc::new(assets), facets: HashMap::new() });
         }
-        let Some(listed) = slot.as_mut() else { return Ok(CatalogListing { assets: Vec::new(), facets: CatalogFacets { repos: Vec::new(), branches: Vec::new() } }) };
+        let Some(listed) = slot.as_mut() else { return Ok(Some(CatalogListing { assets: Vec::new(), facets: CatalogFacets { repos: Vec::new(), branches: Vec::new() } })) };
         let assets = listed.assets.clone();
         let facets = match listed.facets.get(filter.repo.as_deref().unwrap_or("")) {
             Some(facets) => facets.clone(),
@@ -574,6 +599,7 @@ impl CatalogService {
         };
         tauri::async_runtime::spawn_blocking(move || list_catalog(&assets, CatalogFilter { repo: filter.repo.as_deref(), branch: filter.branch.as_deref() }, Some(facets)))
             .await
+            .map(Some)
             .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not list the catalog: {e}")))
     }
 
@@ -689,6 +715,7 @@ pub fn listing_dto(listing: &CatalogListing) -> dto::CatalogListing {
 mod tests {
     use std::sync::atomic::AtomicBool;
 
+    use asset_hub_core::catalog::group_catalog;
     use asset_hub_core::types::EntryType;
     use serde_json::json;
 
@@ -1107,6 +1134,40 @@ mod tests {
         assert_eq!(repo_slug("My Org/re po.x"), "My_Org__re_po.x");
         // Only the first slash is the owner's.
         assert_eq!(repo_slug("a/b/c"), "a__b_c");
+    }
+
+    #[tokio::test]
+    async fn the_newest_page_listing_wins_over_one_it_overtook() {
+        let h = harness(1);
+        h.source.set_heads("o/r", &[("main", "c1", None)]);
+        h.source.set_tree("c1", &[("A.fbx", "a")]);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        let run = |s: &Arc<CatalogService>| {
+            let s = s.clone();
+            tokio::spawn(async move { s.listing_latest(&[], &[], ListFilter::default()).await })
+        };
+        // Both requests queue behind the held cache lock; the second takes the newer ticket.
+        let held = h.service.listed.lock().await;
+        let (old, new) = (run(&h.service), run(&h.service));
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        drop(held);
+        let old = tokio::time::timeout(Duration::from_secs(5), old).await.unwrap().unwrap().unwrap();
+        let new = tokio::time::timeout(Duration::from_secs(5), new).await.unwrap().unwrap().unwrap();
+        assert!(old.is_none(), "the overtaken request gives up");
+        assert_eq!(paths(&new.expect("the newest request is answered")), ["A.fbx"]);
+        // The plain listing is never superseded.
+        assert_eq!(paths(&h.service.listing(&[], &[], ListFilter::default()).await.unwrap()), ["A.fbx"]);
+    }
+
+    #[test]
+    fn a_grouping_that_turns_stale_is_given_up() {
+        let mut catalog = RepoCatalog::empty("o/r", Some(TYPES));
+        catalog.set_branches(&[CatalogBranch { name: "main".into(), commit: "c1".into(), date: None }], Some("main"), 1000);
+        catalog.add_commit("c1", &[entry("A.fbx", "a")]);
+        let type_of = |_: &str| Some("fbx".to_string());
+        assert!(group_catalog_until(&[&catalog], &type_of, &[], &|| true).is_none());
+        assert_eq!(group_catalog_until(&[&catalog], &type_of, &[], &|| false).map(|a| a.len()), Some(1));
     }
 
     #[test]

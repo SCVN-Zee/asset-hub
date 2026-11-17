@@ -249,14 +249,25 @@ impl RepoCatalog {
     /// with the branches holding it. Works on the stored indexes: millions of file x branch pairs,
     /// so no strings are made per pair.
     pub fn group_into(&self, by_sha: &mut GroupMap, type_of: &dyn Fn(&str) -> Option<String>, excluded: &ExcludeMatcher) {
+        self.group_into_until(by_sha, type_of, excluded, &|| false);
+    }
+
+    /// [`group_into`](Self::group_into) that gives up, returning false, once `stale` says so.
+    pub fn group_into_until(&self, by_sha: &mut GroupMap, type_of: &dyn Fn(&str) -> Option<String>, excluded: &ExcludeMatcher, stale: &dyn Fn() -> bool) -> bool {
         let RepoCatalogData { paths, blobs, repo, .. } = &self.data;
         // Per path: its asset type, or None when excluded or not an asset (worked out once).
         let mut type_at: Vec<Option<Option<String>>> = vec![None; paths.len()];
         let mut asset_at: Vec<Option<usize>> = vec![None; blobs.len()];
         let mut locations: HashMap<u64, (usize, usize)> = HashMap::new();
         for branch in &self.data.branches {
+            if stale() {
+                return false;
+            }
             let Some(flat) = self.data.commits.get(&branch.commit) else { continue };
-            for pair in flat.chunks_exact(2) {
+            for (n, pair) in flat.chunks_exact(2).enumerate() {
+                if n % STALE_CHECK_PAIRS == STALE_CHECK_PAIRS - 1 && stale() {
+                    return false;
+                }
                 let (p, b) = (pair[0], pair[1]);
                 let kind = type_at[p].get_or_insert_with(|| if excluded.is_excluded(project_relative(&paths[p])) { None } else { type_of(&paths[p]) });
                 let Some(kind) = kind.as_deref() else { continue };
@@ -295,6 +306,7 @@ impl RepoCatalog {
                 by_sha.assets[asset].locations[location].branches.push(branch.name.clone());
             }
         }
+        true
     }
 
     /// Branches and paths holding this blob, without walking every file.
@@ -381,6 +393,9 @@ impl RepoCatalog {
     }
 }
 
+/// Files grouped between two looks at whether the work is still wanted.
+const STALE_CHECK_PAIRS: usize = 8192;
+
 /// The assets found so far, by content, in the order they were found.
 #[derive(Default)]
 pub struct GroupMap {
@@ -405,10 +420,17 @@ impl GroupMap {
 
 /// Groups every file of the catalogs by content, leaving out excluded folders and unknown types.
 pub fn group_catalog(catalogs: &[&RepoCatalog], type_of: &dyn Fn(&str) -> Option<String>, excluded_folders: &[&str]) -> Vec<CatalogAsset> {
+    group_catalog_until(catalogs, type_of, excluded_folders, &|| false).unwrap_or_default()
+}
+
+/// [`group_catalog`] that stops and returns none once `stale` says the result is no longer wanted.
+pub fn group_catalog_until(catalogs: &[&RepoCatalog], type_of: &dyn Fn(&str) -> Option<String>, excluded_folders: &[&str], stale: &dyn Fn() -> bool) -> Option<Vec<CatalogAsset>> {
     let mut by_sha = GroupMap::new();
     let excluded = ExcludeMatcher::new(excluded_folders);
     for catalog in catalogs {
-        catalog.group_into(&mut by_sha, type_of, &excluded);
+        if !catalog.group_into_until(&mut by_sha, type_of, &excluded, stale) {
+            return None;
+        }
     }
     let mut assets = by_sha.assets;
     for asset in &mut assets {
@@ -426,7 +448,7 @@ pub fn group_catalog(catalogs: &[&RepoCatalog], type_of: &dyn Fn(&str) -> Option
         asset.path = asset.locations[0].path.clone();
         asset.name = base_name(&asset.path).to_string();
     }
-    assets
+    Some(assets)
 }
 
 /// Repos and branches present in a listing, most files first, for its filters.

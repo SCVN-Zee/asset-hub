@@ -6,7 +6,7 @@ use super::traced;
 use crate::catalog_service::{listing_dto, locations_dto, ListFilter};
 use crate::dto::{CatalogCurrent, CatalogFilter, CatalogListing, CatalogLocation, CatalogStatus};
 use crate::github_net::ipc_error;
-use crate::ipc::IpcError;
+use crate::ipc::{AppErrorCode, IpcError};
 use crate::state::AppState;
 
 /// Indexes every branch of `repo`, or of every repo when it is omitted; returns at once and runs in the background. `current` is indexed first.
@@ -56,7 +56,9 @@ pub async fn catalog_list(state: State<'_, AppState>, repo: Option<String>, excl
         let filter = filter.unwrap_or(CatalogFilter { repo: None, branch: None });
         let (repo_filter, branch_filter) = (filter.repo.filter(|r| !r.is_empty()), filter.branch.filter(|b| !b.is_empty()));
         let repos: Vec<String> = repo.into_iter().collect();
-        let listing = catalog.listing(&repos, &excluded_folders, ListFilter { repo: repo_filter, branch: branch_filter }).await.map_err(ipc_error)?;
+        let listing = catalog.listing_latest(&repos, &excluded_folders, ListFilter { repo: repo_filter, branch: branch_filter }).await.map_err(ipc_error)?;
+        // The page has asked again and drops this answer (its effect is cancelled).
+        let Some(listing) = listing else { return Err(IpcError::new(AppErrorCode::Unknown, "superseded by a newer listing request")) };
         Ok(listing_dto(&listing))
     })
     .await
