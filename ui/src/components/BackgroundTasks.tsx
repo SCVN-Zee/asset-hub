@@ -7,7 +7,7 @@ import { Popover } from './Popover'
 
 export type ScanTask = { kind: FactKind; status: 'scanning' | 'error'; done: number; total: number }
 
-type Task = { id: string; name: string; detail: string; done?: number; total?: number }
+type Task = { id: string; name: string; detail: string; done?: number; total?: number; action?: { label: string; run(): void } }
 
 function Row({ task }: { task: Task }) {
   return (
@@ -15,6 +15,11 @@ function Row({ task }: { task: Task }) {
       <div className="task-head">
         <span>{task.name}</span>
         <span className="num small">{task.detail}</span>
+        {task.action && (
+          <button type="button" className="btn btn-small" onClick={task.action.run}>
+            {task.action.label}
+          </button>
+        )}
       </div>
       {task.total ? <progress className="loaded-bar" max={task.total} value={task.done ?? 0} /> : null}
     </div>
@@ -22,7 +27,21 @@ function Row({ task }: { task: Task }) {
 }
 
 /** Top-bar button, visible only while something runs in the background; its panel lists every running task. */
-export function BackgroundTasks({ thumbs, catalog, scan, exportState }: { thumbs: { done: number; total: number }; catalog: CatalogStatus; scan?: ScanTask; exportState: ExportState }) {
+export function BackgroundTasks({
+  thumbs,
+  catalog,
+  onPause,
+  onResume,
+  scan,
+  exportState
+}: {
+  thumbs: { done: number; total: number }
+  catalog: CatalogStatus
+  onPause?(): void
+  onResume?(): void
+  scan?: ScanTask
+  exportState: ExportState
+}) {
   const { t } = useTranslation()
   const tasks: Task[] = []
   if (thumbs.total > 0 && thumbs.done < thumbs.total) {
@@ -30,7 +49,15 @@ export function BackgroundTasks({ thumbs, catalog, scan, exportState }: { thumbs
   }
   if (catalog.state === 'running' || catalog.state === 'paused') {
     const key = catalog.state === 'running' ? 'catalog.indexing' : 'catalog.paused'
-    tasks.push({ id: 'catalog', name: t('tasks.catalog'), detail: t(key, { done: catalog.done.toLocaleString(), total: catalog.total.toLocaleString() }), done: catalog.done, total: catalog.total })
+    const run = catalog.state === 'running' ? onPause : onResume
+    tasks.push({
+      id: 'catalog',
+      name: t('tasks.catalog'),
+      detail: t(key, { done: catalog.done.toLocaleString(), total: catalog.total.toLocaleString() }),
+      done: catalog.done,
+      total: catalog.total,
+      action: run ? { label: t(catalog.state === 'running' ? 'catalog.pause' : 'catalog.resume'), run } : undefined
+    })
   }
   if (scan?.status === 'scanning') {
     const what = t(`scan.what.${scan.kind}`)

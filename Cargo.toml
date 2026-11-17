@@ -6,3 +6,11 @@ resolver = "2"
 version = "2.1.1"
 edition = "2021"
 license = "UNLICENSED"
+
+# Dependencies run optimized in dev builds: unoptimized JSON and image decoding made the dev app freeze.
+[profile.dev.package."*"]
+opt-level = 2
+
+# The search index and catalog code run optimized in dev builds too: unoptimized, building the index over every repo kept a core busy for seconds.
+[profile.dev.package.asset_hub_core]
+opt-level = 2

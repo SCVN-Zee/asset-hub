@@ -146,6 +146,8 @@ pub fn contract() -> Builder<tauri::Wry> {
             catalog::catalog_resume,
             catalog::catalog_status,
             catalog::catalog_list,
+            catalog::catalog_snapshot,
+            catalog::catalog_prefab_scan_targets,
             catalog::catalog_where_is,
             caches::thumbs_get,
             caches::thumbs_save,
@@ -178,6 +180,13 @@ fn app_paths(app: &tauri::AppHandle) -> Result<AppPaths, Box<dyn std::error::Err
     Ok(AppPaths::resolve(std::env::var("ASSETHUB_USER_DATA").ok().as_deref(), &default_dir))
 }
 
+/// The worker and blocking thread counts of the async runtime: two cores stay free for the main
+/// thread and the web view, and the blocking pool stays bounded. The limit lowers contention; it
+/// does not reserve cores, because the OS still schedules every thread freely.
+fn runtime_threads(cores: usize) -> (usize, usize) {
+    (cores.saturating_sub(2).max(2), cores.max(4))
+}
+
 pub fn run() {
     let bindings = Path::new(env!("CARGO_MANIFEST_DIR")).join(BINDINGS_FILE);
     // A development build keeps the bindings current; `ASSETHUB_EXPORT_ONLY` writes them and stops.
@@ -198,6 +207,22 @@ pub fn run() {
     let invoke = builder.invoke_handler();
     let upload: Box<dyn Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync> =
         Box::new(tauri::generate_handler![crate::commands::app::stash_bytes]);
+
+    // Tauri runs its async commands and blocking work on this capped runtime, not on a runtime with
+    // one worker per core.
+    static RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
+    let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let (workers, blocking) = runtime_threads(cores);
+    let runtime = RUNTIME.get_or_init(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(workers)
+            .max_blocking_threads(blocking)
+            .thread_name("asset-hub-rt")
+            .enable_all()
+            .build()
+            .expect("the async runtime could not start")
+    });
+    tauri::async_runtime::set(runtime.handle().clone());
 
     let tauri_builder = tauri::Builder::default();
     // The test hook must not take the focus when the app starts.
@@ -295,4 +320,24 @@ pub fn run() {
             let _ = handle;
         }
     });
+}
+
+#[cfg(test)]
+mod runtime_threads_tests {
+    use super::runtime_threads;
+
+    #[test]
+    fn a_single_core_still_gets_two_workers_and_four_blocking_threads() {
+        assert_eq!(runtime_threads(1), (2, 4));
+    }
+
+    #[test]
+    fn a_small_machine_keeps_the_minimums() {
+        assert_eq!(runtime_threads(4), (2, 4));
+    }
+
+    #[test]
+    fn a_large_machine_leaves_two_cores_free() {
+        assert_eq!(runtime_threads(15), (13, 15));
+    }
 }

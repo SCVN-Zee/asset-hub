@@ -739,7 +739,7 @@ dto! {
         pub path: String,
         /// Default branch first, then most recently committed.
         pub branches: Vec<String>,
-        /// In a listing, only the first branches are sent: how many there are in all.
+        /// In a listing, only the first branch is sent: how many there are in all.
         pub branch_total: Option<f64>,
     }
 
@@ -756,10 +756,18 @@ dto! {
         pub size: Option<f64>,
         pub lfs: bool,
         pub locations: Vec<CatalogLocation>,
-        /// In a listing, only the first locations are sent: how many there are in all.
+        /// In a listing, only the first location is sent: how many there are in all.
         pub location_total: Option<f64>,
         pub branch_count: f64,
         pub repo_count: f64,
+        /// Every repo that holds it (a listing sends one location only).
+        pub repos: Vec<String>,
+    }
+
+    /// A branch of a repo.
+    pub struct CatalogBranchRef {
+        pub repo: String,
+        pub branch: String,
     }
 
     /// Counts per repo and per branch, most first.

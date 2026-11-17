@@ -39,49 +39,24 @@ export function locationNote(asset: CatalogAsset, scope: SearchScope, t: (key: s
 interface StatusProps {
   status: CatalogStatus
   error?: unknown
-  onPause(): void
   onResume(): void
 }
 
-/** One line about background indexing, with pause / resume. */
-export function CatalogStatusLine({ status, error, onPause, onResume }: StatusProps) {
+/** Shows a catalog failure with a retry. Running and paused indexing live in the top-bar task list. */
+export function CatalogStatusLine({ status, error, onResume }: StatusProps) {
   const { t } = useTranslation()
   if (error) return <ErrorNote error={error} />
-  if (status.state === 'idle') return null
+  if (status.state !== 'error') return null
   return (
     <div className="catalog-status" data-state={status.state} role="status">
-      {status.state === 'running' && (
-        <>
-          <span>
-            {t('catalog.indexing', { done: status.done, total: status.total })}
-            {status.current && <span className="mono"> · {status.current.split('@').pop()}</span>}
-          </span>
-          <progress className="progress" max={Math.max(1, status.total)} value={status.done} />
-          <button type="button" className="btn btn-small" onClick={onPause}>
-            {t('catalog.pause')}
-          </button>
-        </>
-      )}
-      {status.state === 'paused' && (
-        <>
-          <span>{t('catalog.paused', { done: status.done, total: status.total })}</span>
-          <button type="button" className="btn btn-small" onClick={onResume}>
-            {t('catalog.resume')}
-          </button>
-        </>
-      )}
-      {status.state === 'error' && (
-        <>
-          <span>
-            {status.error?.code === 'rateLimited' && status.error.resetAt
-              ? t('catalog.rateLimited', { time: new Date(status.error.resetAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
-              : t('catalog.failed', { message: status.error?.message ?? '' })}
-          </span>
-          <button type="button" className="btn btn-small" onClick={onResume}>
-            {t('catalog.retry')}
-          </button>
-        </>
-      )}
+      <span>
+        {status.error?.code === 'rateLimited' && status.error.resetAt
+          ? t('catalog.rateLimited', { time: new Date(status.error.resetAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+          : t('catalog.failed', { message: status.error?.message ?? '' })}
+      </span>
+      <button type="button" className="btn btn-small" onClick={onResume}>
+        {t('catalog.retry')}
+      </button>
     </div>
   )
 }

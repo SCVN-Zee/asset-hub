@@ -1,10 +1,12 @@
 //! Background indexing of every branch.
 
+use std::sync::Arc;
+
 use tauri::State;
 
 use super::traced;
-use crate::catalog_service::{listing_dto, locations_dto, ListFilter};
-use crate::dto::{CatalogCurrent, CatalogFilter, CatalogListing, CatalogLocation, CatalogStatus};
+use crate::catalog_service::{locations_dto, ListFilter};
+use crate::dto::{CatalogBranchRef, CatalogCurrent, CatalogFilter, CatalogListing, CatalogLocation, CatalogStatus};
 use crate::github_net::ipc_error;
 use crate::ipc::{AppErrorCode, IpcError};
 use crate::state::AppState;
@@ -50,7 +52,7 @@ pub async fn catalog_status(state: State<'_, AppState>) -> Result<CatalogStatus,
 /// Indexed assets of `repo` (every indexed repo when none), identical files grouped, on `filter`'s repos and branches, with the filters' choices.
 #[tauri::command]
 #[specta::specta]
-pub async fn catalog_list(state: State<'_, AppState>, repo: Option<String>, excluded_folders: Vec<String>, filter: Option<CatalogFilter>) -> Result<CatalogListing, IpcError> {
+pub async fn catalog_list(state: State<'_, AppState>, repo: Option<String>, excluded_folders: Vec<String>, filter: Option<CatalogFilter>) -> Result<Arc<CatalogListing>, IpcError> {
     traced("catalog_list", async {
         let catalog = state.session()?.catalog.clone();
         let filter = filter.unwrap_or(CatalogFilter { repos: Vec::new(), branches: Vec::new() });
@@ -58,7 +60,35 @@ pub async fn catalog_list(state: State<'_, AppState>, repo: Option<String>, excl
         let listing = catalog.listing_latest(&repos, &excluded_folders, ListFilter { repos: filter.repos, branches: filter.branches }).await.map_err(ipc_error)?;
         // The page has asked again and drops this answer (its effect is cancelled).
         let Some(listing) = listing else { return Err(IpcError::new(AppErrorCode::Unknown, "superseded by a newer listing request")) };
-        Ok(listing_dto(&listing))
+        Ok(listing)
+    })
+    .await
+}
+
+/// The last listing made for the very same `repo`, `excluded_folders` and `filter`, if any. It reads no catalog and waits on no scan: the page shows it while `catalog_list` works.
+#[tauri::command]
+#[specta::specta]
+pub async fn catalog_snapshot(state: State<'_, AppState>, repo: Option<String>, excluded_folders: Vec<String>, filter: Option<CatalogFilter>) -> Result<Option<Arc<CatalogListing>>, IpcError> {
+    traced("catalog_snapshot", async {
+        let catalog = state.session()?.catalog.clone();
+        let filter = filter.unwrap_or(CatalogFilter { repos: Vec::new(), branches: Vec::new() });
+        let repos: Vec<String> = repo.into_iter().collect();
+        Ok(catalog.listing_snapshot(&repos, &excluded_folders, &ListFilter { repos: filter.repos, branches: filter.branches }).await)
+    })
+    .await
+}
+
+/// The fewest branches that between them hold every prefab of the listing for `repo`, `excluded_folders` and `filter`, from the whole catalog, most prefabs first. `scanned` are the branches already read (or tried): the prefabs in them need nothing more.
+#[tauri::command]
+#[specta::specta]
+pub async fn catalog_prefab_scan_targets(state: State<'_, AppState>, repo: Option<String>, excluded_folders: Vec<String>, filter: Option<CatalogFilter>, scanned: Vec<CatalogBranchRef>) -> Result<Vec<CatalogBranchRef>, IpcError> {
+    traced("catalog_prefab_scan_targets", async {
+        let catalog = state.session()?.catalog.clone();
+        let filter = filter.unwrap_or(CatalogFilter { repos: Vec::new(), branches: Vec::new() });
+        let repos: Vec<String> = repo.into_iter().collect();
+        let scanned = scanned.into_iter().map(|b| (b.repo, b.branch)).collect();
+        let targets = catalog.prefab_scan_targets(&repos, &excluded_folders, ListFilter { repos: filter.repos, branches: filter.branches }, scanned).await.map_err(ipc_error)?;
+        Ok(targets.into_iter().map(|(repo, branch)| CatalogBranchRef { repo, branch }).collect())
     })
     .await
 }

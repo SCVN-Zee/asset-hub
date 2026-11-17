@@ -148,6 +148,10 @@ export const commands = {
 	catalogStatus: () => typedError<CatalogStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("catalog_status")),
 	/**  Indexed assets of `repo` (every indexed repo when none), identical files grouped, on `filter`'s repos and branches, with the filters' choices. */
 	catalogList: (repo: string | null, excludedFolders: string[], filter: CatalogFilter_Deserialize | null) => typedError<CatalogListing_Serialize, IpcError_Serialize>(__TAURI_INVOKE("catalog_list", { repo, excludedFolders, filter })),
+	/**  The last listing made for the very same `repo`, `excluded_folders` and `filter`, if any. It reads no catalog and waits on no scan: the page shows it while `catalog_list` works. */
+	catalogSnapshot: (repo: string | null, excludedFolders: string[], filter: CatalogFilter_Deserialize | null) => typedError<CatalogListing_Serialize | null, IpcError_Serialize>(__TAURI_INVOKE("catalog_snapshot", { repo, excludedFolders, filter })),
+	/**  The fewest branches that between them hold every prefab of the listing for `repo`, `excluded_folders` and `filter`, from the whole catalog, most prefabs first. `scanned` are the branches already read (or tried): the prefabs in them need nothing more. */
+	catalogPrefabScanTargets: (repo: string | null, excludedFolders: string[], filter: CatalogFilter_Deserialize | null, scanned: CatalogBranchRef[]) => typedError<CatalogBranchRef[], IpcError_Serialize>(__TAURI_INVOKE("catalog_prefab_scan_targets", { repo, excludedFolders, filter, scanned })),
 	/**  Every repo, branch and path holding a file with this blob SHA. */
 	catalogWhereIs: (sha: string) => typedError<CatalogLocation_Serialize[], IpcError_Serialize>(__TAURI_INVOKE("catalog_where_is", { sha })),
 	/**  URLs of the thumbnails rendered earlier, for those of `keys` that have one. */
@@ -325,10 +329,12 @@ export type CatalogAsset_Deserialize = {
 	size?: number | null,
 	lfs: boolean,
 	locations: CatalogLocation_Deserialize[],
-	/**  In a listing, only the first locations are sent: how many there are in all. */
+	/**  In a listing, only the first location is sent: how many there are in all. */
 	locationTotal?: number | null,
 	branchCount: number | null,
 	repoCount: number | null,
+	/**  Every repo that holds it (a listing sends one location only). */
+	repos: string[],
 };
 
 /**  A file found anywhere in the catalog; identical files (same blob SHA) are one entry. */
@@ -343,10 +349,18 @@ export type CatalogAsset_Serialize = {
 	size?: number | null,
 	lfs: boolean,
 	locations: CatalogLocation_Serialize[],
-	/**  In a listing, only the first locations are sent: how many there are in all. */
+	/**  In a listing, only the first location is sent: how many there are in all. */
 	locationTotal?: number | null,
 	branchCount: number | null,
 	repoCount: number | null,
+	/**  Every repo that holds it (a listing sends one location only). */
+	repos: string[],
+};
+
+/**  A branch of a repo. */
+export type CatalogBranchRef = {
+	repo: string,
+	branch: string,
 };
 
 /**  The repo and branch open now, indexed first. */
@@ -406,7 +420,7 @@ export type CatalogLocation_Deserialize = {
 	path: string,
 	/**  Default branch first, then most recently committed. */
 	branches: string[],
-	/**  In a listing, only the first branches are sent: how many there are in all. */
+	/**  In a listing, only the first branch is sent: how many there are in all. */
 	branchTotal?: number | null,
 };
 
@@ -416,7 +430,7 @@ export type CatalogLocation_Serialize = {
 	path: string,
 	/**  Default branch first, then most recently committed. */
 	branches: string[],
-	/**  In a listing, only the first branches are sent: how many there are in all. */
+	/**  In a listing, only the first branch is sent: how many there are in all. */
 	branchTotal?: number | null,
 };
 

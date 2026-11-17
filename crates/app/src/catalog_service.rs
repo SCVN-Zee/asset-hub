@@ -6,18 +6,19 @@
 //! this is the part that talks to GitHub, schedules the work and keeps the files.
 
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use asset_hub_core::catalog::{catalog_facets, group_catalog_until, list_catalog, plan_scan, where_is, CatalogAsset, CatalogBranch, CatalogFacets, CatalogFilter, CatalogListing, CatalogLocation, RepoCatalog, RepoCatalogData, ScanTask};
+use asset_hub_core::catalog::{catalog_facets, group_catalog_until, plan_scan, where_is, CatalogAsset, CatalogBranch, CatalogFacets, CatalogLocation, RepoCatalog, RepoCatalogData, ScanTask};
 use asset_hub_core::errors::{SourceError, SourceErrorCode};
 use asset_hub_core::github::client::BranchHead;
 use asset_hub_core::types::{RepoRef, TreeEntry};
 use futures_util::future::join_all;
 use futures_util::stream::{self, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use serde_json::Value;
 use tokio::sync::{Mutex as AsyncMutex, OnceCell};
 
@@ -39,6 +40,13 @@ const EMIT_EVERY: Duration = Duration::from_millis(300);
 const RECENT_DAYS: i64 = 30;
 /// The scan steps aside this long, then looks again, while the user waits on something.
 const BUSY_POLL: Duration = Duration::from_millis(250);
+/// A grouped listing is written to disk this long after it was made; a newer one made meanwhile replaces it.
+const SNAPSHOT_DELAY: Duration = Duration::from_millis(500);
+/// Grouped listings kept, in memory and on disk (one per scope the user opened lately).
+const SNAPSHOT_KEEP: usize = 4;
+const SNAPSHOT_PREFIX: &str = "catalog-listing-";
+/// Which file holds which repo, so a launch reads no catalog just to learn its repo's name.
+const NAMES_FILE: &str = "catalog-names.json";
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(|e| e.into_inner())
@@ -140,6 +148,11 @@ struct Listed {
 
 pub struct CatalogService {
     source: Arc<dyn CatalogSource>,
+    /// Repo of each catalog file name (`None` until read from [`NAMES_FILE`]).
+    names: Mutex<Option<HashMap<String, String>>>,
+    /// Orders the writes of [`NAMES_FILE`].
+    names_write: AsyncMutex<()>,
+    snapshots: Arc<Snapshots>,
     config: CatalogConfig,
     catalogs: Mutex<HashMap<String, Arc<OnceCell<Catalog>>>>,
     inner: Mutex<Inner>,
@@ -172,6 +185,9 @@ impl CatalogService {
     pub fn new(source: Arc<dyn CatalogSource>, config: CatalogConfig) -> Arc<Self> {
         Arc::new(Self {
             source,
+            names: Mutex::new(None),
+            names_write: AsyncMutex::new(()),
+            snapshots: Arc::default(),
             config,
             catalogs: Mutex::default(),
             inner: Mutex::new(Inner { status: idle_status(), queue: VecDeque::new(), worker: false, stopped: false, last_emit: None, emit_pending: false, resume: None }),
@@ -201,6 +217,8 @@ impl CatalogService {
         if self.stopped() {
             return self.status();
         }
+        let wanted: Vec<String> = repos.iter().map(|r| r.full_name.clone()).collect();
+        self.warm(&wanted).await;
         let mut loaded = Vec::with_capacity(repos.len());
         for repo in repos {
             loaded.push(self.load(&repo.full_name).await);
@@ -490,24 +508,76 @@ impl CatalogService {
         .clone()
     }
 
-    /// Every repo with a saved catalog or one in memory.
+    /// Reads the catalogs of `names` at the same time, so taking their locks afterwards waits on memory only.
+    async fn warm(&self, names: &[String]) {
+        let at_once = std::thread::available_parallelism().map_or(2, |n| n.get()).clamp(2, 8);
+        stream::iter(names).for_each_concurrent(at_once, |name| async move { drop(self.load(name).await) }).await;
+    }
+
+    /// The repo of each catalog file name the names file knows, read from disk once.
+    async fn known_names(&self) -> HashMap<String, String> {
+        if let Some(names) = lock(&self.names).clone() {
+            return names;
+        }
+        let path = self.names_path();
+        let read: HashMap<String, String> = tauri::async_runtime::spawn_blocking(move || path.and_then(|p| std::fs::read(p).ok()).and_then(|bytes| serde_json::from_slice(&bytes).ok()).unwrap_or_default()).await.unwrap_or_default();
+        lock(&self.names).get_or_insert(read).clone()
+    }
+
+    fn names_path(&self) -> Option<PathBuf> {
+        self.dir().parent().map(|parent| parent.join(NAMES_FILE))
+    }
+
+    /// Adds `learned` (file name, repo) to the names file when it does not hold them yet.
+    async fn learn_names(&self, learned: Vec<(String, String)>) {
+        self.known_names().await;
+        let _turn = self.names_write.lock().await;
+        let snapshot = {
+            let mut guard = lock(&self.names);
+            let names = guard.get_or_insert_with(HashMap::new);
+            let mut changed = false;
+            for (file, repo) in learned {
+                if names.get(&file) != Some(&repo) {
+                    names.insert(file, repo);
+                    changed = true;
+                }
+            }
+            changed.then(|| names.clone())
+        };
+        let (Some(names), Some(path)) = (snapshot, self.names_path()) else { return };
+        if let Ok(bytes) = serde_json::to_vec(&names) {
+            // Without the file, the next launch reads the catalogs for their names again.
+            let _ = write_atomic(&path, &bytes).await;
+        }
+    }
+
+    /// Every repo with a saved catalog or one in memory. A file the names file does not know is
+    /// read once for its repo; the rest are not opened.
     async fn saved_repos(&self) -> Vec<String> {
         let dir = self.dir();
-        let on_disk = tauri::async_runtime::spawn_blocking(move || {
-            let mut names = Vec::new();
+        let known = self.known_names().await;
+        let (on_disk, learned) = tauri::async_runtime::spawn_blocking(move || {
+            let (mut names, mut learned) = (Vec::new(), Vec::new());
             for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
-                if !entry.file_name().to_string_lossy().ends_with(".json") {
+                let file = entry.file_name().to_string_lossy().into_owned();
+                if !file.ends_with(".json") {
                     continue;
                 }
+                if let Some(repo) = known.get(&file) {
+                    names.push(repo.clone());
                 // An unreadable file is skipped.
-                if let Some(repo) = std::fs::read(entry.path()).ok().and_then(|bytes| serde_json::from_slice::<OnlyRepo>(&bytes).ok()).and_then(|r| r.repo) {
+                } else if let Some(repo) = std::fs::read(entry.path()).ok().and_then(|bytes| serde_json::from_slice::<OnlyRepo>(&bytes).ok()).and_then(|r| r.repo) {
+                    learned.push((file, repo.clone()));
                     names.push(repo);
                 }
             }
-            names
+            (names, learned)
         })
         .await
         .unwrap_or_default();
+        if !learned.is_empty() {
+            self.learn_names(learned).await;
+        }
         let mut names: BTreeSet<String> = on_disk.into_iter().collect();
         names.extend(lock(&self.catalogs).keys().cloned());
         names.into_iter().collect()
@@ -530,7 +600,9 @@ impl CatalogService {
         let guard = self.load(repo).await.lock_owned().await;
         let Ok(Ok(bytes)) = tauri::async_runtime::spawn_blocking(move || serde_json::to_vec(&catalog_json(guard.data()))).await else { return };
         // A catalog that cannot be written is built again from GitHub.
-        let _ = write_atomic(&self.dir().join(file_name(repo)), &bytes).await;
+        if write_atomic(&self.dir().join(file_name(repo)), &bytes).await.is_ok() {
+            self.learn_names(vec![(file_name(repo), repo.to_owned())]).await;
+        }
     }
 
     /// Writes the changes that wait for their turn now.
@@ -543,25 +615,28 @@ impl CatalogService {
 
     // ---- reading ----
 
-    /// `repos` (all saved repos when empty) grouped by content and made small enough for a page,
-    /// limited to `filter`'s repos and branches (see [`list_catalog`]).
-    pub async fn listing(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter) -> Result<CatalogListing, SourceError> {
+    /// `repos` (all saved repos when empty) grouped by content, limited to `filter`'s repos and
+    /// branches and made small enough for a page (see [`slim_listing`]).
+    pub async fn listing(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter) -> Result<Arc<dto::CatalogListing>, SourceError> {
         self.list_with(repos, excluded_folders, filter, None).await?.ok_or_else(|| SourceError::new(SourceErrorCode::Unknown, "the listing was given up"))
     }
 
     /// [`listing`](Self::listing) for the page, where the newest request wins: a request that a
     /// newer one overtook, while it waited or while it was grouping, returns none without finishing.
-    pub async fn listing_latest(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter) -> Result<Option<CatalogListing>, SourceError> {
+    pub async fn listing_latest(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter) -> Result<Option<Arc<dto::CatalogListing>>, SourceError> {
         let ticket = self.requests.fetch_add(1, Ordering::SeqCst) + 1;
         self.list_with(repos, excluded_folders, filter, Some(ticket)).await
     }
 
-    async fn list_with(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter, ticket: Option<u64>) -> Result<Option<CatalogListing>, SourceError> {
+    /// Groups the catalogs of `repos` unless the last grouping is current, and answers the cache
+    /// slot (locked, and holding the grouping). None when a newer request overtook this one.
+    async fn grouped(&self, repos: &[String], excluded_folders: &[String], ticket: Option<u64>) -> Result<Option<tokio::sync::MutexGuard<'_, Option<Listed>>>, SourceError> {
         let requests = self.requests.clone();
         let stale = move || ticket.is_some_and(|t| requests.load(Ordering::SeqCst) != t);
         let names = if repos.is_empty() { self.saved_repos().await } else { repos.to_vec() };
         let key = serde_json::to_string(&(&names, excluded_folders)).unwrap_or_default();
         let version = self.version.load(Ordering::SeqCst);
+        self.warm(&names).await;
         let mut slot = self.listed.lock().await;
         if stale() {
             return Ok(None);
@@ -587,7 +662,13 @@ impl CatalogService {
             let Some(assets) = assets else { return Ok(None) };
             *slot = Some(Listed { key, version, assets: Arc::new(assets), facets: HashMap::new() });
         }
-        let Some(listed) = slot.as_mut() else { return Ok(Some(CatalogListing { assets: Vec::new(), facets: CatalogFacets { repos: Vec::new(), branches: Vec::new() } })) };
+        Ok(Some(slot))
+    }
+
+    async fn list_with(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter, ticket: Option<u64>) -> Result<Option<Arc<dto::CatalogListing>>, SourceError> {
+        let Some(mut slot) = self.grouped(repos, excluded_folders, ticket).await? else { return Ok(None) };
+        let snapshot_key = self.snapshot_key(repos, excluded_folders, &filter);
+        let Some(listed) = slot.as_mut() else { return Ok(Some(Arc::new(dto::CatalogListing { assets: Vec::new(), facets: dto::CatalogFacets { repos: Vec::new(), branches: Vec::new() } }))) };
         let assets = listed.assets.clone();
         // The facets follow the repos only: the branch filter must not narrow its own choices.
         let mut repos_key = filter.repos.clone();
@@ -601,10 +682,34 @@ impl CatalogService {
                 facets
             }
         };
-        tauri::async_runtime::spawn_blocking(move || list_catalog(&assets, CatalogFilter { repos: &filter.repos, branches: &filter.branches }, Some(facets)))
+        let listing = Arc::new(narrow(assets, facets, filter).await?);
+        self.snapshots.remember(self.dir(), snapshot_key, listing.clone());
+        Ok(Some(listing))
+    }
+
+    /// What identifies a listing by the request's own inputs, so no directory is read to find it.
+    fn snapshot_key(&self, repos: &[String], excluded_folders: &[String], filter: &ListFilter) -> String {
+        serde_json::to_string(&(self.config.types.as_str(), repos, excluded_folders, &filter.repos, &filter.branches)).unwrap_or_default()
+    }
+
+    /// The last listing made for this very request (repos, excluded folders and filter), from
+    /// memory or from disk; none when there is no such listing. It takes no catalog lock and waits
+    /// on no scan, so the page can show it while the real listing is still being made.
+    pub async fn listing_snapshot(&self, repos: &[String], excluded_folders: &[String], filter: &ListFilter) -> Option<Arc<dto::CatalogListing>> {
+        self.snapshots.read(self.dir(), self.snapshot_key(repos, excluded_folders, filter)).await
+    }
+
+    /// The fewest branches that between them hold every prefab of the listing (see [`scan_targets`]),
+    /// from the whole catalog; `scanned` are the branches the page has read already.
+    pub async fn prefab_scan_targets(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter, scanned: Vec<(String, String)>) -> Result<Vec<(String, String)>, SourceError> {
+        let assets = {
+            let Some(slot) = self.grouped(repos, excluded_folders, None).await? else { return Ok(Vec::new()) };
+            let Some(listed) = slot.as_ref() else { return Ok(Vec::new()) };
+            listed.assets.clone()
+        };
+        tauri::async_runtime::spawn_blocking(move || scan_targets(&assets, &filter, &scanned))
             .await
-            .map(Some)
-            .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not list the catalog: {e}")))
+            .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not plan the prefab scan: {e}")))
     }
 
     /// Every saved repo's catalog, as stored (for the team cache).
@@ -674,7 +779,12 @@ impl CatalogService {
     }
 }
 
-// ---- the contract types ----
+/// The grouped `assets` limited to `filter`, as the page gets them.
+async fn narrow(assets: Arc<Vec<CatalogAsset>>, facets: CatalogFacets, filter: ListFilter) -> Result<dto::CatalogListing, SourceError> {
+    tauri::async_runtime::spawn_blocking(move || slim_listing(&assets, &filter, &facets))
+        .await
+        .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not list the catalog: {e}")))
+}
 
 fn count(n: usize) -> f64 {
     n as f64
@@ -688,30 +798,208 @@ pub fn locations_dto(locations: &[CatalogLocation]) -> Vec<dto::CatalogLocation>
     locations.iter().map(location_dto).collect()
 }
 
-/// The listing as the page receives it.
-pub fn listing_dto(listing: &CatalogListing) -> dto::CatalogListing {
+/// The assets of a grouped catalog on the filter's repos and branches, as small as the grid needs:
+/// hundreds of thousands of files on thousands of branches would be hundreds of megabytes with
+/// every location and branch name. An asset keeps one location (the first that fits the filter, else
+/// the first) with one branch (a filtered one first), their totals, and the names of the repos
+/// that hold it. The full list of places is read when one asset is opened ([`where_is`]).
+/// A location fits when its repo is listed and any of its branches is; an empty list is no limit.
+pub fn slim_listing(assets: &[CatalogAsset], filter: &ListFilter, facets: &CatalogFacets) -> dto::CatalogListing {
+    let fits = |l: &CatalogLocation| (filter.repos.is_empty() || filter.repos.contains(&l.repo)) && (filter.branches.is_empty() || l.branches.iter().any(|b| filter.branches.contains(b)));
+    let filtered = !filter.repos.is_empty() || !filter.branches.is_empty();
+    let mut out = Vec::new();
+    for a in assets {
+        let first = if filtered { a.locations.iter().find(|l| fits(l)) } else { a.locations.first() };
+        let Some(first) = first else { continue };
+        let branch = first.branches.iter().find(|b| filter.branches.contains(b)).or(first.branches.first());
+        let mut repos: Vec<String> = Vec::new();
+        for l in &a.locations {
+            if !repos.contains(&l.repo) {
+                repos.push(l.repo.clone());
+            }
+        }
+        out.push(dto::CatalogAsset {
+            id: a.id.clone(),
+            kind: a.kind.clone(),
+            path: a.path.clone(),
+            name: a.name.clone(),
+            sha: a.sha.clone(),
+            size: a.size.map(|s| s as f64),
+            lfs: a.lfs,
+            locations: vec![dto::CatalogLocation { repo: first.repo.clone(), path: first.path.clone(), branches: branch.cloned().into_iter().collect(), branch_total: Some(count(first.branches.len())) }],
+            location_total: Some(count(a.locations.len())),
+            branch_count: count(a.branch_count),
+            repo_count: count(a.repo_count),
+            repos,
+        });
+    }
     dto::CatalogListing {
-        assets: listing
-            .assets
-            .iter()
-            .map(|a| dto::CatalogAsset {
-                id: a.id.clone(),
-                kind: a.kind.clone(),
-                path: a.path.clone(),
-                name: a.name.clone(),
-                sha: a.sha.clone(),
-                size: a.size.map(|s| s as f64),
-                lfs: a.lfs,
-                locations: locations_dto(&a.locations),
-                location_total: a.location_total.map(count),
-                branch_count: count(a.branch_count),
-                repo_count: count(a.repo_count),
-            })
-            .collect(),
+        assets: out,
         facets: dto::CatalogFacets {
-            repos: listing.facets.repos.iter().map(|(name, n)| (name.clone(), count(*n))).collect(),
-            branches: listing.facets.branches.iter().map(|(name, n)| (name.clone(), count(*n))).collect(),
+            repos: facets.repos.iter().map(|(name, n)| (name.clone(), count(*n))).collect(),
+            branches: facets.branches.iter().map(|(name, n)| (name.clone(), count(*n))).collect(),
         },
+    }
+}
+
+/// The branches to read, most prefabs first, until every prefab of the listing (on `filter`'s repos
+/// and branches) is in a read branch. `scanned` are the (repo, branch) pairs read already or tried
+/// and failed: the prefabs in them need nothing more. Reading a branch downloads only the prefabs no
+/// earlier read has seen, so a few branches that between them hold every prefab are enough.
+/// Greedy: each pick is the branch holding most of the prefabs still open (the first met on a tie).
+pub fn scan_targets(assets: &[CatalogAsset], filter: &ListFilter, scanned: &[(String, String)]) -> Vec<(String, String)> {
+    let done: HashSet<(&str, &str)> = scanned.iter().map(|(r, b)| (r.as_str(), b.as_str())).collect();
+    let fits = |l: &CatalogLocation| (filter.repos.is_empty() || filter.repos.contains(&l.repo)) && (filter.branches.is_empty() || l.branches.iter().any(|b| filter.branches.contains(b)));
+    let filtered = !filter.repos.is_empty() || !filter.branches.is_empty();
+    // Prefabs no read branch holds, each with the branches that do hold it.
+    let mut open: Vec<Vec<(&str, &str)>> = Vec::new();
+    for a in assets.iter().filter(|a| a.kind == "prefab" && (!filtered || a.locations.iter().any(fits))) {
+        let holders: Vec<(&str, &str)> = a.locations.iter().flat_map(|l| l.branches.iter().map(|b| (l.repo.as_str(), b.as_str()))).collect();
+        if !holders.is_empty() && !holders.iter().any(|h| done.contains(h)) {
+            open.push(holders);
+        }
+    }
+    let mut targets = Vec::new();
+    while !open.is_empty() {
+        let mut index: HashMap<(&str, &str), usize> = HashMap::new();
+        let mut counts: Vec<((&str, &str), usize)> = Vec::new();
+        for holders in &open {
+            for h in holders {
+                match index.get(h) {
+                    Some(&i) => counts[i].1 += 1,
+                    None => {
+                        index.insert(*h, counts.len());
+                        counts.push((*h, 1));
+                    }
+                }
+            }
+        }
+        let best = counts.iter().fold(counts[0], |a, b| if b.1 > a.1 { *b } else { a }).0;
+        targets.push((best.0.to_owned(), best.1.to_owned()));
+        open.retain(|holders| !holders.contains(&best));
+    }
+    targets
+}
+
+// ---- the listing snapshot ----
+
+/// Changes whenever the layout of a snapshot file does; files of another version are deleted.
+const SNAPSHOT_VERSION: u32 = 2;
+
+/// Listings of the last requests, so the page can show cards before the catalogs are read.
+/// They are kept in memory (newest first) and, a moment after they were made, in files beside the catalog folder.
+#[derive(Default)]
+struct Snapshots {
+    recent: Mutex<Vec<(String, Arc<dto::CatalogListing>)>>,
+    /// Keys whose file write is waiting for its turn.
+    pending: Mutex<HashSet<String>>,
+}
+
+#[derive(Serialize)]
+struct SnapshotFile<'a> {
+    version: u32,
+    key: &'a str,
+    listing: &'a dto::CatalogListing,
+}
+
+#[derive(Deserialize)]
+struct SavedSnapshot {
+    version: u32,
+    key: String,
+    listing: dto::CatalogListing,
+}
+
+/// The start of the file names of this version's listings.
+fn snapshot_prefix() -> String {
+    format!("{SNAPSHOT_PREFIX}v{SNAPSHOT_VERSION}-")
+}
+
+/// The file of the listing for `key`, beside the catalog folder `dir`.
+fn snapshot_file(dir: &Path, key: &str) -> Option<PathBuf> {
+    let hash: String = Sha256::digest(key.as_bytes()).iter().take(8).map(|b| format!("{b:02x}")).collect();
+    dir.parent().map(|parent| parent.join(format!("{}{hash}.json", snapshot_prefix())))
+}
+
+/// Deletes the listing files of other versions, and the oldest of this one beyond [`SNAPSHOT_KEEP`].
+fn prune_snapshots(folder: &Path) {
+    let current = snapshot_prefix();
+    let mut files: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
+    for entry in std::fs::read_dir(folder).into_iter().flatten().flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !name.starts_with(SNAPSHOT_PREFIX) || !name.ends_with(".json") {
+            continue;
+        }
+        if name.starts_with(&current) {
+            if let Some(modified) = entry.metadata().ok().and_then(|m| m.modified().ok()) {
+                files.push((modified, entry.path()));
+            }
+        } else {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+    files.sort_by(|a, b| b.0.cmp(&a.0));
+    for (_, stale) in files.into_iter().skip(SNAPSHOT_KEEP) {
+        let _ = std::fs::remove_file(stale);
+    }
+}
+
+impl Snapshots {
+    fn keep(&self, key: String, listing: Arc<dto::CatalogListing>) {
+        let mut recent = lock(&self.recent);
+        recent.retain(|(k, _)| *k != key);
+        recent.insert(0, (key, listing));
+        recent.truncate(SNAPSHOT_KEEP);
+    }
+
+    fn recent(&self, key: &str) -> Option<Arc<dto::CatalogListing>> {
+        lock(&self.recent).iter().find(|(k, _)| k == key).map(|(_, listing)| listing.clone())
+    }
+
+    /// Keeps a listing just made and writes it to disk soon, once for any number made meanwhile.
+    /// A listing equal to the one kept is not written again.
+    fn remember(self: &Arc<Self>, dir: PathBuf, key: String, listing: Arc<dto::CatalogListing>) {
+        if self.recent(&key).is_some_and(|kept| *kept == *listing) {
+            return;
+        }
+        self.keep(key.clone(), listing);
+        let Some(file) = snapshot_file(&dir, &key) else { return };
+        if !lock(&self.pending).insert(key.clone()) {
+            return;
+        }
+        let me = self.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(SNAPSHOT_DELAY).await;
+            lock(&me.pending).remove(&key);
+            let Some(listing) = me.recent(&key) else { return };
+            let bytes = tauri::async_runtime::spawn_blocking(move || serde_json::to_vec(&SnapshotFile { version: SNAPSHOT_VERSION, key: &key, listing: &listing })).await;
+            // A listing that cannot be written is only shown from memory.
+            let Ok(Ok(bytes)) = bytes else { return };
+            if write_atomic(&file, &bytes).await.is_ok() {
+                if let Some(folder) = file.parent().map(Path::to_owned) {
+                    let _ = tauri::async_runtime::spawn_blocking(move || prune_snapshots(&folder)).await;
+                }
+            }
+        });
+    }
+
+    /// The listing for `key` from memory, else from its file.
+    async fn read(&self, dir: PathBuf, key: String) -> Option<Arc<dto::CatalogListing>> {
+        if let Some(listing) = self.recent(&key) {
+            return Some(listing);
+        }
+        let file = snapshot_file(&dir, &key)?;
+        let wanted = key.clone();
+        let saved = tauri::async_runtime::spawn_blocking(move || {
+            let bytes = std::fs::read(file).ok()?;
+            let saved: SavedSnapshot = serde_json::from_slice(&bytes).ok()?;
+            // Two keys that share a file name: the file belongs to the other one.
+            (saved.version == SNAPSHOT_VERSION && saved.key == wanted).then_some(saved.listing)
+        })
+        .await
+        .ok()??;
+        let listing = Arc::new(saved);
+        self.keep(key, listing.clone());
+        Some(listing)
     }
 }
 
@@ -822,7 +1110,7 @@ mod tests {
         panic!("the scan never reached {state:?}: {:?}", service.status());
     }
 
-    fn paths(listing: &CatalogListing) -> Vec<String> {
+    fn paths(listing: &dto::CatalogListing) -> Vec<String> {
         listing.assets.iter().map(|a| a.path.clone()).collect()
     }
 
@@ -839,8 +1127,8 @@ mod tests {
         let listing = h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
         assert_eq!(paths(&listing), ["Assets/A.fbx", "Assets/B.prefab"]);
         // The identical file on two branches is one entry holding both.
-        assert_eq!(listing.assets[0].branch_count, 2);
-        assert_eq!(listing.facets.repos, vec![("o/r".to_string(), 2)]);
+        assert_eq!(listing.assets[0].branch_count, 2.0);
+        assert_eq!(listing.facets.repos, vec![("o/r".to_string(), 2.0)]);
         h.service.flush().await;
         let saved: Value = serde_json::from_slice(&std::fs::read(h.dir.join("o__r.json")).unwrap()).unwrap();
         assert_eq!(saved["repo"], "o/r");
@@ -1064,7 +1352,7 @@ mod tests {
         let all = h.service.listing(&[], &["Plugins".into()], ListFilter::default()).await.unwrap();
         assert_eq!(all.assets.len(), 3, "A (three places in two repos), B, D; P is excluded");
         let a = all.assets.iter().find(|x| x.sha == "a").unwrap();
-        assert_eq!((a.repo_count, a.branch_count), (2, 3));
+        assert_eq!((a.repo_count, a.branch_count), (2.0, 3.0));
 
         let in_a = h.service.listing(&[], &["Plugins".into()], ListFilter { repos: vec!["o/a".into()], branches: vec![] }).await.unwrap();
         assert_eq!(in_a.assets.iter().map(|x| x.sha.as_str()).collect::<BTreeSet<_>>(), BTreeSet::from(["a", "d"]));
@@ -1132,6 +1420,260 @@ mod tests {
         assert_eq!(events.last().unwrap().done, 40.0);
     }
 
+    /// The listing files written beside the catalog folder, once the delayed write has happened.
+    async fn snapshot_files(h: &Harness) -> Vec<PathBuf> {
+        let folder = h.dir.parent().unwrap().to_owned();
+        for _ in 0..200 {
+            let files: Vec<PathBuf> = std::fs::read_dir(&folder).unwrap().flatten().map(|e| e.path()).filter(|p| p.file_name().unwrap().to_string_lossy().starts_with(SNAPSHOT_PREFIX)).collect();
+            if !files.is_empty() {
+                return files;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        panic!("no listing file was written");
+    }
+
+    async fn two_repos() -> Harness {
+        let h = harness(2);
+        h.source.set_heads("o/a", &[("main", "a1", None)]);
+        h.source.set_heads("o/b", &[("main", "b1", None)]);
+        h.source.set_tree("a1", &[("Assets/A.fbx", "a"), ("Assets/Shared.fbx", "s")]);
+        h.source.set_tree("b1", &[("Assets/B.fbx", "b"), ("Assets/Shared.fbx", "s")]);
+        h.service.scan(&[repo("o/a"), repo("o/b")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        h.service.flush().await;
+        h
+    }
+
+    #[tokio::test]
+    async fn a_listing_is_kept_on_disk_and_comes_back_for_the_same_request() {
+        let h = two_repos().await;
+        let only_a = || ListFilter { repos: vec!["o/a".into()], branches: vec!["main".into()] };
+        let real = h.service.listing(&[], &[], only_a()).await.unwrap();
+        assert_eq!(snapshot_files(&h).await.len(), 1);
+        // A new process: nothing in memory, so it reads the file.
+        let (again, _) = service_in(h.dir.clone(), Arc::new(Fake::default()), 1, Arc::default());
+        let shown = again.listing_snapshot(&[], &[], &only_a()).await.expect("a listing for the same request");
+        assert_eq!(*shown, *real);
+        assert_eq!(paths(&shown), ["Assets/A.fbx", "Assets/Shared.fbx"]);
+        // The same service answers from memory; another filter is another listing.
+        assert_eq!(*h.service.listing_snapshot(&[], &[], &only_a()).await.unwrap(), *real);
+        assert!(h.service.listing_snapshot(&[], &[], &ListFilter::default()).await.is_none());
+        assert!(h.service.listing_snapshot(&[], &[], &ListFilter { repos: vec!["o/a".into()], branches: vec![] }).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn the_listing_file_is_marked_with_its_format() {
+        let h = two_repos().await;
+        h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        let file = snapshot_files(&h).await.remove(0);
+        assert!(file.file_name().unwrap().to_string_lossy().starts_with(&snapshot_prefix()));
+        let saved: Value = serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+        assert_eq!(saved["version"], SNAPSHOT_VERSION);
+        assert_eq!(saved["listing"]["assets"].as_array().unwrap().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn listing_files_of_another_format_are_deleted_and_never_read() {
+        let h = two_repos().await;
+        let folder = h.dir.parent().unwrap().to_owned();
+        let old = folder.join(format!("{SNAPSHOT_PREFIX}0123456789abcdef.json"));
+        let other = folder.join(format!("{SNAPSHOT_PREFIX}v1-0123456789abcdef.json"));
+        for file in [&old, &other] {
+            std::fs::write(file, "{ \"assets\": [] }").unwrap();
+        }
+        // A file of the current name but another version inside is not taken for a listing.
+        let key = h.service.snapshot_key(&[], &[], &ListFilter::default());
+        std::fs::write(snapshot_file(&h.dir, &key).unwrap(), serde_json::to_vec(&json!({"version": SNAPSHOT_VERSION + 1, "key": key, "listing": {"assets": [], "facets": {"repos": [], "branches": []}}})).unwrap()).unwrap();
+        assert!(h.service.listing_snapshot(&[], &[], &ListFilter::default()).await.is_none());
+        h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        for _ in 0..200 {
+            if !old.exists() && !other.exists() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+        assert!(!old.exists() && !other.exists());
+    }
+
+    #[tokio::test]
+    async fn a_listing_holds_one_location_with_one_branch_and_the_totals() {
+        let h = harness(2);
+        h.source.set_heads("o/a", &[("main", "a1", None), ("dev", "a2", None), ("old", "a3", None)]);
+        h.source.set_heads("o/b", &[("main", "b1", None)]);
+        h.source.set_tree("a1", &[("Assets/S.fbx", "s")]);
+        h.source.set_tree("a2", &[("Assets/S.fbx", "s")]);
+        h.source.set_tree("a3", &[("Assets/Moved/S.fbx", "s")]);
+        h.source.set_tree("b1", &[("Assets/S.fbx", "s")]);
+        h.service.scan(&[repo("o/a"), repo("o/b")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        let all = h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        assert_eq!(all.assets.len(), 1);
+        let s = &all.assets[0];
+        assert_eq!((s.locations.len(), s.location_total), (1, Some(3.0)));
+        assert_eq!(s.locations[0].branches.len(), 1);
+        assert_eq!((s.branch_count, s.repo_count), (4.0, 2.0));
+        let mut repos = s.repos.clone();
+        repos.sort();
+        assert_eq!(repos, ["o/a", "o/b"]);
+        // The total is that location's own branch count.
+        let first = &s.locations[0];
+        let expected = match (first.repo.as_str(), first.path.as_str()) {
+            ("o/a", "Assets/S.fbx") => 2.0,
+            _ => 1.0,
+        };
+        assert_eq!(first.branch_total, Some(expected));
+        // A filter puts the first location that fits first, and a filtered branch first in it.
+        let in_b = h.service.listing(&[], &[], ListFilter { repos: vec!["o/b".into()], branches: vec![] }).await.unwrap();
+        assert_eq!(in_b.assets[0].locations[0].repo, "o/b");
+        assert_eq!(in_b.assets[0].repos.len(), 2, "every repo still counts, whatever the filter");
+        let on_dev = h.service.listing(&[], &[], ListFilter { repos: vec![], branches: vec!["dev".into()] }).await.unwrap();
+        assert_eq!((on_dev.assets[0].locations[0].repo.as_str(), on_dev.assets[0].locations[0].branches[0].as_str()), ("o/a", "dev"));
+    }
+
+    fn prefab_asset(places: &[(&str, &[&str])]) -> CatalogAsset {
+        CatalogAsset {
+            id: "i".into(),
+            kind: "prefab".into(),
+            path: "A.prefab".into(),
+            name: "A".into(),
+            sha: "s".into(),
+            size: None,
+            lfs: false,
+            locations: places.iter().map(|(repo, branches)| CatalogLocation { repo: (*repo).into(), path: "A.prefab".into(), branches: branches.iter().map(|b| (*b).to_owned()).collect(), branch_total: None }).collect(),
+            location_total: None,
+            branch_count: 0,
+            repo_count: 0,
+        }
+    }
+
+    fn pair(repo: &str, branch: &str) -> (String, String) {
+        (repo.into(), branch.into())
+    }
+
+    #[test]
+    fn scan_targets_pick_the_fullest_branch_first_then_only_branches_that_still_add_a_prefab() {
+        let list = [prefab_asset(&[("r", &["main", "dev"])]), prefab_asset(&[("r", &["main", "dev"])]), prefab_asset(&[("r", &["dev"])]), prefab_asset(&[("r", &["feature"])])];
+        assert_eq!(scan_targets(&list, &ListFilter::default(), &[]), [pair("r", "dev"), pair("r", "feature")]);
+    }
+
+    #[test]
+    fn scan_targets_skip_prefabs_held_by_a_scanned_branch_and_other_types() {
+        let mut model = prefab_asset(&[("r", &["x"])]);
+        model.kind = "fbx".into();
+        let list = [prefab_asset(&[("r", &["main", "dev"])]), prefab_asset(&[("r", &["feature"])]), model];
+        assert_eq!(scan_targets(&list, &ListFilter::default(), &[pair("r", "dev")]), [pair("r", "feature")]);
+    }
+
+    #[test]
+    fn scan_targets_keep_repos_apart_and_read_nothing_when_all_is_scanned() {
+        let list = [prefab_asset(&[("a", &["main"])]), prefab_asset(&[("b", &["main"])])];
+        assert_eq!(scan_targets(&list, &ListFilter::default(), &[]).len(), 2);
+        assert!(scan_targets(&list, &ListFilter::default(), &[pair("a", "main"), pair("b", "main")]).is_empty());
+    }
+
+    #[test]
+    fn scan_targets_see_every_branch_of_every_location_and_follow_the_filter() {
+        // Eight branches, more than a listing sends: the one that holds both prefabs is still found.
+        let wide = ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "last"];
+        let list = [prefab_asset(&[("r", &wide)]), prefab_asset(&[("r", &["x"]), ("r", &["last"])])];
+        assert_eq!(scan_targets(&list, &ListFilter::default(), &[]), [pair("r", "last")]);
+        // A prefab the filter hides is not scanned for.
+        let in_a = ListFilter { repos: vec!["a".into()], branches: vec![] };
+        let list = [prefab_asset(&[("a", &["main"])]), prefab_asset(&[("b", &["main"])])];
+        assert_eq!(scan_targets(&list, &in_a, &[]), [pair("a", "main")]);
+    }
+
+    #[tokio::test]
+    async fn the_service_plans_the_prefab_scan_from_the_whole_catalog() {
+        let h = harness(2);
+        h.source.set_heads("o/r", &[("main", "c1", None), ("dev", "c2", None)]);
+        h.source.set_tree("c1", &[("A.prefab", "a"), ("B.prefab", "b")]);
+        h.source.set_tree("c2", &[("A.prefab", "a")]);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        let targets = h.service.prefab_scan_targets(&[], &[], ListFilter::default(), vec![]).await.unwrap();
+        assert_eq!(targets, [pair("o/r", "main")]);
+        let none = h.service.prefab_scan_targets(&[], &[], ListFilter::default(), vec![pair("o/r", "main")]).await.unwrap();
+        assert!(none.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_listing_for_other_excluded_folders_or_repos_is_not_shown() {
+        let h = two_repos().await;
+        h.service.listing(&[], &["Plugins".into()], ListFilter::default()).await.unwrap();
+        snapshot_files(&h).await;
+        let (again, _) = service_in(h.dir.clone(), Arc::new(Fake::default()), 1, Arc::default());
+        assert!(again.listing_snapshot(&[], &[], &ListFilter::default()).await.is_none());
+        assert!(again.listing_snapshot(&["o/a".into()], &["Plugins".into()], &ListFilter::default()).await.is_none());
+        assert!(again.listing_snapshot(&[], &["Plugins".into()], &ListFilter::default()).await.is_some());
+    }
+
+    #[tokio::test]
+    async fn only_a_few_listing_files_are_kept() {
+        let h = two_repos().await;
+        for n in 0..SNAPSHOT_KEEP + 2 {
+            h.service.listing(&[], &[format!("Skip{n}")], ListFilter::default()).await.unwrap();
+            tokio::time::sleep(SNAPSHOT_DELAY + Duration::from_millis(250)).await;
+        }
+        assert_eq!(snapshot_files(&h).await.len(), SNAPSHOT_KEEP);
+    }
+
+    #[tokio::test]
+    async fn the_listing_snapshot_waits_on_no_catalog_lock() {
+        let h = two_repos().await;
+        h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        snapshot_files(&h).await;
+        let (again, _) = service_in(h.dir.clone(), Arc::new(Fake::default()), 1, Arc::default());
+        // A repo's lock and the cache lock are both held, as a running scan and listing would hold them.
+        let held = again.load("o/a").await.lock_owned().await;
+        let slot = again.listed.lock().await;
+        let shown = tokio::time::timeout(Duration::from_secs(2), again.listing_snapshot(&[], &[], &ListFilter::default())).await.expect("the snapshot did not wait for a lock");
+        assert_eq!(shown.unwrap().assets.len(), 3);
+        drop((held, slot));
+    }
+
+    #[tokio::test]
+    async fn the_names_file_spares_reading_every_catalog_for_its_repo_name() {
+        let h = two_repos().await;
+        let names_file = h.dir.parent().unwrap().join(NAMES_FILE);
+        let names: HashMap<String, String> = serde_json::from_slice(&std::fs::read(&names_file).unwrap()).unwrap();
+        assert_eq!(names.get("o__a.json").map(String::as_str), Some("o/a"));
+        // The names file is believed: a file under a known name is not opened to find its repo...
+        std::fs::write(h.dir.join("o__b.json"), "{ not json").unwrap();
+        let (again, _) = service_in(h.dir.clone(), Arc::new(Fake::default()), 1, Arc::default());
+        assert_eq!(again.repos().await, ["o/a", "o/b"]);
+        // ...and a file it does not know is read once, then remembered.
+        std::fs::write(h.dir.join("o__c.json"), serde_json::to_vec(&json!({"repo": "o/c"})).unwrap()).unwrap();
+        assert_eq!(again.repos().await, ["o/a", "o/b", "o/c"]);
+        let names: HashMap<String, String> = serde_json::from_slice(&std::fs::read(&names_file).unwrap()).unwrap();
+        assert_eq!(names.get("o__c.json").map(String::as_str), Some("o/c"));
+        // A names file that is missing or broken costs one read of every file, not a repo.
+        std::fs::write(&names_file, "nonsense").unwrap();
+        std::fs::write(h.dir.join("o__b.json"), serde_json::to_vec(&json!({"repo": "o/b"})).unwrap()).unwrap();
+        let (third, _) = service_in(h.dir.clone(), Arc::new(Fake::default()), 1, Arc::default());
+        assert_eq!(third.repos().await, ["o/a", "o/b", "o/c"]);
+        // A name whose file is gone is not listed.
+        std::fs::remove_file(h.dir.join("o__c.json")).unwrap();
+        let (fourth, _) = service_in(h.dir.clone(), Arc::new(Fake::default()), 1, Arc::default());
+        assert_eq!(fourth.repos().await, ["o/a", "o/b"]);
+    }
+
+    #[tokio::test]
+    async fn every_saved_repo_is_listed_when_many_are_read_at_once() {
+        let h = harness(1);
+        std::fs::create_dir_all(&h.dir).unwrap();
+        for n in 0..20 {
+            let mut catalog = RepoCatalog::empty(&format!("o/r{n}"), Some(TYPES));
+            catalog.set_branches(&[CatalogBranch { name: "main".into(), commit: "c".into(), date: None }], Some("main"), 1);
+            catalog.add_commit("c", &[entry(&format!("A{n}.fbx"), &format!("s{n}"))]);
+            std::fs::write(h.dir.join(format!("o__r{n}.json")), serde_json::to_vec(&catalog_json(catalog.data())).unwrap()).unwrap();
+        }
+        let listing = h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        assert_eq!(listing.assets.len(), 20);
+        assert_eq!(h.service.repos().await.len(), 20);
+    }
+
     #[test]
     fn repos_become_file_names_the_way_the_catalog_writes_them() {
         assert_eq!(repo_slug("org/hero"), "org__hero");
@@ -1180,11 +1722,12 @@ mod tests {
         catalog.set_branches(&[CatalogBranch { name: "main".into(), commit: "c1".into(), date: None }], Some("main"), 1);
         catalog.add_commit("c1", &[entry("A.fbx", "a")]);
         let assets = group_catalog(&[&catalog], &|_| Some("fbx".to_string()), &[]);
-        let listing = listing_dto(&list_catalog(&assets, CatalogFilter::default(), None));
+        let listing = slim_listing(&assets, &ListFilter::default(), &catalog_facets(&assets, &[]));
         let value = serde_json::to_value(&listing).unwrap();
         assert_eq!(value["assets"][0]["type"], "fbx");
         assert_eq!(value["assets"][0]["locationTotal"], 1.0);
         assert_eq!(value["assets"][0]["locations"][0]["branchTotal"], 1.0);
+        assert_eq!(value["assets"][0]["repos"], json!(["o/r"]));
         assert_eq!(value["facets"]["repos"], json!([["o/r", 1.0]]));
     }
 }

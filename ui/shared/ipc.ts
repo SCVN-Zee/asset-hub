@@ -224,9 +224,25 @@ export interface AssetHubApi {
     status(): Promise<IpcResult<CatalogStatus>>
     /**
      * Indexed assets of `repo` (every indexed repo when null), identical files grouped, on `filter`'s
-     * repos and branches (an empty list is no limit), with the filters' choices. Each location carries its first few branches only.
+     * repos and branches (an empty list is no limit), with the filters' choices. Each asset carries its first location
+     * (the first that fits the filter) with its first branch; `whereIs` has the full list.
      */
     list(repo: string | null, excludedFolders: string[], filter?: { repos?: string[]; branches?: string[] }): Promise<IpcResult<CatalogListing>>
+    /**
+     * The grouped listing made last time for this request (same repo and excluded folders), narrowed by
+     * `filter`, or null when there is none. It waits on no scan, so the page shows it while `list` works.
+     */
+    snapshot(repo: string | null, excludedFolders: string[], filter?: { repos?: string[]; branches?: string[] }): Promise<IpcResult<CatalogListing | null>>
+    /**
+     * The fewest branches that between them hold every prefab of the listing for the same arguments as `list`,
+     * most prefabs first. `scanned` are the branches read already (or tried): the prefabs in them need nothing more.
+     */
+    prefabScanTargets(
+      repo: string | null,
+      excludedFolders: string[],
+      filter: { repos?: string[]; branches?: string[] } | undefined,
+      scanned: Array<{ repo: string; branch: string }>
+    ): Promise<IpcResult<Array<{ repo: string; branch: string }>>>
     /** Every repo, branch and path holding a file with this blob SHA. */
     whereIs(sha: string): Promise<IpcResult<CatalogLocation[]>>
     onStatus(listener: (status: CatalogStatus) => void): () => void

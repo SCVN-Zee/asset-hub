@@ -50,6 +50,20 @@ interface Answered<A extends Asset> extends Wanted<A> {
   found: Found<A>
 }
 
+interface BuildInput<A extends Asset> {
+  assets: readonly A[]
+  extraNames: ReadonlyMap<string, string[]>
+  tags: ReadonlyMap<string, readonly AssetTag[]>
+}
+
+export interface SearchOptions {
+  /** False: no index is built (the scope is hidden); the last one is kept. */
+  enabled?: boolean
+}
+
+/** Least time between two index builds while their inputs keep changing. */
+const BUILD_GAP_MS = 500
+
 /**
  * Searches `assets` (matching groups, typos and folder names, best first) and lists their folders.
  * The work is done in Rust, so a result arrives after the keystroke: one search runs at a time, the
@@ -57,29 +71,14 @@ interface Answered<A extends Asset> extends Wanted<A> {
  * `extraNames` maps an asset's SHA to other names it answers to (the clips inside a model). `tags` maps an
  * asset's id to its tags: typing a tag's word ("ui", "animation", "particle") finds the assets that have it.
  */
-export function useSearch<A extends Asset>(assets: readonly A[], extraNames: ReadonlyMap<string, string[]>, query: string, folder: string, tags: ReadonlyMap<string, readonly AssetTag[]> = NO_TAGS) {
+export function useSearch<A extends Asset>(assets: readonly A[], extraNames: ReadonlyMap<string, string[]>, query: string, folder: string, tags: ReadonlyMap<string, readonly AssetTag[]> = NO_TAGS, options: SearchOptions = {}) {
+  const enabled = options.enabled ?? true
+  const enabledRef = useRef(enabled)
+  enabledRef.current = enabled
   const [index, setIndex] = useState<Index<A>>()
   const [folders, setFolders] = useState<FolderNode>(EMPTY_FOLDERS)
   const [answered, setAnswered] = useState<Answered<A>>()
   const [failure, setFailure] = useState<unknown>()
-
-  useEffect(() => {
-    let cancelled = false
-    parse.searchBuild(assets, Object.fromEntries(extraNames), Object.fromEntries([...tags].map(([id, list]) => [id, [...list]]))).then(
-      (handle) => {
-        if (cancelled) return
-        setIndex({ handle, assets, byKey: new Map(assets.map((a) => [keyOf(a), a])) })
-        void parse.searchFolders(handle).then(
-          (root) => !cancelled && setFolders(root),
-          (error: unknown) => !cancelled && setFailure(error)
-        )
-      },
-      (error: unknown) => !cancelled && setFailure(error)
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [assets, extraNames, tags])
 
   const alive = useRef(true)
   useEffect(() => {
@@ -88,6 +87,40 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
       alive.current = false
     }
   }, [])
+
+  // One build at a time, the newest inputs next, and a pause between builds: every build sends the whole list
+  // to Rust, which reads it on the app's main thread, so a burst of changes (a scan finding assets) froze the app.
+  const build = useRef<{ busy: boolean; next?: BuildInput<A> }>({ busy: false })
+  useEffect(() => {
+    if (!enabled) {
+      build.current.next = undefined
+      return
+    }
+    build.current.next = { assets, extraNames, tags }
+    if (build.current.busy) return
+    build.current.busy = true
+    void (async () => {
+      try {
+        for (let wanted = build.current.next; wanted && enabledRef.current; wanted = build.current.next) {
+          build.current.next = undefined
+          try {
+            const handle = await parse.searchBuild(wanted.assets, Object.fromEntries(wanted.extraNames), Object.fromEntries([...wanted.tags].map(([id, list]) => [id, [...list]])))
+            if (!alive.current) return
+            const list = wanted.assets
+            setIndex({ handle, assets: list, byKey: new Map(list.map((a) => [keyOf(a), a])) })
+            const root = await parse.searchFolders(handle)
+            if (!alive.current) return
+            setFolders(root)
+          } catch (error) {
+            if (alive.current) setFailure(error)
+          }
+          if (build.current.next) await new Promise((resolve) => setTimeout(resolve, BUILD_GAP_MS))
+        }
+      } finally {
+        build.current.busy = false
+      }
+    })()
+  }, [assets, extraNames, tags, enabled])
   const run = useRef<{ busy: boolean; next?: Wanted<A> }>({ busy: false })
   const searching = query.trim() !== ''
   useEffect(() => {

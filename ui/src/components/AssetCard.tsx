@@ -66,7 +66,11 @@ export function AssetCard({ asset, handler, thumb, generating, copies, selected,
     if (!el) return
     const observer = new IntersectionObserver(([entry]) => visibleRef.current?.(entry.isIntersecting), { rootMargin: '200px' })
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      // A card leaving the page is no longer visible, so its thumbnail request is dropped.
+      visibleRef.current?.(false)
+    }
     // Re-observed when the callback appears, so a card already on screen reports itself.
   }, [!!onVisible])
 

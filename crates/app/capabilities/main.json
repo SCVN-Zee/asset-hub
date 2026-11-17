@@ -66,6 +66,8 @@
     "allow-catalog-resume",
     "allow-catalog-status",
     "allow-catalog-list",
+    "allow-catalog-snapshot",
+    "allow-catalog-prefab-scan-targets",
     "allow-catalog-where-is",
     "allow-thumbs-get",
     "allow-thumbs-save",

@@ -6,8 +6,9 @@ import type { HandlerRegistry } from '../handlers'
 import { parse } from '../parse'
 import { useSearch } from '../useSearch'
 import { inSubCategory, SUB_ALL, SUB_CATEGORIES, subCategoriesOf, tagsOf, type AssetTag, type SubCategory } from '../tags'
-import { prefabScanTargets } from '../catalogScan'
+import { mergeKnown } from '../catalogScan'
 import { AssetCard, SkeletonCard } from '../components/AssetCard'
+import { VirtualGrid, type VirtualGridHandle } from '../components/VirtualGrid'
 import { AssetDetails } from '../components/AssetDetails'
 import { ExportBar, packCapacity, type ExportOptions, type ExportState, type PackItem } from '../components/ExportBar'
 import { unwrap } from '../remoteSource'
@@ -158,7 +159,8 @@ function tagsByAsset(list: readonly Asset[], stats: Record<string, StatsSummary>
 /** What a scan of the prefabs finds, for the tags of prefabs. */
 const TAG_FACTS: readonly FactKind[] = ['effects', 'uiPrefabs']
 /** Cards rendered per step while scrolling. */
-const PAGE = 60
+/** Least time between two updates of the known assets while a scan reports them. */
+const KNOWN_FLUSH_MS = 300
 /** Models bigger than this are only rendered when opened, not for grid thumbnails. */
 const THUMB_MAX_BYTES = 40 * 1024 * 1024
 /** Images are decoded on the page: very large PSDs would stall it, so they are only drawn when opened. */
@@ -294,8 +296,7 @@ export function Browse({
   const [thumbsLoaded, setThumbsLoaded] = useState(false)
   const [catalogThumbsLoaded, setCatalogThumbsLoaded] = useState(false)
   const [mergeCopies, setMergeCopies] = useStoredFlag('assethub.filter.mergeCopies', true)
-  const [limit, setLimit] = useState(PAGE)
-  const sentinel = useRef<HTMLDivElement>(null)
+  const gridHandle = useRef<VirtualGridHandle>(null)
   const [pack, setPack] = useState<PackItem[]>([])
   const [skipByName, setSkipByName] = useStoredFlag('assethub.chest.skipByName', false)
   const [reuseExisting, setReuseExisting] = useStoredFlag('assethub.chest.reuseExisting', true)
@@ -457,7 +458,8 @@ export function Browse({
   const ofType = useMemo(() => (typeFilter === ALL ? assets : assets.filter((a) => inTab(a, typeFilter))), [assets, typeFilter, inTab])
   // Matches groups (fish → shark), typos and folder names, best matches first (done in Rust, so answers follow the typing).
   const branchTags = useMemo(() => tagsByAsset(ofType, modelStats, known), [ofType, withClips, known])
-  const { found, folders: folderRoot, suggest: suggestHere } = useSearch(ofType, clipNames, query, folder, branchTags)
+  const inCatalog = scope !== 'branch'
+  const { found, folders: folderRoot, suggest: suggestHere } = useSearch(ofType, clipNames, query, folder, branchTags, { enabled: !inCatalog })
   const visible = found.assets
   // Same blob SHA = byte-identical file; with merging on, one card stands for all copies.
   const copiesBySha = useMemo(() => {
@@ -477,13 +479,13 @@ export function Browse({
   const target = useMemo(() => targetOf(selection, repoNames), [selection, repoNames])
   // Filtered by repos and branches where the catalog is: every repo's results are too many to send whole.
   const catalogFilter = useMemo(() => filterOf(scopeSel), [scopeSel])
-  const catalog = useCatalog(scope, repo, branch, excludedFolders, scope === 'branch' || !target.empty, catalogFilter)
+  // The cached catalog needs no repo list from GitHub: it reads at once, with no limit on repos until the list arrives.
+  const catalog = useCatalog(scope, repo, branch, excludedFolders, scope === 'branch' || !target.empty || repos.status === 'loading', catalogFilter)
   const catalogOfType = useMemo(() => (catalog.assets ?? []).filter((a) => inTab(a, typeFilter)), [catalog.assets, typeFilter, inTab])
   const catalogTags = useMemo(() => tagsByAsset(catalogOfType, modelStats, known), [catalogOfType, withClips, known])
-  const { found: catalogFound, suggest: suggestCatalog } = useSearch(catalogOfType, clipNames, query, '', catalogTags)
+  const { found: catalogFound, suggest: suggestCatalog } = useSearch(catalogOfType, clipNames, query, '', catalogTags, { enabled: inCatalog })
   const catalogShown = catalogFound.assets
   const catalogSelected = catalogShown.find((a) => a.sha === catalogSel)
-  const inCatalog = scope !== 'branch'
   /** The tags of the cards in the open view. */
   const viewTags = inCatalog ? catalogTags : branchTags
   // The sub-category picked under a tab of the sidebar. Another tab starts again on All.
@@ -576,7 +578,7 @@ export function Browse({
         budget,
         // The team's counts are of the current repo; assets of other repos keep the plain order.
         (a) => ({
-          team: a.locations.some((l) => l.repo === repo) ? (teamScores[a.sha] ?? 0) : 0,
+          team: a.repos.includes(repo) ? (teamScores[a.sha] ?? 0) : 0,
           personal: personalScores.get(`${a.locations[0].repo}\n${a.locations[0].path}`) ?? 0
         })
       ),
@@ -596,6 +598,9 @@ export function Browse({
   const unmeasured = (inCatalog ? catalogShown : shown).filter((a) => !modelStats[a.sha])
   const gridSelected = inCatalog ? catalogSel : selectedId
   const setGridSelected = inCatalog ? setCatalogSel : setSelectedId
+  /** What the grid selection holds for an item: the catalog selects by blob SHA, a branch by asset id. */
+  const gridKey = (a: Asset) => (inCatalog ? a.sha : a.id)
+  const gridAnchor = useMemo(() => gridItems.findIndex((a) => gridKey(a) === gridSelected), [gridItems, gridSelected, inCatalog])
   const searchFound = inCatalog ? catalogFound : found
 
   // Saved thumbnails of results from other branches (same content = same thumbnail).
@@ -630,9 +635,9 @@ export function Browse({
 
   /** Where to read a result from for its thumbnail: a filtered repo / branch when set, else its main location. */
   const catalogSource = (a: CatalogAsset) => {
-    const at = a.locations.find((l) => !catalogFilter.repos.length || catalogFilter.repos.includes(l.repo)) ?? a.locations[0]
-    const atBranch = at.branches.find((b) => catalogFilter.branches.includes(b)) ?? at.branches[0]
-    return { path: at.path, ctx: { repo: at.repo, branch: atBranch, root: projectRootOf(at.path) } }
+    // The listing sends the location that fits the filter first, with its filtered branch first.
+    const at = a.locations[0]
+    return { path: at.path, ctx: { repo: at.repo, branch: at.branches[0], root: projectRootOf(at.path) } }
   }
   const previewKind = (a: Asset) => registry.get(a.type)?.preview.kind
   /** Thumbnails: models up to THUMB_MAX_BYTES, images the browser (or our PSD / TGA decoders) can draw. */
@@ -747,18 +752,6 @@ export function Browse({
     openLocation(link.repo, link.branch, link.path)
   }
 
-  // Back to the first page only when the user asks for a different list, not when
-  // measurements arrive and re-rank it (that used to jump the grid back to the top).
-  useEffect(() => setLimit(PAGE), [listKey])
-  // Render more cards as the end of the grid scrolls into view.
-  useEffect(() => {
-    const el = sentinel.current
-    if (!el) return
-    const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && setLimit((l) => l + PAGE), { rootMargin: '600px' })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [gridItems, limit])
-
   // Arrow keys move the selection through the grid (Up/Down jump a row).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -767,16 +760,16 @@ export function Browse({
       if (target.closest('input, select, textarea, .picker-pop, .viewer')) return
       const grid = document.querySelector('.grid')
       const cols = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : 1
-      const index = gridItems.findIndex((a) => a.id === gridSelected)
+      const index = gridItems.findIndex((a) => gridKey(a) === gridSelected)
       const step = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' ? -cols : cols
       const next = index < 0 ? 0 : Math.min(gridItems.length - 1, Math.max(0, index + step))
       e.preventDefault()
-      setGridSelected(gridItems[next].id)
-      if (next >= limit) setLimit(next + PAGE)
+      setGridSelected(gridKey(gridItems[next]))
+      gridHandle.current?.scrollToIndex(next)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [gridItems, gridSelected, limit, inCatalog, paused])
+  }, [gridItems, gridSelected, inCatalog, paused])
 
   /** Selection still to be scrolled into view; scrolling happens only when the selection changes. */
   const scrollTo = useRef<string>()
@@ -786,18 +779,27 @@ export function Browse({
   useEffect(() => {
     const wanted = scrollTo.current
     if (!wanted) return
-    // A card further down than the cards rendered so far (e.g. opened from another branch): render up to it first.
-    const target = gridItems.find((a) => a.id === wanted) ?? (selected && gridItems.find((a) => a.sha === selected.sha))
-    const index = target ? gridItems.indexOf(target) : -1
-    if (index >= limit) {
-      setLimit(index + PAGE)
-      return
-    }
+    const target = gridItems.find((a) => gridKey(a) === wanted) ?? (selected && gridItems.find((a) => a.sha === selected.sha))
     scrollTo.current = undefined
-    const card = target && document.querySelector<HTMLElement>(`[data-asset-id="${CSS.escape(target.id)}"]`)
-    card?.scrollIntoView({ block: 'nearest' })
-    if (document.activeElement?.classList.contains('asset-card')) card?.focus({ preventScroll: true })
-  }, [gridSelected, gridItems, limit])
+    if (!target) return
+    // The grid only keeps the cards near the viewport: scroll the card's row into the window first, then reveal the card once it is mounted.
+    const hadCardFocus = document.activeElement?.classList.contains('asset-card')
+    gridHandle.current?.scrollToIndex(gridItems.indexOf(target))
+    let tries = 0
+    let frame = 0
+    const reveal = () => {
+      const card = document.querySelector<HTMLElement>(`[data-asset-id="${CSS.escape(target.id)}"]`)
+      if (!card) {
+        if (++tries < 3) frame = requestAnimationFrame(reveal)
+        return
+      }
+      card.scrollIntoView({ block: 'nearest' })
+      if (hadCardFocus) card.focus({ preventScroll: true })
+    }
+    frame = requestAnimationFrame(reveal)
+    // A newer selection cancels an older reveal.
+    return () => cancelAnimationFrame(frame)
+  }, [gridSelected, gridItems])
 /** An asset of this branch as a collection keeps it: where it is, so it opens there again. */
   const itemOf = (a: Asset): CollectionItem => ({ repo, branch, path: root + a.path, sha: a.sha, name: a.name, type: a.type, ...(a.size !== undefined ? { size: a.size } : {}) })
   /** A result of another branch / repo, where it lives first. */
@@ -827,7 +829,19 @@ export function Browse({
     for (const kind of pending) scans.current.add(scanKey(kind, at.repo, at.branch))
     const run = async (kind: FactKind) => {
       const key = scanKey(kind, at.repo, at.branch)
-      const add = (shas: readonly string[]) => setKnown((prev) => ({ ...prev, [kind]: new Set([...(prev[kind] ?? []), ...shas]) }))
+      // Found SHAs are buffered: every update of `known` rebuilds the search indexes, so they land at most every KNOWN_FLUSH_MS.
+      let pending: string[] = []
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const flush = () => {
+        timer = undefined
+        const shas = pending
+        pending = []
+        if (shas.length) setKnown((prev) => mergeKnown(prev, kind, shas))
+      }
+      const add = (shas: readonly string[]) => {
+        pending.push(...shas)
+        timer ??= setTimeout(flush, KNOWN_FLUSH_MS)
+      }
       setScan({ kind, status: 'scanning', done: 0, total: 0 })
       const off = window.api.assets.onKnownProgress((k, { found, ...p }) => {
         if (k !== kind) return
@@ -837,6 +851,8 @@ export function Browse({
       })
       try {
         add(await window.api.assets.knownAssets(at.repo, at.branch, kind).then(unwrap))
+        clearTimeout(timer)
+        flush()
         setScan((s) => (s?.kind === kind ? undefined : s))
       } catch {
         // Tried again the next time the tab is opened.
@@ -844,6 +860,8 @@ export function Browse({
         scanFailed.current.add(key)
         setScan({ kind, status: 'error', done: 0, total: 0 })
       } finally {
+        clearTimeout(timer)
+        flush()
         off()
       }
     }
@@ -857,9 +875,21 @@ export function Browse({
   // their tags are known: the fewest branches that between them hold every prefab listed, one after the other.
   useEffect(() => {
     if (!inCatalog || !tagScans || !catalog.assets) return
-    const scanned = (r: string, b: string) => scans.current.has(scanKey(TAG_FACTS[0], r, b)) || scanFailed.current.has(scanKey(TAG_FACTS[0], r, b))
-    for (const target of prefabScanTargets(catalog.assets, scanned)) startScans(target, TAG_FACTS)
-  }, [inCatalog, tagScans, catalog.assets, startScans])
+    // Keys are `kind:repo@branch`; a repo name has no `@`, so the first one splits them.
+    const prefix = `${TAG_FACTS[0]}:`
+    const scanned = [...scans.current, ...scanFailed.current].filter((key) => key.startsWith(prefix)).map((key) => {
+      const [repoName, ...branchParts] = key.slice(prefix.length).split('@')
+      return { repo: repoName, branch: branchParts.join('@') }
+    })
+    let cancelled = false
+    void window.api.catalog.prefabScanTargets(scope === 'repo' ? repo : null, [...excludedFolders], catalogFilter, scanned).then((r) => {
+      if (cancelled || !r.ok) return
+      for (const target of r.data) startScans(target, TAG_FACTS)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [inCatalog, tagScans, catalog.assets, startScans, scope, repo, excludedFolders, catalogFilter])
 
   // Saved thumbnails and measurements of an open collection's assets, from any repo or branch (by content).
   const collectionShas = shownCollection?.items.map((i) => i.sha).join(',') ?? ''
@@ -1253,7 +1283,7 @@ export function Browse({
         </div>
         <SearchBox value={query} suggest={inCatalog ? suggestCatalog : suggestHere} onChange={onQuery} />
         <div className="topbar-actions">
-          <BackgroundTasks thumbs={{ done: loadedCount, total: renderable.length }} catalog={catalog.status} scan={scan} exportState={exportState} />
+          <BackgroundTasks thumbs={{ done: loadedCount, total: renderable.length }} catalog={catalog.status} onPause={catalog.pause} onResume={catalog.resume} scan={scan} exportState={exportState} />
           <button
             type="button"
             className="btn icon-btn"
@@ -1440,7 +1470,7 @@ export function Browse({
             )}
             <CellSizeToggle value={cellSize} onChange={setCellSize} />
           </div>
-          {inCatalog && <CatalogStatusLine status={catalog.status} error={catalog.error} onPause={catalog.pause} onResume={catalog.resume} />}
+          {inCatalog && <CatalogStatusLine status={catalog.status} error={catalog.error} onResume={catalog.resume} />}
           {(searchFound.related.length > 0 || searchFound.typos.length > 0) && (
             <p className="related-line">
               {searchFound.related.length > 0 && t('search.related', { names: searchFound.related.slice(0, 8).join(', ') })}
@@ -1461,10 +1491,13 @@ export function Browse({
           )}
           {inCatalog && catalogShown.length > 0 && (
             <>
-              <div className="grid">
-                {rankedCatalog.slice(0, limit).map((a, i) => (
+              <VirtualGrid
+                ref={gridHandle}
+                anchorIndex={gridAnchor}
+                items={rankedCatalog}
+                itemKey={(a) => a.id}
+                renderItem={(a, i) => (
                   <AssetCard
-                    key={a.id}
                     asset={a}
                     handler={registry.get(a.type)}
                     thumb={thumbs[a.sha]}
@@ -1486,9 +1519,8 @@ export function Browse({
                         : undefined
                     }
                   />
-                ))}
-              </div>
-              {limit < rankedCatalog.length && <div ref={sentinel} className="grid-sentinel" />}
+                )}
+              />
             </>
           )}
           {repos.status === 'error' && <ErrorNote error={repos.error} className="content-note" />}
@@ -1543,10 +1575,13 @@ export function Browse({
           <>
           {!inCatalog && tree.status === 'ready' && shown.length > 0 && (
             <>
-              <div className="grid">
-                {rankedShown.slice(0, limit).map((a, i) => (
+              <VirtualGrid
+                ref={gridHandle}
+                anchorIndex={gridAnchor}
+                items={rankedShown}
+                itemKey={(a) => a.id}
+                renderItem={(a, i) => (
                   <AssetCard
-                    key={a.id}
                     asset={a}
                     handler={registry.get(a.type)}
                     thumb={thumbs[a.sha]}
@@ -1570,9 +1605,8 @@ export function Browse({
                         : undefined
                     }
                   />
-                ))}
-              </div>
-              {limit < rankedShown.length && <div ref={sentinel} className="grid-sentinel" />}
+                )}
+              />
               {picked.length > 1 && (
                 <MultiBar
                   count={picked.length}

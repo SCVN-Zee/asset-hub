@@ -149,6 +149,10 @@ export const api: AssetHubApi = {
     status: () => result(commands.catalogStatus()),
     list: (repo, excludedFolders, filter) =>
       result(commands.catalogList(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null)),
+    snapshot: (repo, excludedFolders, filter) =>
+      result(commands.catalogSnapshot(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null)),
+    prefabScanTargets: (repo, excludedFolders, filter, scanned) =>
+      result(commands.catalogPrefabScanTargets(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null, scanned)),
     whereIs: (sha) => result(commands.catalogWhereIs(sha)),
     onStatus: (listener) => on(events.catalogProgress, listener)
   },
