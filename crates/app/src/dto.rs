@@ -337,6 +337,7 @@ dto! {
     #[derive(Copy, Eq)]
     pub enum FactKind {
         Effects,
+        UiPrefabs,
         Sprites,
         TmpFonts,
     }

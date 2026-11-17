@@ -7,7 +7,7 @@ useContract()
 /** The Worker stops accepting uploads at 8 GiB of stored bytes. */
 const STORAGE_CAP_BYTES = 8 * 1024 * 1024 * 1024
 /** The fact kinds the Worker shares per repo, as `facts-<kind>` objects. */
-const FACT_KINDS = ['metaguids', 'prefabmodels', 'prefabfx3', 'spritemeta', 'tmpfont']
+const FACT_KINDS = ['metaguids', 'prefabmodels', 'prefabfx4', 'spritemeta', 'tmpfont']
 
 const GZIP = new Uint8Array([0x1f, 0x8b, 8, 0, 1, 2, 3])
 const put = (name: string, headers: Record<string, string>, body: BodyInit = GZIP, repo = 'game') =>
@@ -102,9 +102,9 @@ describe('cache objects', () => {
     expect((await put('catalog', { 'if-none-match': '*' }, big)).status).toBe(413)
   })
 
-  it('accepts facts-prefabfx3', async () => {
+  it('accepts facts-prefabfx4', async () => {
     allowRepo('game', true)
-    expect((await put('facts-prefabfx3', { 'if-none-match': '*' })).status).toBe(200)
+    expect((await put('facts-prefabfx4', { 'if-none-match': '*' })).status).toBe(200)
   })
 
   it('accepts every fact kind', async () => {

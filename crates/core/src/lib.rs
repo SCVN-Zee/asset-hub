@@ -22,6 +22,7 @@ pub mod js;
 pub mod registry;
 pub mod search;
 pub mod stats;
+pub mod tags;
 pub mod tree;
 pub mod types;
 pub mod unity;

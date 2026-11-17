@@ -146,8 +146,9 @@ pub const SHA_KIND: &str = "metaguids";
 const SHA_KEY: &str = "by-sha";
 /// Prefab blob SHA to model GUID to material GUIDs.
 pub const PREFAB_KIND: &str = "prefabmodels";
-/// Prefab blob SHA to particle facts (see `prefab_effect_fact`); v3: models with an effect attached are not effects.
-pub const EFFECT_KIND: &str = "prefabfx3";
+/// Prefab blob SHA to what one read of the file says (see `prefab_fact`): particle facts, then a UI mark.
+/// v3: models with an effect attached are not effects. v4: the UI mark; v3 facts lack it and are read again.
+pub const EFFECT_KIND: &str = "prefabfx4";
 /// Texture `.meta` blob SHA to `"1"` when imported as a sprite.
 pub const SPRITE_KIND: &str = "spritemeta";
 /// `.asset` blob SHA to `"1"` when it is a TextMeshPro font asset.

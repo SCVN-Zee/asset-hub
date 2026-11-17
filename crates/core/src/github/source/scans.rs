@@ -24,7 +24,7 @@ use crate::js::{decode_utf8, OrderedMap};
 use crate::re;
 use crate::types::{FactKind, TreeEntry};
 use crate::unity::ExcludeMatcher;
-use crate::unity::particles::{effect_shas, prefab_effect_fact};
+use crate::unity::particles::{effect_shas, prefab_fact, split_prefab_fact, ui_shas};
 use crate::unity::prefab::{folder_affinity, model_materials};
 use crate::unity::tmp_font::is_tmp_font_asset;
 use crate::unity::yaml::meta_guid;
@@ -73,9 +73,9 @@ fn fact_is(facts: &Map<String, Value>, sha: &str, wanted: &str) -> bool {
     facts.get(sha).and_then(Value::as_str) == Some(wanted)
 }
 
-/// The fact of a blob when it is a non-empty text (`facts[sha]` truthy in the TypeScript).
-fn fact_text<'a>(facts: &'a Map<String, Value>, sha: &str) -> Option<&'a str> {
-    facts.get(sha).and_then(Value::as_str).filter(|f| !f.is_empty())
+/// The effect part and the UI mark of a prefab's fact, when the blob has been read.
+fn fact_text_of<'a>(facts: &'a Map<String, Value>, sha: &str) -> Option<(&'a str, bool)> {
+    facts.get(sha).and_then(Value::as_str).map(split_prefab_fact)
 }
 
 /// The material GUIDs a prefab (by blob SHA) puts on a model, when it uses it.
@@ -397,7 +397,8 @@ impl<F: HttpFetch + 'static> Inner<F> {
         let blobs: Vec<TreeEntry> = snap.entries.iter().filter(|e| is_blob(e)).cloned().collect();
         let progress = on_progress.as_ref();
         match kind {
-            FactKind::Effects => self.effect_prefabs(repo, &snap, &blobs, progress).await,
+            FactKind::Effects => self.prefab_scan(repo, &snap, &blobs, progress, FactKind::Effects).await,
+            FactKind::UiPrefabs => self.prefab_scan(repo, &snap, &blobs, progress, FactKind::UiPrefabs).await,
             FactKind::TmpFonts => {
                 let candidates: Vec<TreeEntry> = blobs.into_iter().filter(|e| tmp_candidate().test(&e.path)).collect();
                 let found = |list: &[TreeEntry], f: &Map<String, Value>| list.iter().filter(|e| fact_is(f, &e.sha, "1")).map(|e| e.sha.clone()).collect();
@@ -486,15 +487,19 @@ impl<F: HttpFetch + 'static> Inner<F> {
         Ok(facts)
     }
 
-    /// Effect prefabs: their own particle systems, or variants of one (see `prefab_effect_fact`).
-    async fn effect_prefabs(&self, repo: &str, snap: &Arc<Snapshot>, blobs: &[TreeEntry], on_progress: Option<&OnFacts>) -> Result<Vec<String>, SourceError> {
+    /// The prefabs of a branch with a property found by reading their files: particle systems (`Effects`,
+    /// variants of an effect included) or UI objects (`UiPrefabs`, variants of a UI prefab included). One
+    /// read of each file serves both (see `prefab_fact`), so the second scan finds every fact kept already.
+    async fn prefab_scan(&self, repo: &str, snap: &Arc<Snapshot>, blobs: &[TreeEntry], on_progress: Option<&OnFacts>, wanted: FactKind) -> Result<Vec<String>, SourceError> {
         let prefabs: Vec<TreeEntry> = blobs.iter().filter(|e| re!(r"\.prefab$", "i").test(&e.path)).cloned().collect();
-        // Variants are known to be effects only at the end, once their base is.
-        let own = |list: &[TreeEntry], f: &Map<String, Value>| unique(list.iter().filter(|e| fact_is(f, &e.sha, "1")).map(|e| e.sha.clone()));
-        let facts = self.scan_facts(repo, &snap.commit, EFFECT_KIND, &prefabs, prefab_effect_fact, &own, on_progress).await?;
+        // Variants are known to be found only at the end, once their base is.
+        let own = |list: &[TreeEntry], f: &Map<String, Value>| {
+            unique(list.iter().filter(|e| fact_text_of(f, &e.sha).is_some_and(|(effect, ui)| if wanted == FactKind::UiPrefabs { ui } else { effect == "1" })).map(|e| e.sha.clone()))
+        };
+        let facts = self.scan_facts(repo, &snap.commit, EFFECT_KIND, &prefabs, prefab_fact, &own, on_progress).await?;
 
         // Variants name their base prefab by GUID: the .meta files say which GUID each prefab has.
-        let nests = prefabs.iter().any(|e| fact_text(&facts, &e.sha).is_some_and(|f| f != "1"));
+        let nests = prefabs.iter().any(|e| fact_text_of(&facts, &e.sha).is_some_and(|(effect, _)| !effect.is_empty() && effect != "1"));
         let mut guid_to_sha: OrderedMap<String> = OrderedMap::new();
         if nests {
             let metas: Vec<TreeEntry> = prefabs.iter().filter_map(|e| snap.by_path.get(&format!("{}.meta", e.path)).cloned()).collect();
@@ -525,14 +530,19 @@ impl<F: HttpFetch + 'static> Inner<F> {
             }
         }
         let mut known_facts: OrderedMap<String> = OrderedMap::new();
+        let mut ui: std::collections::HashSet<String> = Default::default();
         for e in &prefabs {
             if let Some(f) = facts.get(&e.sha) {
-                known_facts.insert(e.sha.clone(), f.as_str().unwrap_or_default().to_string());
+                let (effect, has_ui) = split_prefab_fact(f.as_str().unwrap_or_default());
+                known_facts.insert(e.sha.clone(), effect.to_string());
+                if has_ui {
+                    ui.insert(e.sha.clone());
+                }
             }
         }
         let known_facts: Vec<(String, String)> = known_facts.iter().map(|(k, v)| (k.to_string(), v.clone())).collect();
         let guid_to_sha: Vec<(String, String)> = guid_to_sha.iter().map(|(k, v)| (k.to_string(), v.clone())).collect();
-        Ok(effect_shas(&known_facts, &guid_to_sha))
+        Ok(if wanted == FactKind::UiPrefabs { ui_shas(&known_facts, &ui, &guid_to_sha) } else { effect_shas(&known_facts, &guid_to_sha) })
     }
 
     // ---- materials that prefabs put on a model ------------------------------------------------

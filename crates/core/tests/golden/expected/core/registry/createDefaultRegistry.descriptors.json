@@ -11,7 +11,7 @@
   {
    "id": "fbx",
    "labelKey": "assetTypes.fbx",
-   "badge": "FBX",
+   "badge": "MDL",
    "previewKind": "three",
    "hidden": false,
    "delivery": "unitypackage",

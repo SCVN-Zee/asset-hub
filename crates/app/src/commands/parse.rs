@@ -15,6 +15,7 @@ use asset_hub_core::font::sfnt::{font_coverage, missing_chars, parse_font, parse
 use asset_hub_core::handlers::{create_default_registry, AlsoShows, Unlisted};
 use asset_hub_core::image::{psd, tiff};
 use asset_hub_core::search::AssetSearch;
+use asset_hub_core::tags::AssetTag;
 use asset_hub_core::tree::{build_folder_tree, is_in_folder};
 use asset_hub_core::types::Asset;
 use asset_hub_core::unity::anim_clip::parse_anim_clip;
@@ -470,14 +471,15 @@ fn indexed(handle: u32) -> Result<Arc<Indexed>, IpcError> {
 }
 
 /// Builds a search over `assets`; `extra_names` maps an asset's SHA to other names it answers to
-/// (the clips inside a model). Answers the handle for `search_query`, `search_words`, `search_suggest` and `search_folders`.
+/// (the clips inside a model), `tags` an asset's id to the tags it carries (their words find it). Answers the handle for `search_query`, `search_words`, `search_suggest` and `search_folders`.
 #[tauri::command]
 #[specta::specta]
-pub async fn search_build(assets: Json, extra_names: Option<HashMap<String, Vec<String>>>) -> Result<u32, IpcError> {
+pub async fn search_build(assets: Json, extra_names: Option<HashMap<String, Vec<String>>>, tags: Option<HashMap<String, Vec<String>>>) -> Result<u32, IpcError> {
     let assets: Vec<Asset> = from_json(assets, "the assets")?;
     let built = tauri::async_runtime::spawn_blocking(move || {
         let extra = extra_names.map(|names| move |a: &Asset| names.get(&a.sha).cloned().unwrap_or_default());
-        let search = AssetSearch::new(&assets, extra.as_ref().map(|f| f as &dyn Fn(&Asset) -> Vec<String>));
+        let tagged = tags.map(|by_id| move |a: &Asset| by_id.get(&a.id).map(|ids| ids.iter().filter_map(|id| AssetTag::from_id(id)).collect()).unwrap_or_default());
+        let search = AssetSearch::with_tags(&assets, extra.as_ref().map(|f| f as &dyn Fn(&Asset) -> Vec<String>), tagged.as_ref().map(|f| f as &dyn Fn(&Asset) -> Vec<AssetTag>));
         Indexed { search, assets }
     })
     .await
@@ -569,7 +571,7 @@ mod tests {
     #[test]
     fn a_search_finds_and_narrows_to_a_folder() {
         let assets = Json(json!([asset("Models/Fish/shark.fbx", "a"), asset("Models/Cars/truck.fbx", "b"), asset("Props/shark_toy.fbx", "c")]));
-        let handle = tauri::async_runtime::block_on(search_build(assets, None)).unwrap();
+        let handle = tauri::async_runtime::block_on(search_build(assets, None, None)).unwrap();
         let all = tauri::async_runtime::block_on(search_query(handle, "shark".into(), None)).unwrap().0;
         assert_eq!(all["assets"].as_array().unwrap().len(), 2);
         let narrowed = tauri::async_runtime::block_on(search_query(handle, "shark".into(), Some("Models".into()))).unwrap().0;

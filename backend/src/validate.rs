@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn path_segments() {
-        assert!(is_cache_segment("facts-prefabfx3"));
+        assert!(is_cache_segment("facts-prefabfx4"));
         assert!(!is_cache_segment("catalog.json"));
         assert!(!is_cache_segment(""));
         assert!(is_repo_segment("Hb.creative-bulldozer_2"));

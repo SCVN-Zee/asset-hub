@@ -7,7 +7,7 @@
   },
   "assetTypes": {
     "all": "Tất cả",
-    "fbx": "FBX",
+    "fbx": "Model",
     "texture": "Texture",
     "material": "Material",
     "audio": "Audio",
@@ -820,6 +820,16 @@
     "lowPoly": "≤ 5k tris",
     "animated": "Có animation",
     "none": "Không có asset nào khớp bộ lọc"
+  },
+  "tags": {
+    "label": "Tag",
+    "animation": "Animation",
+    "ui": "UI",
+    "particleSystem": "Particle System",
+    "filter": "Lọc theo tag",
+    "animationHint": "Model có animation clip",
+    "uiHint": "Prefab có đối tượng UI (RectTransform hoặc Canvas)",
+    "particleSystemHint": "Prefab có particle system"
   },
   "watch": {
     "title": "Branch đã ghim",

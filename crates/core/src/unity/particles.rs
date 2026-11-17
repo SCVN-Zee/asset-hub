@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::js::{self, to_number, trim};
 use crate::re;
 use crate::unity::particle_sim::{parse_particle_sim, yaml_block, ParticleSim};
-use crate::unity::prefab_scene::{file_ref, material_list, ref_guid, split_docs, FileRef};
+use crate::unity::prefab_scene::{file_ref, material_list, ref_guid, split_docs, Doc, FileRef};
 
 /// Unity's built-in meshes, by file ID in its default resources.
 pub fn builtin_mesh(file_id: &str) -> Option<BuiltinMesh> {
@@ -300,7 +300,10 @@ pub fn parse_particle_systems(yaml: &str) -> Vec<ParticleEmitter> {
 /// variant of an effect is that effect; else `""`. Models with an effect attached (a machine with
 /// sparks) are not effects.
 pub fn prefab_effect_fact(yaml: &str) -> String {
-    let docs = split_docs(&yaml.replace("\r\n", "\n"));
+    effect_fact_of(&split_docs(&yaml.replace("\r\n", "\n")))
+}
+
+fn effect_fact_of(docs: &[Doc]) -> String {
     let systems: Vec<_> = docs.iter().filter(|d| d.cls == "198" && !d.stripped).collect();
     if !systems.is_empty() {
         let root = docs.iter().find(|d| (d.cls == "4" || d.cls == "224") && !d.stripped && re!(r"m_Father: \{fileID: 0\}").test(&d.body));
@@ -316,7 +319,7 @@ pub fn prefab_effect_fact(yaml: &str) -> String {
         }
         return String::new();
     }
-    for d in &docs {
+    for d in docs {
         if d.cls != "1001" || !re!(r"m_TransformParent: \{fileID: 0\}").test(&d.body) {
             continue;
         }
@@ -327,16 +330,53 @@ pub fn prefab_effect_fact(yaml: &str) -> String {
     String::new()
 }
 
+/// Separates the effect part of a stored prefab fact from its UI mark.
+const UI_MARK: &str = "|ui";
+
+/// What one read of a prefab file says, kept per blob SHA: [`prefab_effect_fact`], followed by `|ui` when
+/// the file holds a Canvas (class 223) or a RectTransform (class 224) object, placeholders of nested
+/// prefabs included (a prefab that nests a UI prefab is UI too).
+pub fn prefab_fact(yaml: &str) -> String {
+    let docs = split_docs(&yaml.replace("\r\n", "\n"));
+    let mut fact = effect_fact_of(&docs);
+    if docs.iter().any(|d| d.cls == "223" || d.cls == "224") {
+        fact.push_str(UI_MARK);
+    }
+    fact
+}
+
+/// The two parts of a stored prefab fact: the effect fact (`""`, `"1"` or base GUIDs) and whether the
+/// file holds UI objects.
+pub fn split_prefab_fact(fact: &str) -> (&str, bool) {
+    match fact.strip_suffix(UI_MARK) {
+        Some(effect) => (effect, true),
+        None => (fact, false),
+    }
+}
+
+/// Prefabs (by blob SHA) with UI objects, or variants of one (a few levels of variants). Takes the same
+/// arguments as [`effect_shas`], whose `facts` hold the effect part of each prefab's fact; `ui` lists the
+/// SHAs whose own file holds UI objects.
+pub fn ui_shas(facts: &[(String, String)], ui: &HashSet<String>, guid_to_sha: &[(String, String)]) -> Vec<String> {
+    spread(facts, facts.iter().filter(|(sha, _)| ui.contains(sha)).map(|(sha, _)| sha.clone()), guid_to_sha)
+}
+
 /// Prefabs (by blob SHA) that are effects: their own particle systems, or variants of an effect (a few
 /// levels of variants). `facts` is the fact of each prefab by SHA, `guid_to_sha` maps a prefab GUID to the
 /// SHA of its file on the branch. The result keeps the order the SHAs were found in.
 pub fn effect_shas(facts: &[(String, String)], guid_to_sha: &[(String, String)]) -> Vec<String> {
+    spread(facts, facts.iter().filter(|(_, f)| f == "1").map(|(sha, _)| sha.clone()), guid_to_sha)
+}
+
+/// `own` (in order, once each), then the variants of any of them: prefabs whose fact names, by GUID, a
+/// prefab already found.
+fn spread(facts: &[(String, String)], own: impl Iterator<Item = String>, guid_to_sha: &[(String, String)]) -> Vec<String> {
     let by_guid: HashMap<&str, &str> = guid_to_sha.iter().map(|(g, s)| (g.as_str(), s.as_str())).collect();
-    let mut effects: Vec<String> = Vec::new();
+    let mut found: Vec<String> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
-    for (sha, f) in facts {
-        if f == "1" && seen.insert(sha.clone()) {
-            effects.push(sha.clone());
+    for sha in own {
+        if seen.insert(sha.clone()) {
+            found.push(sha);
         }
     }
     let (mut depth, mut grew) = (0, true);
@@ -348,13 +388,13 @@ pub fn effect_shas(facts: &[(String, String)], guid_to_sha: &[(String, String)])
             }
             if f.split(',').any(|g| seen.contains(by_guid.get(g).copied().unwrap_or(""))) {
                 seen.insert(sha.clone());
-                effects.push(sha.clone());
+                found.push(sha.clone());
                 grew = true;
             }
         }
         depth += 1;
     }
-    effects
+    found
 }
 
 /// What a whole effect adds up to.
@@ -373,5 +413,66 @@ pub fn particle_totals(emitters: &[ParticleEmitter]) -> ParticleTotals {
         peak: emitters.iter().map(|e| e.peak).sum(),
         duration: emitters.iter().filter(|e| !e.looping).map(|e| e.duration + e.lifetime).fold(0.0, f64::max),
         looping: emitters.iter().any(|e| e.looping),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const PARTICLES: &str = "--- !u!1 &1\nGameObject:\n  m_Name: Fx\n--- !u!4 &2\nTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n--- !u!198 &3\nParticleSystem:\n  m_GameObject: {fileID: 1}\n";
+    const CANVAS: &str = "--- !u!1 &1\nGameObject:\n  m_Name: Hud\n--- !u!224 &2\nRectTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n--- !u!223 &3\nCanvas:\n  m_GameObject: {fileID: 1}\n";
+    const MESH: &str = "--- !u!1 &1\nGameObject:\n  m_Name: Crate\n--- !u!4 &2\nTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n--- !u!23 &3\nMeshRenderer:\n  m_GameObject: {fileID: 1}\n";
+    const VARIANT: &str = "--- !u!1001 &1\nPrefabInstance:\n  m_Modification:\n    m_TransformParent: {fileID: 0}\n  m_SourcePrefab: {fileID: 100100000, guid: a0000000000000000000000000000032, type: 3}\n";
+
+    #[test]
+    fn a_prefab_with_a_rect_transform_or_canvas_is_ui() {
+        assert_eq!(split_prefab_fact(&prefab_fact(CANVAS)), ("", true));
+        let rect_only = CANVAS.replace("--- !u!223 &3\nCanvas:", "--- !u!114 &3\nMonoBehaviour:");
+        assert!(split_prefab_fact(&prefab_fact(&rect_only)).1);
+        let canvas_only = "--- !u!223 &3\nCanvas:\n  m_GameObject: {fileID: 1}\n";
+        assert!(split_prefab_fact(&prefab_fact(canvas_only)).1);
+    }
+
+    #[test]
+    fn a_prefab_without_ui_objects_is_not_ui() {
+        assert_eq!(split_prefab_fact(&prefab_fact(MESH)), ("", false));
+        assert_eq!(split_prefab_fact(&prefab_fact("")), ("", false));
+        // A line that only mentions the header is not a document.
+        assert!(!split_prefab_fact(&prefab_fact("m_Name: --- !u!224 &1\n")).1);
+    }
+
+    #[test]
+    fn one_read_gives_the_effect_fact_and_the_ui_mark_apart() {
+        assert_eq!(prefab_fact(PARTICLES), "1");
+        assert_eq!(split_prefab_fact(&prefab_fact(PARTICLES)), ("1", false));
+        let both = format!("{PARTICLES}{}", CANVAS.replace("--- !u!1 &1\nGameObject:\n  m_Name: Hud\n", ""));
+        assert_eq!(split_prefab_fact(&prefab_fact(&both)), ("1", true));
+        assert_eq!(split_prefab_fact(&prefab_fact(VARIANT)), ("a0000000000000000000000000000032", false));
+        // The effect part is what `prefab_effect_fact` answered before the mark existed.
+        for yaml in [PARTICLES, CANVAS, MESH, VARIANT] {
+            assert_eq!(split_prefab_fact(&prefab_fact(yaml)).0, prefab_effect_fact(yaml));
+        }
+    }
+
+    #[test]
+    fn crlf_files_are_read_like_the_others() {
+        assert_eq!(prefab_fact(&CANVAS.replace('\n', "\r\n")), prefab_fact(CANVAS));
+    }
+
+    #[test]
+    fn a_variant_of_a_ui_prefab_is_ui() {
+        let facts = [("hud".to_string(), String::new()), ("skin".to_string(), "guid-hud".to_string()), ("skin2".to_string(), "guid-skin".to_string()), ("crate".to_string(), String::new())];
+        let ui: HashSet<String> = ["hud".to_string()].into();
+        let guids = [("guid-hud".to_string(), "hud".to_string()), ("guid-skin".to_string(), "skin".to_string())];
+        assert_eq!(ui_shas(&facts, &ui, &guids), ["hud", "skin", "skin2"]);
+        assert!(ui_shas(&facts, &HashSet::new(), &guids).is_empty());
+    }
+
+    #[test]
+    fn effect_variants_still_follow_their_base() {
+        let facts = [("fx".to_string(), "1".to_string()), ("fx2".to_string(), "guid-fx".to_string()), ("plain".to_string(), String::new())];
+        let guids = [("guid-fx".to_string(), "fx".to_string())];
+        assert_eq!(effect_shas(&facts, &guids), ["fx", "fx2"]);
     }
 }

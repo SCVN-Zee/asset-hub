@@ -11,6 +11,7 @@ use serde::{Serialize, Serializer};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::js::{is_js_space, len16, locale_compare, trim, OrderedMap, OrderedSet};
+use crate::tags::AssetTag;
 use crate::types::Asset;
 use concepts::CONCEPTS;
 
@@ -207,6 +208,7 @@ pub fn parse_query(query: &str) -> Vec<QueryTerm> {
 pub enum MatchKind {
     Name,
     Related,
+    Tag,
     Folder,
     Typo,
 }
@@ -216,6 +218,7 @@ impl MatchKind {
         match self {
             Self::Name => 100,
             Self::Related => 60,
+            Self::Tag => 50,
             Self::Folder => 30,
             Self::Typo => 20,
         }
@@ -229,6 +232,8 @@ struct Indexed {
     extra: String,
     words: Vec<String>,
     folders: Vec<String>,
+    /// Words of the asset's tags ("ui", "animation", "particle"), as a query term is compared with them.
+    tag_words: Vec<&'static str>,
 }
 
 /// What a search found.
@@ -314,6 +319,12 @@ pub struct AssetSearch {
 impl AssetSearch {
     /// `extra_names`: other names an asset answers to, e.g. the animation clips inside a model.
     pub fn new(assets: &[Asset], extra_names: Option<&dyn Fn(&Asset) -> Vec<String>>) -> Self {
+        Self::with_tags(assets, extra_names, None)
+    }
+
+    /// [`new`](Self::new) where `tags` gives the tags an asset carries: a query for one of a tag's words
+    /// ("ui", "animation", "particle") also finds the assets with that tag.
+    pub fn with_tags(assets: &[Asset], extra_names: Option<&dyn Fn(&Asset) -> Vec<String>>, tags: Option<&dyn Fn(&Asset) -> Vec<AssetTag>>) -> Self {
         let mut vocabulary: OrderedMap<usize> = OrderedMap::new();
         let mut spelling: HashMap<String, String> = HashMap::new();
         let mut items = Vec::with_capacity(assets.len());
@@ -341,7 +352,8 @@ impl AssetSearch {
                 }
             }
             let extra = extras.iter().map(|e| normalize(e)).collect::<Vec<_>>().join(" ");
-            items.push(Indexed { asset: Arc::new(asset.clone()), name: normalize(&asset.name), extra, words, folders });
+            let tag_words: Vec<&'static str> = tags.map(|f| f(asset)).unwrap_or_default().into_iter().flat_map(|t| t.search_words().iter().copied()).collect();
+            items.push(Indexed { asset: Arc::new(asset.clone()), name: normalize(&asset.name), extra, words, folders, tag_words });
         }
         Self { items, vocabulary, spelling, cache: Mutex::new(HashMap::new()) }
     }
@@ -353,6 +365,9 @@ impl AssetSearch {
         }
         if let Some(i) = item.words.iter().position(|w| term.related.contains(w)) {
             return Some((MatchKind::Related, Some(i)));
+        }
+        if item.tag_words.contains(&p.singular) {
+            return Some((MatchKind::Tag, None));
         }
         if item.folders.iter().any(|f| f == p.singular || term.related.contains(f)) {
             return Some((MatchKind::Folder, None));
@@ -571,6 +586,47 @@ mod tests {
     #[test]
     fn normalize_drops_diacritics_and_folds_d_stroke() {
         assert_eq!(normalize("Đường phố CÁ MẬP"), "duong pho ca map");
+    }
+
+    fn asset(id: &str) -> Asset {
+        Asset { id: id.into(), kind: "prefab".into(), path: id.into(), name: id.into(), sha: id.into(), size: None, lfs: false }
+    }
+
+    fn tagged(assets: &[Asset], tags: &[(&str, AssetTag)]) -> AssetSearch {
+        let by_id: Vec<(String, AssetTag)> = tags.iter().map(|(id, t)| (id.to_string(), *t)).collect();
+        let lookup = move |a: &Asset| by_id.iter().filter(|(id, _)| *id == a.id).map(|(_, t)| *t).collect::<Vec<_>>();
+        AssetSearch::with_tags(assets, None, Some(&lookup))
+    }
+
+    fn ids(found: &SearchResult) -> Vec<&str> {
+        found.assets.iter().map(|a| a.id.as_str()).collect()
+    }
+
+    #[test]
+    fn a_tag_word_finds_the_assets_with_that_tag() {
+        let assets = [asset("Hud.prefab"), asset("Smoke.prefab"), asset("Walk.prefab"), asset("Plain.prefab")];
+        let search = tagged(&assets, &[("Hud.prefab", AssetTag::Ui), ("Smoke.prefab", AssetTag::ParticleSystem), ("Walk.prefab", AssetTag::Animation)]);
+        assert_eq!(ids(&search.search("ui")), ["Hud.prefab"]);
+        assert_eq!(ids(&search.search("particle")), ["Smoke.prefab"]);
+        assert_eq!(ids(&search.search("particles")), ["Smoke.prefab"]);
+        assert_eq!(ids(&search.search("particle system")), ["Smoke.prefab"]);
+        assert_eq!(ids(&search.search("animation")), ["Walk.prefab"]);
+        // A tag word alongside a name word narrows to the tagged assets of that name.
+        assert_eq!(ids(&search.search("smoke particle")), ["Smoke.prefab"]);
+        assert!(search.search("smoke ui").assets.is_empty());
+    }
+
+    #[test]
+    fn a_name_that_holds_the_word_ranks_above_the_tag() {
+        let assets = [asset("UiPanel.prefab"), asset("Hud.prefab")];
+        let search = tagged(&assets, &[("Hud.prefab", AssetTag::Ui)]);
+        assert_eq!(ids(&search.search("ui")), ["UiPanel.prefab", "Hud.prefab"]);
+    }
+
+    #[test]
+    fn assets_without_tags_are_not_found_by_a_tag_word() {
+        let assets = [asset("Hud.prefab")];
+        assert!(AssetSearch::new(&assets, None).search("ui").assets.is_empty());
     }
 
     #[test]

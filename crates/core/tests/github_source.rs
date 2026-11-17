@@ -354,6 +354,29 @@ fn effects_are_listed_with_their_progress() {
 }
 
 #[test]
+fn ui_prefabs_come_from_the_read_that_found_the_effects() {
+    let mut hub = Hub::corpus();
+    let template = hub.entries.iter().find(|e| e.path.ends_with(".prefab")).expect("a prefab").clone();
+    let hud = "--- !u!1 &1\nGameObject:\n  m_Name: Hud\n--- !u!224 &2\nRectTransform:\n  m_GameObject: {fileID: 1}\n  m_Father: {fileID: 0}\n";
+    for (path, sha) in [("proj/Assets/Ui/Hud.prefab", format!("{:040x}", 1)), ("proj/Assets/Ui/Hud2.prefab", format!("{:040x}", 2))] {
+        hub.by_path.insert(path.to_string(), hud.as_bytes().to_vec());
+        hub.by_sha.insert(sha.clone(), hud.as_bytes().to_vec());
+        hub.entries.push(TreeEntry { path: path.to_string(), sha, size: None, ..template.clone() });
+    }
+    let cache = Arc::new(MemoryCache::default());
+    let (src, counts) = source_with(hub, Some(cache.clone()), None);
+    let effects = block_on(src.known_assets(REPO, "main", FactKind::Effects, None)).expect("effects");
+    let reads = counts.graphql.load(Ordering::SeqCst) + counts.blobs.load(Ordering::SeqCst);
+    let ui = block_on(src.known_assets(REPO, "main", FactKind::UiPrefabs, None)).expect("ui");
+    assert_eq!(counts.graphql.load(Ordering::SeqCst) + counts.blobs.load(Ordering::SeqCst), reads, "the prefabs are not read again for the UI scan");
+    assert_eq!(ui, [format!("{:040x}", 1), format!("{:040x}", 2)]);
+    assert!(ui.iter().all(|sha| !effects.contains(sha)), "a UI prefab without particles is not an effect");
+    let keys: Vec<String> = cache.values.lock().unwrap().keys().cloned().collect();
+    assert!(keys.iter().any(|k| k.starts_with("prefabfx4/")), "facts are kept under the current kind");
+    assert!(!keys.iter().any(|k| k.starts_with("prefabfx3/")), "an older format is never written");
+}
+
+#[test]
 fn a_scan_of_files_without_sizes_reads_them_in_several_chunks() {
     // A listing made with git has no sizes, so only the file count keeps one chunk from holding everything.
     let mut hub = Hub::corpus();

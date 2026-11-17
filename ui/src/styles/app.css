@@ -423,9 +423,14 @@ body.resizing * { cursor: inherit !important; }
 .cell-mark { min-width: 18px; }
 .cell-mark-warn { color: var(--warn); }
 .cell-mark-pick { background: var(--text); color: var(--ground); }
-.cell-tags { position: absolute; left: 6px; bottom: 8px; display: flex; gap: 3px; }
-.cell-tag { border-radius: var(--r-sm); font-weight: 500; }
+.cell-tags { position: absolute; left: 6px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 36px); }
+.cell-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r-sm); font-weight: 500; }
 .cell-tag-new { color: var(--ok); }
+/* Tags: filter chips above the grid, and the inspector's static chips. */
+.tag-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 16px 0; }
+.tag-filter .num { margin-left: 4px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.tag-chip { height: 18px; padding: 0 6px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--text-2); font: 500 var(--fs-xs)/16px var(--font); white-space: nowrap; }
 .star-badge { position: absolute; right: 6px; bottom: 8px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(31, 31, 32, 0.88); color: var(--text); line-height: 1; }
 .thumb-spinner { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: var(--ground); animation: spin 0.8s linear infinite; }
 /* An effect's frames (a 4 x 4 sheet) played over its still card, cropped like it. */

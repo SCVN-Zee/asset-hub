@@ -7,6 +7,7 @@ use serde::Serialize;
 
 use crate::registry::HandlerRegistry;
 use crate::stats::StatsSummary;
+use crate::tags::is_animated_model;
 use crate::types::{Asset, AssetFacts, FactKind, PreviewKind, TreeEntry};
 use crate::js::Re;
 use crate::re;
@@ -50,7 +51,8 @@ pub enum AlsoShows {
     Nothing,
     /// Assets of `from_type` whose SHA the scan of `fact` found.
     Fact { from_type: &'static str, fact: FactKind },
-    /// Models holding animation clips (measured), or named like animation files (`Model@Run.fbx`).
+    /// Models holding animation clips (measured), or named like animation files (`Model@Run.fbx`); see
+    /// [`is_animated_model`].
     AnimatedModel,
 }
 
@@ -125,7 +127,7 @@ impl AssetHandler {
         match self.also_shows {
             AlsoShows::Nothing => false,
             AlsoShows::Fact { from_type, fact } => asset.kind == from_type && facts.and_then(|f| f.of(fact)).is_some_and(|shas| shas.contains(&asset.sha)),
-            AlsoShows::AnimatedModel => asset.kind == "fbx" && (stats.is_some_and(|s| s.clips > 0.0) || asset.name.contains('@')),
+            AlsoShows::AnimatedModel => is_animated_model(&asset.kind, &asset.name, stats),
         }
     }
 
@@ -165,7 +167,7 @@ fn base(id: &'static str, label_key: &'static str, badge: &'static str, preview_
 /// The handlers in registration order.
 pub fn create_default_registry() -> HandlerRegistry {
     let handlers = [
-        AssetHandler { resolver: Some(Resolver::Fbx), materials_from_prefabs: true, ..base("fbx", "assetTypes.fbx", "FBX", PreviewKind::Three, |e| re!(r"\.fbx$", "i").test(&e.path)) },
+        AssetHandler { resolver: Some(Resolver::Fbx), materials_from_prefabs: true, ..base("fbx", "assetTypes.fbx", "MDL", PreviewKind::Three, |e| re!(r"\.(fbx|obj|gltf|glb|dae)$", "i").test(&e.path)) },
         AssetHandler {
             resolver: Some(Resolver::Itself),
             delivery: Delivery::File,

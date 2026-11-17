@@ -5,6 +5,7 @@ import { formatBytes } from '../format'
 import type { HandlerRegistry } from '../handlers'
 import { parse } from '../parse'
 import { useSearch } from '../useSearch'
+import { ASSET_TAGS, tagsOf, type AssetTag } from '../tags'
 import { AssetCard, SkeletonCard } from '../components/AssetCard'
 import { AssetDetails } from '../components/AssetDetails'
 import { ExportBar, packCapacity, type ExportOptions, type ExportState, type PackItem } from '../components/ExportBar'
@@ -130,6 +131,18 @@ interface Props {
 }
 
 const ALL = 'all'
+/** The tags of each asset that has any, by asset id. */
+function tagsByAsset(list: readonly Asset[], stats: Record<string, StatsSummary>, facts: AssetFacts): Map<string, AssetTag[]> {
+  const byId = new Map<string, AssetTag[]>()
+  for (const a of list) {
+    const tags = tagsOf(a, stats[a.sha], facts)
+    if (tags.length) byId.set(a.id, tags)
+  }
+  return byId
+}
+
+/** What a scan of the prefabs finds, for the tags of prefabs. */
+const TAG_FACTS: readonly FactKind[] = ['effects', 'uiPrefabs']
 const NO_FACETS: CatalogFacets = { repos: [], branches: [] }
 /** Cards rendered per step while scrolling. */
 const PAGE = 60
@@ -427,7 +440,8 @@ export function Browse({
   const modelPaths = useMemo(() => assets.filter((a) => registry.get(a.type)?.preview.kind === 'three').map((a) => root + a.path), [assets, registry, root])
   const ofType = useMemo(() => (typeFilter === ALL ? assets : assets.filter((a) => inTab(a, typeFilter))), [assets, typeFilter, inTab])
   // Matches groups (fish → shark), typos and folder names, best matches first (done in Rust, so answers follow the typing).
-  const { found, folders: folderRoot, suggest: suggestHere } = useSearch(ofType, clipNames, query, folder)
+  const branchTags = useMemo(() => tagsByAsset(ofType, modelStats, known), [ofType, withClips, known])
+  const { found, folders: folderRoot, suggest: suggestHere } = useSearch(ofType, clipNames, query, folder, branchTags)
   const visible = found.assets
   // Same blob SHA = byte-identical file; with merging on, one card stands for all copies.
   const copiesBySha = useMemo(() => {
@@ -455,10 +469,21 @@ export function Browse({
   /** Repos and branches present in the results, most files first, for the filters. */
   const catalogFacets = catalog.facets ?? NO_FACETS
   const catalogOfType = useMemo(() => (catalog.assets ?? []).filter((a) => inTab(a, typeFilter)), [catalog.assets, typeFilter, inTab])
-  const { found: catalogFound, suggest: suggestCatalog } = useSearch(catalogOfType, clipNames, query, '')
+  const catalogTags = useMemo(() => tagsByAsset(catalogOfType, modelStats, known), [catalogOfType, withClips, known])
+  const { found: catalogFound, suggest: suggestCatalog } = useSearch(catalogOfType, clipNames, query, '', catalogTags)
   const catalogShown = catalogFound.assets
   const catalogSelected = catalogShown.find((a) => a.sha === catalogSel)
   const inCatalog = scope !== 'branch'
+  /** The tags of the cards in the open view, and how many cards of the tab have each (for the filter chips). */
+  const viewTags = inCatalog ? catalogTags : branchTags
+  const tagCounts = useMemo(() => {
+    const counts = new Map<AssetTag, number>()
+    for (const tags of viewTags.values()) for (const tag of tags) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+    return counts
+  }, [viewTags])
+  const [tagFilter, setTagFilter] = useState<AssetTag>()
+  // A tag that no card of the list has any more (another tab, another branch) cannot stay selected.
+  useEffect(() => setTagFilter((on) => (on && tagCounts.has(on) ? on : undefined)), [tagCounts])
   /** Cards in the grid, whichever view is open. */
   // Ordered and filtered for reuse in playables (measurements come from thumbnails and opened models).
   // Watched branches: what was added since each was last marked seen (checked on opening, every 30 minutes, on coming back).
@@ -516,12 +541,13 @@ export function Browse({
   const passesChips = useCallback(
     (a: Asset) => {
       if (newOnly && !newHere.has(root + a.path)) return false
+      if (tagFilter && !viewTags.get(a.id)?.includes(tagFilter)) return false
       const s = modelStats[a.sha]
       return chips.every((c) =>
         c === 'small' ? (a.size ?? Infinity) <= 500 * 1024 : c === 'lowPoly' ? !!s && s.triangles > 0 && s.triangles <= 5000 : a.type === 'animation' || (!!s && s.clips > 0)
       )
     },
-    [chips, modelStats, newOnly, newHere, root]
+    [chips, modelStats, newOnly, newHere, root, tagFilter, viewTags]
   )
   const teamScores = usePopularity(repo || undefined, branch)
   /** The user's own history: a favorite counts 2, a recently viewed or exported asset 1. */
@@ -801,36 +827,40 @@ export function Browse({
 
   // Tabs that list assets by what is inside them (VFX, Sprite, TextMeshPro fonts) need the branch's files read once
   // (kept by SHA, shared by all branches): started the first time such a tab is opened, finished even if the user moves on.
+  // The tabs that show prefabs also read them for their tags (particle system, UI). The scans run one after the other:
+  // the second one is answered from what the first one cached, so no prefab is downloaded twice.
+  const tabFacts = registry.get(typeFilter)?.facts
+  const tagScans = typeFilter === ALL || typeFilter === 'prefab' || tabFacts === 'effects'
   useEffect(() => {
-    const kind = registry.get(typeFilter)?.facts
-    if (!kind || !live) return
-    const key = `${kind}:${live.repo}@${live.branch}`
-    if (scans.current.has(key)) return
-    scans.current.add(key)
-    const add = (shas: readonly string[]) => setKnown((prev) => ({ ...prev, [kind]: new Set([...(prev[kind] ?? []), ...shas]) }))
-    setScan({ kind, status: 'scanning', done: 0, total: 0 })
-    const off = window.api.assets.onKnownProgress((k, { found, ...p }) => {
-      if (k !== kind) return
-      setScan((s) => (s?.kind === kind && s.status === 'scanning' ? { ...s, ...p } : s))
-      // Assets appear as they are found, not only when every file has been read.
-      if (found?.length) add(found)
-    })
-    void window.api.assets
-      .knownAssets(live.repo, live.branch, kind)
-      .then(unwrap)
-      .then(
-        (shas) => {
-          add(shas)
-          setScan((s) => (s?.kind === kind ? undefined : s))
-        },
-        () => {
-          // Tried again the next time the tab is opened.
-          scans.current.delete(key)
-          setScan({ kind, status: 'error', done: 0, total: 0 })
-        }
-      )
-      .finally(off)
-  }, [typeFilter, live, registry])
+    if (!live) return
+    const kinds: FactKind[] = [...new Set<FactKind>([...(tabFacts ? [tabFacts] : []), ...(tagScans ? TAG_FACTS : [])])]
+    const keyOf = (kind: FactKind) => `${kind}:${live.repo}@${live.branch}`
+    const pending = kinds.filter((kind) => !scans.current.has(keyOf(kind)))
+    if (!pending.length) return
+    for (const kind of pending) scans.current.add(keyOf(kind))
+    const run = async (kind: FactKind) => {
+      const key = keyOf(kind)
+      const add = (shas: readonly string[]) => setKnown((prev) => ({ ...prev, [kind]: new Set([...(prev[kind] ?? []), ...shas]) }))
+      setScan({ kind, status: 'scanning', done: 0, total: 0 })
+      const off = window.api.assets.onKnownProgress((k, { found, ...p }) => {
+        if (k !== kind) return
+        setScan((s) => (s?.kind === kind && s.status === 'scanning' ? { ...s, ...p } : s))
+        // Assets appear as they are found, not only when every file has been read.
+        if (found?.length) add(found)
+      })
+      try {
+        add(await window.api.assets.knownAssets(live.repo, live.branch, kind).then(unwrap))
+        setScan((s) => (s?.kind === kind ? undefined : s))
+      } catch {
+        // Tried again the next time the tab is opened.
+        scans.current.delete(key)
+        setScan({ kind, status: 'error', done: 0, total: 0 })
+      } finally {
+        off()
+      }
+    }
+    void pending.reduce((previous, kind) => previous.then(() => run(kind)), Promise.resolve())
+  }, [tabFacts, tagScans, live])
 
   const sharedImports = useSharedImports()
   // Saved thumbnails and measurements of an open collection's assets, from any repo or branch (by content).
@@ -1467,6 +1497,16 @@ export function Browse({
             )}
             <CellSizeToggle value={cellSize} onChange={setCellSize} />
           </div>
+          {tagCounts.size > 0 && (
+            <div className="tag-filter" role="group" aria-label={t('tags.filter')}>
+              {ASSET_TAGS.filter((tag) => tagCounts.has(tag)).map((tag) => (
+                <button key={tag} type="button" className="chip" aria-pressed={tagFilter === tag} title={t(`tags.${tag}Hint`)} onClick={() => setTagFilter((on) => (on === tag ? undefined : tag))}>
+                  {t(`tags.${tag}`)}
+                  <span className="num">{tagCounts.get(tag)}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {inCatalog && catalog.assets && (
             <div className="catalog-filters">
               {scope === 'all' && (
@@ -1526,6 +1566,7 @@ export function Browse({
                     onSelect={() => setCatalogSel(a.sha)}
                     onContextMenu={(e) => catalogMenu(a, e)}
                     note={locationNote(a, scope, t)}
+                    tags={catalogTags.get(a.id)}
                     generating={thumbQueue.busy.has(a.sha)}
                     stats={modelStats[a.sha]}
                     onVisible={
@@ -1618,6 +1659,7 @@ export function Browse({
                     thumb={thumbs[a.sha]}
                     generating={thumbQueue.busy.has(a.sha)}
                     copies={mergeCopies ? copiesBySha.get(a.sha)?.length : undefined}
+                    tags={branchTags.get(a.id)}
                     selected={a.id === selectedId || (!!selected && mergeCopies && selected.sha === a.sha)}
                     onSelect={(how) => pickCard(a, how)}
                     onContextMenu={(e) => cardMenu(a, e)}
@@ -1684,6 +1726,7 @@ export function Browse({
           onViewerLoading={onViewerLoading}
           onModelStats={saveStats}
           asset={selected}
+          tags={selected && branchTags.get(selected.id)}
           handler={selected && registry.get(selected.type)}
           playClips={registry.get(typeFilter)?.preview.kind === 'animation'}
           models={modelPaths}

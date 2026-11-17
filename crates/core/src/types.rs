@@ -70,6 +70,8 @@ pub enum PreviewKind {
 #[serde(rename_all = "camelCase")]
 pub enum FactKind {
     Effects,
+    /// Prefabs with a RectTransform or Canvas object (read together with `Effects`).
+    UiPrefabs,
     Sprites,
     TmpFonts,
 }
@@ -91,6 +93,8 @@ pub struct AssetFacts {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub effects: Option<std::collections::HashSet<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ui_prefabs: Option<std::collections::HashSet<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sprites: Option<std::collections::HashSet<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tmp_fonts: Option<std::collections::HashSet<String>>,
@@ -101,6 +105,7 @@ impl AssetFacts {
     pub fn of(&self, kind: FactKind) -> Option<&std::collections::HashSet<String>> {
         match kind {
             FactKind::Effects => self.effects.as_ref(),
+            FactKind::UiPrefabs => self.ui_prefabs.as_ref(),
             FactKind::Sprites => self.sprites.as_ref(),
             FactKind::TmpFonts => self.tmp_fonts.as_ref(),
         }

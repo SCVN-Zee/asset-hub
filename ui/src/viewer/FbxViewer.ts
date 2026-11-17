@@ -4,6 +4,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 import { TGALoader } from 'three/examples/jsm/loaders/TGALoader.js'
 import type { MaterialLook, ModelStats, TextureRole } from '@shared/types'
 import { contextRecovery } from './contextRecovery'
+import { parseModel, type ModelFormat } from './modelLoaders'
 
 export type ViewPreset = 'front' | 'side' | 'top' | 'reset'
 
@@ -122,11 +123,11 @@ export class FbxViewer {
   }
 
   /**
-   * Parses the FBX; texture names inside it are served from `textures` (keyed
+   * Parses the model (an FBX, or another `format`); texture names inside it are served from `textures` (keyed
    * by lower-case file name). Resolves once those textures have loaded (or
    * after a short timeout), so a snapshot taken then shows them.
    */
-  load(fbx: ArrayBuffer, textures: ReadonlyMap<string, TextureFile>): Promise<void> {
+  async load(fbx: ArrayBuffer, textures: ReadonlyMap<string, TextureFile>, format: ModelFormat = 'fbx'): Promise<void> {
     const manager = new THREE.LoadingManager()
     let started = false
     const loaded = new Promise<void>((resolve) => {
@@ -134,9 +135,10 @@ export class FbxViewer {
       setTimeout(resolve, 4000)
     })
     manager.onStart = () => (started = true)
-    manager.setURLModifier((url) => textures.get(baseLower(url))?.url ?? BLANK_TEXTURE)
+    // Textures a glTF holds inside itself arrive as data or blob URLs, which must be left as they are.
+    manager.setURLModifier((url) => textures.get(baseLower(url))?.url ?? (format !== 'fbx' && /^(data|blob):/.test(url) ? url : BLANK_TEXTURE))
     manager.addHandler(/\.tga$/i, new TGALoader(manager))
-    const model = new FBXLoader(manager).parse(fbx, '')
+    const model = format === 'fbx' ? new FBXLoader(manager).parse(fbx, '') : await parseModel(format, fbx, manager)
     this.model = model
     this.scene.add(model)
     this.frameModel()

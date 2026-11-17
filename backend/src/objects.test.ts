@@ -102,9 +102,9 @@ describe('cache objects', () => {
     expect((await put('catalog', { 'if-none-match': '*' }, big)).status).toBe(413)
   })
 
-  it('accepts facts-prefabfx3', async () => {
+  it('accepts facts-prefabfx4', async () => {
     allowRepo('game', true)
-    expect((await put('facts-prefabfx3', { 'if-none-match': '*' })).status).toBe(200)
+    expect((await put('facts-prefabfx4', { 'if-none-match': '*' })).status).toBe(200)
   })
 
   it('accepts every fact kind', async () => {

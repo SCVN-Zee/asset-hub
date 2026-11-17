@@ -7,7 +7,7 @@
   },
   "assetTypes": {
     "all": "All",
-    "fbx": "FBX",
+    "fbx": "Model",
     "texture": "Texture",
     "material": "Material",
     "audio": "Audio",
@@ -867,6 +867,16 @@
     "lowPoly": "≤ 5k tris",
     "animated": "With animation",
     "none": "Nothing matches these filters"
+  },
+  "tags": {
+    "label": "Tags",
+    "animation": "Animation",
+    "ui": "UI",
+    "particleSystem": "Particle System",
+    "filter": "Filter by tag",
+    "animationHint": "A model with animation clips",
+    "uiHint": "A prefab with UI objects (RectTransform or Canvas)",
+    "particleSystemHint": "A prefab with a particle system"
   },
   "watch": {
     "title": "Pinned branches",

@@ -4,12 +4,13 @@
 
 import type { Asset, AssetFacts, FactKind, StatsSummary } from '@shared/types'
 import type { HandlerDescriptor } from './parse'
+import { isAnimatedModel } from './tags'
 
 export interface AssetTypeHandler {
   id: string
   /** i18n key for tabs and badges. */
   labelKey: string
-  /** Short badge text shown on cards, e.g. 'FBX'. */
+  /** Short badge text, e.g. 'MDL'. */
   badge: string
   preview: { kind: string }
   /** No tab and not under All: only listed by other tabs, once a scan has found them. */
@@ -33,7 +34,7 @@ export interface AssetTypeHandler {
 function alsoShowsRule(rule: NonNullable<HandlerDescriptor['alsoShows']>): NonNullable<AssetTypeHandler['alsoShows']> {
   if (rule.kind === 'fact') return (asset, _stats, facts) => asset.type === rule.fromType && !!facts?.[rule.fact]?.has(asset.sha)
   // Models holding clips (measured), or named like animation files (Model@Run.fbx), are animations too.
-  return (asset, stats) => asset.type === 'fbx' && ((stats?.clips ?? 0) > 0 || asset.name.includes('@'))
+  return isAnimatedModel
 }
 
 /** The handlers in the order the tabs show them. */

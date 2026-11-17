@@ -6,6 +6,7 @@ import { unwrap } from '../remoteSource'
 import { Dropdown } from './Dropdown'
 import { ViewGizmo } from './ViewGizmo'
 import { FbxViewer, type MaterialSlot, type TextureFile } from '../viewer/FbxViewer'
+import { modelFormat } from '../viewer/modelLoaders'
 import { DRAWABLE, fetchTextureFile, guessedSlots, materialSlotPaths, reportSlotPaths } from '../viewer/textures'
 
 export interface LiveContext {
@@ -101,7 +102,7 @@ export function ModelViewer({ live, path, report, prefabMaterial, onStats, onThu
         await fetchTextures(Object.values(found).filter((p): p is string => !!p))
         if (cancelled) return
         const byName = new Map([...ownFiles.values()].map((f) => [f.name.toLowerCase(), f]))
-        await v.load(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, byName)
+        await v.load(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, byName, modelFormat(path))
         if (cancelled) return
         // Textures named in the FBX but not wired to a slot: place them by file name.
         if (!v.hasColorMaps() && byName.size) await v.applyMaterialSlots(guessedSlots([...byName.values()]))

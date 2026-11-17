@@ -5,6 +5,7 @@ import type { LiveContext } from '../components/ModelViewer'
 import { unwrap } from '../remoteSource'
 import { FbxViewer, type MaterialSlot, type TextureFile } from './FbxViewer'
 import { fetchTextureFile, guessedSlots, reportSlotPaths } from './textures'
+import { modelFormat } from './modelLoaders'
 import { MODEL_THUMB_VERSION } from './thumbVersions'
 import type { ThumbTimer } from './thumbTiming'
 
@@ -74,7 +75,7 @@ export async function renderThumbnail(live: LiveContext, path: string, elsewhere
   const viewer = new FbxViewer(offscreenHost())
   timer?.mark('setup')
   try {
-    await viewer.load(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, new Map(files.map((f) => [f.name.toLowerCase(), f])))
+    await viewer.load(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer, new Map(files.map((f) => [f.name.toLowerCase(), f])), modelFormat(path))
     const slots = slotPaths.flatMap((s): MaterialSlot[] => {
       const file = byPath.get(s.path)
       return file ? [{ material: s.material, prop: s.prop, file }] : []

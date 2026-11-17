@@ -37,7 +37,7 @@ export interface Asset {
 export type AssetStats = Record<string, number | string | boolean>
 
 /** Kinds of assets known only by reading them (a scan per repo, kept by SHA). */
-export type FactKind = 'effects' | 'sprites' | 'tmpFonts'
+export type FactKind = 'effects' | 'uiPrefabs' | 'sprites' | 'tmpFonts'
 
 /** What is known about assets beyond their measurements, for tabs that list other types: blob SHAs per kind. */
 export type AssetFacts = Partial<Record<FactKind, ReadonlySet<string>>>

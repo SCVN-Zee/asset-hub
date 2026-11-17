@@ -1,7 +1,7 @@
 //! Fact kinds the desktop shares per repo. Must equal `SHARED_FACT_KINDS` in
 //! `crates/core/src/github/source.rs`.
 
-pub const FACT_KINDS: [&str; 5] = ["metaguids", "prefabmodels", "prefabfx3", "spritemeta", "tmpfont"];
+pub const FACT_KINDS: [&str; 5] = ["metaguids", "prefabmodels", "prefabfx4", "spritemeta", "tmpfont"];
 
 /// Whether `name` is one of the names `/cache/:name` accepts: `catalog`, `stats` and `facts-<kind>`.
 pub fn is_cache_object_name(name: &str) -> bool {

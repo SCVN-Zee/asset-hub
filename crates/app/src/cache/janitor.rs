@@ -12,7 +12,7 @@ use crate::dto::CacheUsage;
 /// used first. `http` holds the revalidation store of GitHub API answers.
 pub const DOWNLOADS: [&str; 4] = ["blobs", "tree", "guids", "http"];
 /// Folders older versions wrote and nothing reads any more.
-const STALE: [&str; 2] = ["prefabfx", "prefabfx2"];
+const STALE: [&str; 3] = ["prefabfx", "prefabfx2", "prefabfx3"];
 /// Below the limit by this much after a cleanup, so it does not run again on the next download.
 const PRUNE_TO: f64 = 0.9;
 /// Downloads written between two checks of the limit.

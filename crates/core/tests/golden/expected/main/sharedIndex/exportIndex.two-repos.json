@@ -54,12 +54,12 @@
    "sha256": "66e4a2b825ecb9621128313fcd8fd3d0a542ef56b2857458889d9b507a480b2b"
   },
   {
-   "path": "facts/prefabfx3/org__hero.json.gz",
+   "path": "facts/prefabfx4/org__hero.json.gz",
    "bytes": 67,
    "sha256": "be558c1cc9e31ad2bcd31943aac246a613152bd53431cebd4dc2a75dec14ba93"
   },
   {
-   "path": "facts/prefabfx3/org__other.json.gz",
+   "path": "facts/prefabfx4/org__other.json.gz",
    "bytes": 57,
    "sha256": "197ff83f88ee45ef3fb505e3e6374462c0fe290ff21b05ec92fa00783080988c"
   },

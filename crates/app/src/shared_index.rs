@@ -549,7 +549,7 @@ pub mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let a = machine(tmp.path(), "a");
         a.deps.catalog.merge(&single_commit_hero()).await;
-        a.facts.put("prefabfx3", "org/hero", "p1", "fx");
+        a.facts.put("prefabfx4", "org/hero", "p1", "fx");
         a.deps.caches.stats.save("fish", &stat(json!({"triangles": 500}))).await;
         a.deps.caches.thumbs.save("fish", PNG).await.unwrap();
 
@@ -564,7 +564,7 @@ pub mod tests {
         assert_eq!(import_index(&shared, &b.deps).await.unwrap(), Counts { commits: 1, facts: 1, stats: 1, thumbs: 1 });
         let listing = b.deps.catalog.listing(&[], &[], Default::default()).await.unwrap();
         assert_eq!(listing.assets.iter().map(|x| x.path.as_str()).collect::<Vec<_>>(), ["Fish.fbx"]);
-        assert_eq!(b.facts.get("prefabfx3", "org/hero").get("p1"), Some(&json!("fx")));
+        assert_eq!(b.facts.get("prefabfx4", "org/hero").get("p1"), Some(&json!("fx")));
         assert_eq!(b.deps.caches.stats.all().await["fish"].triangles, 500.0);
         assert_eq!(b.deps.caches.thumbs.read("fish").await.unwrap().content_type, "image/png");
         // Nothing new the second time.
@@ -576,7 +576,7 @@ pub mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let a = machine(tmp.path(), "a");
         a.deps.catalog.merge(&single_commit_hero()).await;
-        a.facts.put("prefabfx3", "org/hero", "p1", "fx");
+        a.facts.put("prefabfx4", "org/hero", "p1", "fx");
         a.deps.caches.stats.save("fish", &stat(json!({"triangles": 500}))).await;
         a.deps.caches.stats.save("other", &stat(json!({"triangles": 7}))).await;
         let shared = tmp.path().join("drive").join(INDEX_FOLDER);
@@ -588,10 +588,10 @@ pub mod tests {
         assert!(!catalog_adds(read_json_gz(shared.join("catalog").join("org__hero.json.gz")).await.as_ref(), &catalogs[0]));
         assert!(catalog_adds(None, &catalogs[0]));
 
-        let file = repo_facts(&a.deps, "prefabfx3", "org/hero").await.unwrap().unwrap();
-        let written = tokio::fs::read(shared.join("facts").join("prefabfx3").join("org__hero.json.gz")).await.unwrap();
+        let file = repo_facts(&a.deps, "prefabfx4", "org/hero").await.unwrap().unwrap();
+        let written = tokio::fs::read(shared.join("facts").join("prefabfx4").join("org__hero.json.gz")).await.unwrap();
         assert_eq!(gzip_json(&file).unwrap(), written);
-        let there = read_json_gz(shared.join("facts").join("prefabfx3").join("org__hero.json.gz")).await;
+        let there = read_json_gz(shared.join("facts").join("prefabfx4").join("org__hero.json.gz")).await;
         assert!(!facts_add(there.as_ref().and_then(|t| t.get("facts")).and_then(Value::as_object), &file.facts));
         assert!(facts_add(None, &file.facts));
         assert!(repo_facts(&a.deps, "metaguids", "org/hero").await.unwrap().is_none());
@@ -715,9 +715,9 @@ pub mod tests {
         );
         a.deps.catalog.merge(&hero).await;
         a.deps.catalog.flush().await;
-        a.facts.put("prefabfx3", "org/hero", "p1", "fx");
-        a.facts.put("prefabfx3", "org/hero", "a0", "1");
-        a.facts.put("prefabfx3", "org/other", "z", "");
+        a.facts.put("prefabfx4", "org/hero", "p1", "fx");
+        a.facts.put("prefabfx4", "org/hero", "a0", "1");
+        a.facts.put("prefabfx4", "org/other", "z", "");
         a.deps.caches.stats.save("fish", &stat(json!({"triangles": 500}))).await;
         a.deps.caches.stats.save("tree", &stat(json!({"triangles": 90, "fxThumb": 2}))).await;
         // Stored as the golden bytes (a PNG), which `save` would re-encode.

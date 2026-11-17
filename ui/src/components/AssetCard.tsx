@@ -7,6 +7,8 @@ import { useBudget } from '../budget'
 import { summaryIssues } from '../playable'
 import { formatDuration } from '../viewer/audio'
 import { budgetIssuesTitle, compactCount } from './CatalogPanel'
+import { TagChips } from './TagChips'
+import type { AssetTag } from '../tags'
 import { AnimIcon, AudioIcon, CubeIcon, FontIcon, ImageIcon, SphereIcon, StarIcon } from './Icons'
 import { WeightBar } from './WeightBar'
 import { motionKey } from '../viewer/particleThumb'
@@ -39,9 +41,11 @@ interface Props {
   fresh?: boolean
   /** Right-click: the card's actions. */
   onContextMenu?(e: React.MouseEvent): void
+  /** What is known about it: animation, UI, particle system. */
+  tags?: readonly AssetTag[]
 }
 
-export function AssetCard({ asset, handler, thumb, generating, copies, selected, onSelect, picked, onVisible, note, stats, starred, fresh, inList, onContextMenu }: Props) {
+export function AssetCard({ asset, handler, thumb, generating, copies, selected, onSelect, picked, onVisible, note, stats, starred, fresh, inList, onContextMenu, tags }: Props) {
   const { t } = useTranslation()
   const ref = useRef<HTMLButtonElement>(null)
   const visibleRef = useRef(onVisible)
@@ -131,6 +135,7 @@ export function AssetCard({ asset, handler, thumb, generating, copies, selected,
               ▶ {stats.clips}
             </span>
           ) : null}
+          {tags && <TagChips tags={tags} stage />}
         </span>
         {starred && (
           <span className="star-badge" aria-label={t('collections.favorites')}>

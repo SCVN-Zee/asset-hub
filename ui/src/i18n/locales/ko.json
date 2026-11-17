@@ -7,7 +7,7 @@
   },
   "assetTypes": {
     "all": "전체",
-    "fbx": "FBX",
+    "fbx": "모델",
     "texture": "텍스처",
     "material": "머티리얼",
     "audio": "오디오",
@@ -811,6 +811,16 @@
     "lowPoly": "≤ 5k 트라이",
     "animated": "애니메이션 있음",
     "none": "필터와 일치하는 에셋이 없습니다"
+  },
+  "tags": {
+    "label": "태그",
+    "animation": "애니메이션",
+    "ui": "UI",
+    "particleSystem": "파티클 시스템",
+    "filter": "태그로 필터",
+    "animationHint": "애니메이션 클립이 있는 모델",
+    "uiHint": "UI 오브젝트(RectTransform 또는 Canvas)가 있는 프리팹",
+    "particleSystemHint": "파티클 시스템이 있는 프리팹"
   },
   "watch": {
     "title": "고정한 브랜치",

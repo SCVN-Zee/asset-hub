@@ -28,6 +28,8 @@ import { fontStats, type LoadedFont } from '../viewer/font'
 import { DownloadButton } from './DownloadButton'
 import { BundleNotice, useModelBundle } from './ModelBundleButtons'
 import { CollectionMenuItems, FavoriteButton } from './Collections'
+import { TagChips } from './TagChips'
+import type { AssetTag } from '../tags'
 import { BudgetLine, CalibrationStrip, CopyStatus, FactsGrid, MenuItem, MenuLabel, MenuSep, MoreMenu, useCopy, type Fact } from './InspectorParts'
 
 // Viewers drawing with three.js load when first opened: the app starts without the 3D engine.
@@ -57,6 +59,8 @@ interface Props {
   onImportToUnity(editor: RunningUnity): void
   /** Byte-identical copies of this file, including itself. */
   copies?: Asset[]
+  /** What is known about it: animation, UI, particle system. */
+  tags?: readonly AssetTag[]
   onSelectCopy(id: string): void
   /** Folders left out of prefab searches, like the grid. */
   excludedFolders: string[]
@@ -576,7 +580,7 @@ function depsSummary(report: DependencyReport, t: Translate): string {
 /** The viewer kinds that draw in 3D under the grey stage: they get the calibration strip. */
 const CALIBRATED = new Set(['three', 'prefab', 'animation', 'material'])
 
-export function AssetDetails({ asset, handler, live, onThumb, onReport, primary = true, inPack, exporting, onTogglePack, onExport, onImportToUnity, copies, onSelectCopy, excludedFolders, onPrefabFiles, onOpenLocation, onViewerLoading, onModelStats, playClips, models, viewerResizer, collections, onShowFolder }: Props) {
+export function AssetDetails({ asset, handler, live, onThumb, onReport, primary = true, inPack, exporting, onTogglePack, onExport, onImportToUnity, copies, tags, onSelectCopy, excludedFolders, onPrefabFiles, onOpenLocation, onViewerLoading, onModelStats, playClips, models, viewerResizer, collections, onShowFolder }: Props) {
   const { t } = useTranslation()
   const budget = useBudget()
   const editors = useUnityEditors()
@@ -887,6 +891,11 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
               )}
             </div>
           </div>
+          {tags && tags.length > 0 && (
+            <div className="tag-list" role="group" aria-label={t('tags.label')}>
+              <TagChips tags={tags} />
+            </div>
+          )}
         </div>
 
         <FactsGrid facts={facts} />

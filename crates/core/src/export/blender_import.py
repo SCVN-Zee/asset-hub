@@ -13,6 +13,11 @@ before = set(bpy.data.materials)
 path = os.path.join(HERE, DATA["model"])
 if path.lower().endswith((".glb", ".gltf")):
     bpy.ops.import_scene.gltf(filepath=path)
+elif path.lower().endswith(".obj"):
+    # Blender 3.2 and later import OBJ natively; older versions through the add-on.
+    (bpy.ops.wm.obj_import if hasattr(bpy.ops.wm, "obj_import") else bpy.ops.import_scene.obj)(filepath=path)
+elif path.lower().endswith(".dae"):
+    bpy.ops.wm.collada_import(filepath=path)
 else:
     bpy.ops.import_scene.fbx(filepath=path)
 

@@ -100,4 +100,25 @@ mod tests {
         let folder = TreeEntry { path: "Assets/Hero.fbx".into(), kind: EntryType::Tree, sha: "x".into(), size: None, lfs: None, lfs_size: None, lfs_oid: None };
         assert!(registry.classify(&folder).is_none());
     }
+
+    fn blob(path: &str) -> TreeEntry {
+        TreeEntry { path: path.into(), kind: EntryType::Blob, sha: "x".into(), size: None, lfs: None, lfs_size: None, lfs_oid: None }
+    }
+
+    #[test]
+    fn every_model_format_is_a_model_whatever_the_case() {
+        let registry = create_default_registry();
+        for path in ["a/Hero.fbx", "a/Hero.OBJ", "a/Hero.gltf", "a/Hero.glb", "a/Hero.Dae"] {
+            assert_eq!(registry.classify(&blob(path)).map(|h| h.id), Some("fbx"), "{path}");
+        }
+        for path in ["a/Hero.fbx.meta", "a/Hero.objx", "a/Hero.blend", "a/obj"] {
+            assert!(registry.classify(&blob(path)).is_none(), "{path}");
+        }
+    }
+
+    #[test]
+    fn the_model_handler_keeps_its_id_and_shows_the_model_badge() {
+        let model = create_default_registry().get("fbx").expect("fbx").descriptor();
+        assert_eq!((model.label_key, model.badge), ("assetTypes.fbx", "MDL"));
+    }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Asset, FolderNode, Suggestion } from '@shared/types'
 import { parse, type SearchHit } from './parse'
+import type { AssetTag } from './tags'
 
 /** What a search found, with the caller's own asset objects (a catalog asset keeps its locations). */
 export interface Found<A extends Asset> {
@@ -19,6 +20,8 @@ interface Index<A extends Asset> {
 }
 
 const keyOf = (a: Asset) => `${a.sha}\n${a.id}`
+
+const NO_TAGS: ReadonlyMap<string, readonly AssetTag[]> = new Map()
 
 const EMPTY_FOLDERS: FolderNode = { name: '', path: '', children: [], assetCount: 0 }
 
@@ -51,9 +54,10 @@ interface Answered<A extends Asset> extends Wanted<A> {
  * Searches `assets` (matching groups, typos and folder names, best first) and lists their folders.
  * The work is done in Rust, so a result arrives after the keystroke: one search runs at a time, the
  * newest question is asked when it ends, and the last answer stays on screen meanwhile.
- * `extraNames` maps an asset's SHA to other names it answers to (the clips inside a model).
+ * `extraNames` maps an asset's SHA to other names it answers to (the clips inside a model). `tags` maps an
+ * asset's id to its tags: typing a tag's word ("ui", "animation", "particle") finds the assets that have it.
  */
-export function useSearch<A extends Asset>(assets: readonly A[], extraNames: ReadonlyMap<string, string[]>, query: string, folder: string) {
+export function useSearch<A extends Asset>(assets: readonly A[], extraNames: ReadonlyMap<string, string[]>, query: string, folder: string, tags: ReadonlyMap<string, readonly AssetTag[]> = NO_TAGS) {
   const [index, setIndex] = useState<Index<A>>()
   const [folders, setFolders] = useState<FolderNode>(EMPTY_FOLDERS)
   const [answered, setAnswered] = useState<Answered<A>>()
@@ -61,7 +65,7 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
 
   useEffect(() => {
     let cancelled = false
-    parse.searchBuild(assets, Object.fromEntries(extraNames)).then(
+    parse.searchBuild(assets, Object.fromEntries(extraNames), Object.fromEntries([...tags].map(([id, list]) => [id, [...list]]))).then(
       (handle) => {
         if (cancelled) return
         setIndex({ handle, assets, byKey: new Map(assets.map((a) => [keyOf(a), a])) })
@@ -75,7 +79,7 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
     return () => {
       cancelled = true
     }
-  }, [assets, extraNames])
+  }, [assets, extraNames, tags])
 
   const alive = useRef(true)
   useEffect(() => {

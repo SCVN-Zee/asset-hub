@@ -117,9 +117,9 @@ export const commands = {
 	browseAssets: (repo: string, branch: string, root: string | null, excludedFolders: string[]) => typedError<unknown, IpcError_Serialize>(__TAURI_INVOKE("browse_assets", { repo, branch, root, excludedFolders })),
 	/**
 	 *  Builds a search over `assets`; `extra_names` maps an asset's SHA to other names it answers to
-	 *  (the clips inside a model). Answers the handle for `search_query`, `search_words`, `search_suggest` and `search_folders`.
+	 *  (the clips inside a model), `tags` an asset's id to the tags it carries (their words find it). Answers the handle for `search_query`, `search_words`, `search_suggest` and `search_folders`.
 	 */
-	searchBuild: (assets: unknown, extraNames: { [key in string]: string[] } | null) => typedError<number, IpcError_Serialize>(__TAURI_INVOKE("search_build", { assets, extraNames })),
+	searchBuild: (assets: unknown, extraNames: { [key in string]: string[] } | null, tags: { [key in string]: string[] } | null) => typedError<number, IpcError_Serialize>(__TAURI_INVOKE("search_build", { assets, extraNames, tags })),
 	/**  The assets matching `query` (best first), also inside `folder` when it is given. */
 	searchQuery: (handle: number, query: string, folder: string | null) => typedError<unknown, IpcError_Serialize>(__TAURI_INVOKE("search_query", { handle, query, folder })),
 	/**  Every name word and how many assets use it. */
@@ -707,7 +707,7 @@ export type ExportResult_Serialize = {
 export type ExportStage = "resolve" | "download" | "write";
 
 /**  Kinds of assets known only by reading them. */
-export type FactKind = "effects" | "sprites" | "tmpFonts";
+export type FactKind = "effects" | "uiPrefabs" | "sprites" | "tmpFonts";
 
 /**  Where the user was, when they chose to include it. */
 export type FeedbackContext = FeedbackContext_Serialize | FeedbackContext_Deserialize;
