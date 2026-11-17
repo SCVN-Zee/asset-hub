@@ -5,13 +5,6 @@ import { RECENT_LIMIT, sanitizeCollections, sanitizeItems, type Collection, type
 export const LANGUAGES = ['en', 'ko', 'vi'] as const
 export type Language = (typeof LANGUAGES)[number]
 /** In English, for telling the AI assistant which language to answer in. */
-export interface WatchedBranch {
-  repo: string
-  branch: string
-  /** The commit everything up to which has been seen. */
-  seen: string
-}
-
 export const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', vi: 'Vietnamese', ko: 'Korean' }
 
 export interface Settings {
@@ -33,8 +26,6 @@ export interface Settings {
   collections?: Collection[]
   /** Assets viewed and exported lately, newest first (kept by the app). */
   recent?: RecentLists
-  /** Branches the user follows: new assets since `seen` (a commit) are pointed out. */
-  watched?: WatchedBranch[]
 }
 
 export const EXPORT_LAYOUTS: readonly PackageLayout[] = ['byType', 'grouped', 'source']
@@ -50,7 +41,7 @@ export function isLanguage(value: unknown): value is Language {
 /** Every setting this version knows; anything else in the file was written by another version. */
 export const SETTINGS_KEYS = [
   'language', 'excludedFolders', 'lastRepo', 'lastBranch', 'budgetPreset', 'customBudget',
-  'exportLayout', 'targetProject', 'collections', 'recent', 'watched'
+  'exportLayout', 'targetProject', 'collections', 'recent'
 ] as const satisfies ReadonlyArray<keyof Settings>
 
 /**
@@ -85,14 +76,6 @@ export function sanitizeSettings(raw: unknown, defaults: Settings): Settings {
             viewed: sanitizeItems((input.recent as Record<string, unknown>).viewed).slice(0, RECENT_LIMIT),
             exported: sanitizeItems((input.recent as Record<string, unknown>).exported).slice(0, RECENT_LIMIT)
           }
-        }
-      : {}),
-    ...(Array.isArray(input.watched)
-      ? {
-          watched: input.watched.flatMap((w): WatchedBranch[] => {
-            const r = w as Record<string, unknown>
-            return r && typeof r.repo === 'string' && typeof r.branch === 'string' && r.repo && r.branch ? [{ repo: r.repo, branch: r.branch, seen: typeof r.seen === 'string' ? r.seen : '' }] : []
-          })
         }
       : {})
   }

@@ -204,7 +204,6 @@ button { cursor: pointer; }
 .search-suggestions { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20; list-style: none; margin: 0; padding: 6px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
 .search-suggestions .picker-option { padding-left: 10px; }
 .topbar-actions { flex: none; display: flex; align-items: center; gap: var(--sp-1); }
-.watch-btn[aria-pressed='true'] { background: var(--raise); color: var(--text); }
 
 .browse-body { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 0 var(--details-w, 380px); }
 @media (max-width: 1200px) { .browse-body { grid-template-columns: 208px minmax(0, 1fr) 0 var(--details-w, 340px); } }
@@ -242,17 +241,6 @@ body.resizing * { cursor: inherit !important; }
 .type-dot { flex: none; width: 8px; height: 8px; border-radius: 2px; }
 .nav-icon { flex: none; display: inline-grid; place-items: center; width: 14px; color: var(--mute); }
 .tab[aria-pressed='true'] .nav-icon { color: var(--text); }
-/* Pinned branches: repo / branch on one line, new assets as a pill. */
-.watch-row { display: flex; align-items: center; gap: 2px; }
-.watch-row .tab { flex: 1; width: auto; }
-.watch-label { display: flex; min-width: 0; flex: 1; white-space: nowrap; }
-.watch-repo { flex: 0 3 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.watch-sep { flex: none; padding: 0 0.4em; color: var(--dim); }
-.watch-branch { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.watch-count { margin-left: auto; flex: none; padding: 0 7px; border-radius: 9px; background: var(--line-strong); color: var(--text); font-size: var(--fs-xs); font-weight: 500; line-height: 18px; white-space: nowrap; }
-.watch-remove { flex: none; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: var(--r); background: transparent; color: var(--mute); opacity: 0; }
-.watch-row:hover .watch-remove, .watch-remove:focus-visible { opacity: 1; }
-.watch-remove:hover { color: var(--danger); }
 /* Yours: favourites, collections, recents. */
 .collections-nav { display: flex; flex-direction: column; gap: 2px; }
 .collection-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -409,9 +397,6 @@ body.resizing * { cursor: inherit !important; }
 .related-line { margin: 0; padding: 8px 16px 0; color: var(--mute); font-size: var(--fs-sm); }
 .state-line { margin: 0; padding: 10px 16px 0; color: var(--mute); font-size: var(--fs-sm); }
 .state-line[data-state='error'] { color: var(--warn); }
-.watch-banner { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 12px 16px 0; padding: 6px 8px 6px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); font-size: var(--fs-sm); }
-.watch-banner::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
-.watch-banner strong { font-weight: 500; }
 .empty { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 64px 24px; text-align: center; color: var(--mute); font-size: var(--fs-md); }
 .empty strong { color: var(--text); font-weight: 500; }
 .empty span { max-width: 44ch; font-size: var(--fs-sm); }
@@ -441,7 +426,6 @@ body.resizing * { cursor: inherit !important; }
 .cell-mark-pick { background: var(--text); color: var(--ground); }
 .cell-tags { position: absolute; left: 6px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 36px); }
 .cell-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r-sm); font-weight: 500; }
-.cell-tag-new { color: var(--ok); }
 /* Sub-categories under a type in the sidebar: indented and quieter than the type; the type shows a lighter state while one is chosen. */
 .tab-sub { position: relative; height: 26px; padding-left: 25px; font-size: var(--fs-xs); }
 /* Tree branches: a trunk down from the parent's dot (x = 12px), an elbow into each sub-row. */

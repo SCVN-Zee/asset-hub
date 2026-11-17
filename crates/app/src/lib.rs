@@ -103,7 +103,6 @@ pub fn contract() -> Builder<tauri::Wry> {
             source::source_list_repos,
             source::source_list_branches,
             source::source_list_tree,
-            source::source_watch_check,
             assets::assets_resolve,
             assets::assets_read_file,
             assets::assets_find_by_names,

@@ -114,8 +114,7 @@ export const api: AssetHubApi = {
   source: {
     listRepos: () => result(commands.sourceListRepos()),
     listBranches: (repo) => result(commands.sourceListBranches(repo)),
-    listTree: (repo, branch) => result(commands.sourceListTree(repo, branch)),
-    watchCheck: (repo, branch, seen) => result(commands.sourceWatchCheck(repo, branch, seen))
+    listTree: (repo, branch) => result(commands.sourceListTree(repo, branch))
   },
   assets: {
     resolve: async (repo, branch, path, root, mode, background) => {

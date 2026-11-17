@@ -118,20 +118,6 @@ pub enum ResolveMode {
     Full,
 }
 
-/// What `added_since` found on a watched branch.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Added {
-    pub head: String,
-    pub added: Vec<AddedFile>,
-    pub more: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AddedFile {
-    pub path: String,
-    pub sha: String,
-}
-
 /// A quick lookup reads more chunks only this long (after its first one): a GUID it cannot find nearby
 /// may not be in the branch at all, and reading on through every `.meta` is what the full index, made
 /// at the same time, does faster.
@@ -242,20 +228,6 @@ impl<F: HttpFetch + 'static> GitHubAssetSource<F> {
     /// Branches with their tip commits and dates, for the catalog.
     pub async fn list_branch_heads(&self, repo: &str) -> Result<Vec<BranchHead>, SourceError> {
         self.inner.client.list_branch_heads(repo).await
-    }
-
-    /// A watched branch: its tip, and the files added since `seen` (a commit noted earlier). Without
-    /// `seen`, or when it is gone (history rewritten), nothing counts as new.
-    pub async fn added_since(&self, repo: &str, branch: &str, seen: &str) -> Result<Added, SourceError> {
-        let head = self.inner.client.get_branch_head(repo, branch).await?;
-        if seen.is_empty() || seen == head {
-            return Ok(Added { head, added: Vec::new(), more: false });
-        }
-        Ok(match self.inner.client.compare_commits(repo, seen, &head).await {
-            // Added only: a file moved or renamed is not a new asset.
-            Ok(cmp) => Added { head, added: cmp.files.into_iter().filter(|f| f.status == "added").map(|f| AddedFile { path: f.path, sha: f.sha }).collect(), more: cmp.more },
-            Err(_) => Added { head, added: Vec::new(), more: false },
-        })
     }
 
     pub async fn list_tree(&self, repo: &str, branch: &str) -> Result<Vec<TreeEntry>, SourceError> {

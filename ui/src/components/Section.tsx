@@ -39,7 +39,7 @@ export function Section({ id, title, summary, defaultOpen = true, children }: { 
   )
 }
 
-/** A sidebar group (Watching, Recent, Collections, Folders) that folds under its title, remembered per group. */
+/** A sidebar group (Recent, Collections, Folders) that folds under its title, remembered per group. */
 export function SideGroup({ id, title, folded, defaultOpen = true, className, children }: { id: string; title: string; folded?: ReactNode; defaultOpen?: boolean; className?: string; children: ReactNode }) {
   const [open, setOpen] = useState(() => stored(`side.${id}`) ?? defaultOpen)
   const toggle = () => {

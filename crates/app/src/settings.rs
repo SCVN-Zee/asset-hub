@@ -10,13 +10,13 @@ use std::path::{Path, PathBuf};
 use serde_json::{Map, Value};
 
 use crate::constants::{BUDGET_KEYS, BUDGET_PRESETS, EXPORT_LAYOUTS, LANGUAGES};
-use crate::dto::{BudgetPreset, CollectionItem, Collection, CustomBudget, Language, PackageLayout, RecentLists, Settings, WatchedBranch};
+use crate::dto::{BudgetPreset, CollectionItem, Collection, CustomBudget, Language, PackageLayout, RecentLists, Settings};
 
 /// Most items of each recent list.
 const RECENT_LIMIT: usize = 30;
 
 /// Every setting this version knows; anything else in the file was written by another version.
-pub const SETTINGS_KEYS: [&str; 11] = [
+pub const SETTINGS_KEYS: [&str; 10] = [
     "language",
     "excludedFolders",
     "lastRepo",
@@ -27,7 +27,6 @@ pub const SETTINGS_KEYS: [&str; 11] = [
     "targetProject",
     "collections",
     "recent",
-    "watched",
 ];
 
 /// Settings this version does not know, as they are in the file: an older and a newer copy of the
@@ -140,17 +139,6 @@ fn sanitize_budget(raw: Option<&Value>) -> Option<CustomBudget> {
     any.then_some(budget)
 }
 
-fn sanitize_watched(list: &[Value]) -> Vec<WatchedBranch> {
-    list.iter()
-        .filter_map(|w| {
-            let r = w.as_object()?;
-            let repo = non_empty_string(r.get("repo"))?;
-            let branch = non_empty_string(r.get("branch"))?;
-            Some(WatchedBranch { repo, branch, seen: r.get("seen").and_then(Value::as_str).unwrap_or("").to_owned() })
-        })
-        .collect()
-}
-
 /// Merges untrusted stored/IPC data over defaults, dropping anything invalid.
 pub fn sanitize_settings(raw: &Value, defaults: &Settings) -> Settings {
     let empty = Map::new();
@@ -186,7 +174,6 @@ pub fn sanitize_settings(raw: &Value, defaults: &Settings) -> Settings {
         target_project: non_blank_string(input.get("targetProject")),
         collections: sanitize_collections(input.get("collections")),
         recent,
-        watched: input.get("watched").and_then(Value::as_array).map(|list| sanitize_watched(list)),
     }
 }
 
@@ -269,7 +256,6 @@ pub fn default_settings() -> Settings {
         target_project: None,
         collections: None,
         recent: None,
-        watched: None,
     }
 }
 
@@ -454,23 +440,6 @@ mod tests {
         assert_eq!(recent.viewed[0].path, "p0");
         assert!(recent.exported.is_empty());
         assert_eq!(sanitize_settings(&json!({ "recent": 3 }), &defaults()).recent, None);
-    }
-
-    #[test]
-    fn keeps_watched_branches_with_a_repo_and_branch() {
-        let watched = sanitize_settings(
-            &json!({ "watched": [{ "repo": "o/r", "branch": "main", "seen": "abc" }, { "repo": "o/r", "branch": "dev" }, { "repo": "", "branch": "x" }, null, "s"] }),
-            &defaults(),
-        )
-        .watched
-        .unwrap();
-        assert_eq!(
-            watched,
-            vec![
-                WatchedBranch { repo: "o/r".into(), branch: "main".into(), seen: "abc".into() },
-                WatchedBranch { repo: "o/r".into(), branch: "dev".into(), seen: String::new() }
-            ]
-        );
     }
 
     #[test]

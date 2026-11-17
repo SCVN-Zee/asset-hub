@@ -36,8 +36,6 @@ export const commands = {
 	sourceListBranches: (repo: string) => typedError<string[], IpcError_Serialize>(__TAURI_INVOKE("source_list_branches", { repo })),
 	/**  A branch's files. */
 	sourceListTree: (repo: string, branch: string) => typedError<TreeEntry_Serialize[], IpcError_Serialize>(__TAURI_INVOKE("source_list_tree", { repo, branch })),
-	/**  A watched branch: its tip commit, and the asset files added since `seen` (repo paths). */
-	sourceWatchCheck: (repo: string, branch: string, seen: string) => typedError<WatchCheck, IpcError_Serialize>(__TAURI_INVOKE("source_watch_check", { repo, branch, seen })),
 	/**  Materials, textures and shaders of one asset. `instant` answers with what is known already, `quick` also searches nearby files, `full` waits for the branch's GUID index. `background` reads (grid thumbnails) are not counted as what the user waits on. */
 	assetsResolve: (repo: string, branch: string, path: string, root: string, mode: ResolveMode | null, background: boolean | null) => typedError<DependencyReport_Serialize, IpcError_Serialize>(__TAURI_INVOKE("assets_resolve", { repo, branch, path, root, mode, background })),
 	/**  The file's bytes (real contents for LFS files). `background` reads wait while the user is loading something. */
@@ -1407,7 +1405,6 @@ export type Settings_Deserialize = {
 	targetProject?: string | null,
 	collections?: Collection_Deserialize[] | null,
 	recent?: RecentLists_Deserialize | null,
-	watched?: WatchedBranch[] | null,
 };
 
 /**  The user's settings. */
@@ -1427,7 +1424,6 @@ export type Settings_Serialize = {
 	targetProject?: string,
 	collections?: Collection_Serialize[],
 	recent?: RecentLists_Serialize,
-	watched?: WatchedBranch[],
 };
 
 export type ShaderKind = "builtin" | "package" | "project";
@@ -1772,21 +1768,6 @@ export type VelocityLimit_Deserialize = {
 export type VelocityLimit_Serialize = {
 	limit: MinMax_Serialize,
 	dampen: number | null,
-};
-
-/**  What `watchCheck` found: the tip commit and the asset files added since the last one seen. */
-export type WatchCheck = {
-	head: string,
-	added: string[],
-	more: boolean,
-};
-
-/**  A branch the user follows: new assets since `seen` (a commit) are pointed out. */
-export type WatchedBranch = {
-	repo: string,
-	branch: string,
-	/**  The commit everything up to which has been seen. */
-	seen: string,
 };
 
 /* Tauri Specta runtime */

@@ -68,19 +68,6 @@ pub struct GitHubUser {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChangedFile {
-    pub path: String,
-    pub status: String,
-    pub sha: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Comparison {
-    pub files: Vec<ChangedFile>,
-    pub more: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TreeListing {
     pub entries: Vec<TreeEntry>,
     /// Set when GitHub cut the listing short.
@@ -94,7 +81,6 @@ const MAX_PAGES: usize = 20;
 const GRAPHQL_BATCH: usize = 40;
 const MAX_RETRIES: u32 = 4;
 /// GitHub lists up to this many files in a comparison.
-const COMPARE_LIMIT: usize = 300;
 
 /// Refuses every request that could write. GET and HEAD, GraphQL queries (never mutations) and Git
 /// LFS downloads go through; anything else is refused before it leaves the machine, whatever asked
@@ -537,25 +523,6 @@ impl<F: HttpFetch> GitHubClient<F> {
         }
         let (r, _): (Ref, _) = self.request(&format!("/repos/{}/git/ref/heads/{}", repo_path(repo)?, ref_path(branch)), None, None).await?;
         Ok(r.object.sha)
-    }
-
-    /// Files changed from `base` to `head` (GitHub lists up to 300; `more` when there were more).
-    pub async fn compare_commits(&self, repo: &str, base: &str, head: &str) -> Result<Comparison, SourceError> {
-        #[derive(Deserialize)]
-        struct Compare {
-            files: Option<Vec<File>>,
-        }
-        #[derive(Deserialize)]
-        struct File {
-            filename: String,
-            status: String,
-            sha: String,
-        }
-        let path = format!("/repos/{}/compare/{}...{}?per_page=300", repo_path(repo)?, encode_uri_component(base), encode_uri_component(head));
-        let (data, _): (Compare, _) = self.request(&path, None, None).await?;
-        let files: Vec<ChangedFile> = data.files.unwrap_or_default().into_iter().map(|f| ChangedFile { path: f.filename, status: f.status, sha: f.sha }).collect();
-        let more = files.len() >= COMPARE_LIMIT;
-        Ok(Comparison { files, more })
     }
 
     /// Full recursive tree of a commit. `truncated` is set when GitHub cut the listing short.

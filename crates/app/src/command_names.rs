@@ -38,7 +38,6 @@ command_table! {
     ("source_list_repos", "source:list-repos"),
     ("source_list_branches", "source:list-branches"),
     ("source_list_tree", "source:list-tree"),
-    ("source_watch_check", "source:watch-check"),
     ("assets_resolve", "assets:resolve"),
     ("assets_read_file", "assets:read-file"),
     ("assets_find_by_names", "assets:find-by-names"),

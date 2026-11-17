@@ -37,15 +37,13 @@ interface Props {
   inList?: boolean
   /** In Favourites. */
   starred?: boolean
-  /** Added to a watched branch since it was last marked seen. */
-  fresh?: boolean
   /** Right-click: the card's actions. */
   onContextMenu?(e: React.MouseEvent): void
   /** What is known about it: animation, UI, particle system. */
   tags?: readonly AssetTag[]
 }
 
-export function AssetCard({ asset, handler, thumb, generating, copies, selected, onSelect, picked, onVisible, note, stats, starred, fresh, inList, onContextMenu, tags }: Props) {
+export function AssetCard({ asset, handler, thumb, generating, copies, selected, onSelect, picked, onVisible, note, stats, starred, inList, onContextMenu, tags }: Props) {
   const { t } = useTranslation()
   const ref = useRef<HTMLButtonElement>(null)
   const visibleRef = useRef(onVisible)
@@ -128,7 +126,6 @@ export function AssetCard({ asset, handler, thumb, generating, copies, selected,
           )}
         </span>
         <span className="cell-tags">
-          {fresh && <span className="cell-tag cell-tag-new">{t('watch.new')}</span>}
           {/* A model holding animation clips. */}
           {kind === 'three' && stats && stats.clips > 0 ? (
             <span className="cell-tag" title={stats.clipNames?.join(', ')}>

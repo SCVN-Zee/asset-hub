@@ -16,7 +16,7 @@ Typical jobs:
 - Find an asset (model, prefab, VFX, texture, audio, font, animation, material) that already exists somewhere in the studio's Unity repos.
 - Look at it closely before taking it: 3D preview, effect playback, sizes, triangle counts, dependencies.
 - Take it into their own Unity project as a `.unitypackage` with every dependency, or import it straight into an open Unity editor.
-- Keep track of assets and branches: favourites, collections, recently viewed and exported, pinned branches with new-asset counts.
+- Keep track of assets and branches: favourites, collections, recently viewed and exported.
 
 ## Product Purpose
 
@@ -43,7 +43,7 @@ It reads Unity projects directly from GitHub branches, previews them without Uni
 - The workflow can be restructured: screens, grouping and control placement can change.
 - UI languages: English, Korean, Vietnamese. Locale keys must stay aligned (`ui/src/i18n/locales.test.ts`).
 - The page makes no network request and loads no remote fonts or scripts (CSP).
-- Terminology still open: the export list name ("chest" in 2.0, "pack" in code) and "Pin branch" versus "watch".
+- Terminology still open: the export list name ("chest" in 2.0, "pack" in code).
 
 ## Brand Commitments
 

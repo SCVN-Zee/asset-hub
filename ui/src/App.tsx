@@ -111,8 +111,6 @@ export function App() {
           onCollections={(collections) => update({ collections })}
           recent={settings.recent}
           onRecent={(recent) => update({ recent })}
-          watched={settings.watched ?? []}
-          onWatched={(watched) => update({ watched })}
         />
         </div>
         {settingsOpen && <Settings settings={settings} auth={auth} onChange={update} onSignOut={(gh) => void signOut(gh)} onBack={() => setSettingsOpen(false)} />}

@@ -5,7 +5,7 @@ use std::time::Duration;
 use tauri::State;
 
 use super::traced;
-use crate::dto::{RepoRef, TreeEntry, WatchCheck};
+use crate::dto::{RepoRef, TreeEntry};
 use crate::github_net::{convert, ipc_error};
 use crate::ipc::IpcError;
 use crate::state::AppState;
@@ -48,28 +48,6 @@ pub async fn source_list_tree(state: State<'_, AppState>, repo: String, branch: 
             let _ = warm.warm_guid_index(&name.0, &name.1).await;
         });
         convert(&entries)
-    })
-    .await
-}
-
-/// A watched branch: its tip commit, and the asset files added since `seen` (repo paths).
-#[tauri::command]
-#[specta::specta]
-pub async fn source_watch_check(state: State<'_, AppState>, repo: String, branch: String, seen: String) -> Result<WatchCheck, IpcError> {
-    traced("source_watch_check", async {
-        let session = state.session()?;
-        let found = session.source.added_since(&repo, &branch, &seen).await.map_err(ipc_error)?;
-        // Only files the hub lists as assets count as news (not scripts, .meta, scenes...).
-        let added = found
-            .added
-            .into_iter()
-            .filter(|f| {
-                let entry = asset_hub_core::types::TreeEntry { path: f.path.clone(), kind: asset_hub_core::types::EntryType::Blob, sha: f.sha.clone(), size: None, lfs: None, lfs_size: None, lfs_oid: None };
-                session.registry.classify(&entry).is_some()
-            })
-            .map(|f| f.path)
-            .collect();
-        Ok(WatchCheck { head: found.head, added, more: found.more })
     })
     .await
 }

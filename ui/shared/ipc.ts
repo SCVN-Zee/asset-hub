@@ -182,8 +182,6 @@ export interface AssetHubApi {
     listRepos(): Promise<IpcResult<RepoRef[]>>
     listBranches(repo: string): Promise<IpcResult<string[]>>
     listTree(repo: string, branch: string): Promise<IpcResult<TreeEntry[]>>
-    /** A watched branch: its tip commit, and the asset files added since `seen` (repo paths). */
-    watchCheck(repo: string, branch: string, seen: string): Promise<IpcResult<{ head: string; added: string[]; more: boolean }>>
   }
   assets: {
     /** Materials, textures and shaders of one asset. Repo paths throughout. */

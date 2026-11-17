@@ -173,7 +173,7 @@ A neutral graphite shell around a mid-grey stage, with colour reserved for actio
 - **Checker patches** (`type-fbx`, `type-texture`, `type-material`, `type-audio`, `type-prefab`, `type-animation`, `type-font`, `type-vfx`, `type-sprite`): one per asset type. They appear only as the 7–8px swatch on a type chip over a card and as the dot in a sidebar type row. The type word stays in text colour. The model and font patches are lifted a little so they hold 3:1 on the panel.
 
 ### State
-- **Checker Green** (`state-ok`): budget fits, new assets, copied, done, the live-watch dot.
+- **Checker Green** (`state-ok`): budget fits, copied, done.
 - **Checker Yellow** (`state-warn`): warnings, over-budget verdicts, failed updates.
 - **Soft Red** (`state-danger`): errors and over-limit meters only.
 - **Calm Blue** (`state-info`): the sign-out button and informational dots. Signing out is a normal choice, so it never takes the danger red.

@@ -824,16 +824,6 @@
     "uiHint": "Prefab có đối tượng UI (RectTransform hoặc Canvas)",
     "particleSystemHint": "Prefab có particle system"
   },
-  "watch": {
-    "title": "Branch đã ghim",
-    "start": "Ghim branch này lên thanh bên trái: bấm một lần là quay lại, có đếm asset mới",
-    "stop": "Bỏ ghim branch này",
-    "new": "MỚI",
-    "banner": "{{count}}{{more}} asset mới từ lần xem trước",
-    "onlyNew": "Chỉ hiện asset mới",
-    "seen": "Đã xem hết",
-    "newCount": "{{n}} mới"
-  },
   "filters": {
     "title": "Bộ lọc",
     "view": "Hiển thị",
@@ -854,15 +844,11 @@
     "copyLink": "Chép link",
     "github": "Mở trên GitHub",
     "showFolder": "Mở thư mục chứa",
-    "openFolder": "Mở thư mục này",
-    "openBranch": "Mở branch này",
-    "copyBranch": "Chép tên branch"
+    "openFolder": "Mở thư mục này"
   },
   "actions": {
     "export": "Xuất",
-    "collection": "Sưu tập",
-    "watch": "Ghim branch",
-    "watching": "Đã ghim"
+    "collection": "Sưu tập"
   },
   "sidebar": {
     "yours": "Của bạn"

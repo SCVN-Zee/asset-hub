@@ -336,6 +336,7 @@ mod tests {
                 (p, "t-work") if p.starts_with("/user/repos") => Reply::json(200, r#"[{"full_name":"o/shared","default_branch":"main"},{"full_name":"w/work","default_branch":"main"}]"#),
                 ("/repos/w/work/git/ref/heads/main", "t-work") => Reply::json(200, r#"{"object":{"sha":"c1"}}"#),
                 ("/repos/hidden/r/git/ref/heads/main", "t-work") => Reply::json(200, r#"{"object":{"sha":"c2"}}"#),
+                ("/repos/w/work/git/trees/c1?recursive=1", "t-work") | ("/repos/hidden/r/git/trees/c2?recursive=1", "t-work") => Reply::json(200, r#"{"truncated":false,"tree":[]}"#),
                 _ => Reply::json(404, r#"{"message":"Not Found"}"#),
             }
         })
@@ -349,9 +350,9 @@ mod tests {
         assert_eq!(names, ["o/mine", "o/shared", "w/work"]);
 
         // Known to the second account only: it is used straight away.
-        assert_eq!(session.source.added_since("w/work", "main", "").await.unwrap().head, "c1");
+        assert!(session.source.list_tree("w/work", "main").await.unwrap().is_empty());
         // Not in any listing: the active account is refused (404) and the other is tried once.
-        assert_eq!(session.source.added_since("hidden/r", "main", "").await.unwrap().head, "c2");
+        assert!(session.source.list_tree("hidden/r", "main").await.unwrap().is_empty());
         let requests = seen.lock().unwrap();
         let on = |path: &str| requests.iter().filter(|(p, _)| p == path).map(|(_, t)| t.as_str()).collect::<Vec<_>>();
         assert_eq!(on("/repos/w/work/git/ref/heads/main"), ["t-work"]);

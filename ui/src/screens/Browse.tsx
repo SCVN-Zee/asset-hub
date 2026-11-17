@@ -16,7 +16,7 @@ import { Dropdown } from '../components/Dropdown'
 import { ScopePicker } from '../components/ScopePicker'
 import { ErrorNote } from '../components/ErrorNote'
 import { FolderTree } from '../components/FolderTree'
-import { CloseIcon, PinIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, GearIcon, LinkIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
+import { CloseIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, GearIcon, LinkIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
 import { useContextMenu, type MenuItem } from '../components/ContextMenu'
 import { preferredEditor, rememberEditor, useUnityEditors } from '../components/UnityButton'
 import { assetLink } from '@shared/deeplink'
@@ -42,8 +42,6 @@ import { MultiBar } from '../components/MultiBar'
 import { ShortcutHelp } from '../components/ShortcutHelp'
 import { Popover } from '../components/Popover'
 import { SideGroup } from '../components/Section'
-import { WatchNav } from '../components/WatchNav'
-import type { WatchedBranch } from '@shared/settings'
 import { useStoredFlag } from '../useStoredState'
 
 /** Grid cell size: small (about 126 px) or large (about 180 px), kept between launches. */
@@ -140,8 +138,6 @@ interface Props {
   collections?: Collection[]
   onCollections(collections: Collection[]): void
   /** Branches followed for new assets, and saving them. */
-  watched: WatchedBranch[]
-  onWatched(watched: WatchedBranch[]): void
   /** Recently viewed / exported assets, and saving them. */
   recent?: RecentLists
   onRecent(recent: RecentLists): void
@@ -220,8 +216,6 @@ export function Browse({
   collections: storedCollections,
   recent,
   onRecent,
-  watched,
-  onWatched,
   onCollections
 }: Props) {
   const { t } = useTranslation()
@@ -409,7 +403,7 @@ export function Browse({
         setFolder('')
         setSelectedId(undefined)
         if (nav.current?.repo === repo && nav.current.branch === branch) {
-          // Opening a branch without a file (a watched branch) only picks the branch.
+          // Opening a branch without a file only picks the branch.
           if (nav.current.path) land(browsed.roots, nav.current.path)
           else nav.current = undefined
         }
@@ -496,44 +490,7 @@ export function Browse({
   const subTab = subSel?.tab === typeFilter ? subSel.sub : SUB_ALL
   /** Cards in the grid, whichever view is open. */
   // Ordered and filtered for reuse in playables (measurements come from thumbnails and opened models).
-  // Watched branches: what was added since each was last marked seen (checked on opening, every 30 minutes, on coming back).
-  const [news, setNews] = useState<Record<string, { head: string; added: string[]; more: boolean }>>({})
-  const watchKey = (r: string, b: string) => `${r}\n${b}`
-  const watchedKey = watched.map((w) => `${watchKey(w.repo, w.branch)}\n${w.seen}`).join('|')
-  const lastCheck = useRef(0)
-  useEffect(() => {
-    const check = () => {
-      lastCheck.current = Date.now()
-      for (const w of watched)
-        void window.api.source.watchCheck(w.repo, w.branch, w.seen).then((r) => r.ok && setNews((n) => ({ ...n, [watchKey(w.repo, w.branch)]: r.data })))
-    }
-    check()
-    const timer = window.setInterval(check, 30 * 60_000)
-    const onFocus = () => Date.now() - lastCheck.current > 5 * 60_000 && check()
-    window.addEventListener('focus', onFocus)
-    return () => {
-      window.clearInterval(timer)
-      window.removeEventListener('focus', onFocus)
-    }
-  }, [watchedKey])
-  const watchingHere = watched.some((w) => w.repo === repo && w.branch === branch)
-  const newHere = useMemo(() => new Set(watchingHere ? (news[watchKey(repo, branch)]?.added ?? []) : []), [news, repo, branch, watchingHere])
-  const [newOnly, setNewOnly] = useState(false)
-  useEffect(() => setNewOnly(false), [repo, branch])
-  const toggleWatch = async () => {
-    if (watchingHere) return onWatched(watched.filter((w) => !(w.repo === repo && w.branch === branch)))
-    // From now on: whatever is on the branch today counts as seen.
-    const r = await window.api.source.watchCheck(repo, branch, '')
-    if (r.ok) onWatched([...watched, { repo, branch, seen: r.data.head }])
-  }
-  const markSeen = () => {
-    const head = news[watchKey(repo, branch)]?.head
-    if (!head) return
-    onWatched(watched.map((w) => (w.repo === repo && w.branch === branch ? { ...w, seen: head } : w)))
-    setNews((n) => ({ ...n, [watchKey(repo, branch)]: { head, added: [], more: false } }))
-    setNewOnly(false)
-  }
-  /** Opens a branch (no file), e.g. a watched one from the sidebar. */
+  /** Opens a branch (no file). */
   const openBranch = (toRepo: string, toBranch: string) => {
     setScope('branch')
     setOpenCollection(undefined)
@@ -565,14 +522,13 @@ export function Browse({
   const activeFilters = chips.length + (budget ? 1 : 0) + (onlyFits && budget ? 1 : 0) + (mergeCopies ? 0 : 1) + (showUnlisted ? 1 : 0)
   const passesChips = useCallback(
     (a: Asset) => {
-      if (newOnly && !newHere.has(root + a.path)) return false
       if (!inSubCategory(typeFilter, subTab, viewTags.get(a.id))) return false
       const s = modelStats[a.sha]
       return chips.every((c) =>
         c === 'small' ? (a.size ?? Infinity) <= 500 * 1024 : c === 'lowPoly' ? !!s && s.triangles > 0 && s.triangles <= 5000 : a.type === 'animation' || (!!s && s.clips > 0)
       )
     },
-    [chips, modelStats, newOnly, newHere, root, typeFilter, subTab, viewTags]
+    [chips, modelStats, typeFilter, subTab, viewTags]
   )
   const teamScores = usePopularity(repo || undefined, branch)
   /** The user's own history: a favorite counts 2, a recently viewed or exported asset 1. */
@@ -984,7 +940,7 @@ export function Browse({
     setSelectedId(a.id)
   }
 
-  // Right-click menus: on cards (one, or the cards picked), watched branches and folders.
+  // Right-click menus: on cards (one, or the cards picked) and folders.
   const contextMenu = useContextMenu()
   const unityEditors = useUnityEditors()
   const [notice, setNotice] = useState<string>()
@@ -1298,17 +1254,6 @@ export function Browse({
         <div className="topbar-actions">
           <button
             type="button"
-            className="btn icon-btn watch-btn"
-            aria-pressed={watchingHere}
-            aria-label={watchingHere ? t('watch.stop') : t('watch.start')}
-            title={watchingHere ? t('watch.stop') : t('watch.start')}
-            disabled={!branch || branchRepo !== repo}
-            onClick={() => void toggleWatch()}
-          >
-            <PinIcon filled={watchingHere} />
-          </button>
-          <button
-            type="button"
             className="btn icon-btn"
             aria-label={t('browse.refresh')}
             title={t('browse.refresh')}
@@ -1369,21 +1314,6 @@ export function Browse({
             open={openCollection}
             onOpen={setOpenCollection}
             onCreate={(id, name) => onCollections(addCollection(collections, id, name))}
-          />
-          <WatchNav
-            watched={watched}
-            news={news}
-            current={{ repo, branch }}
-            onOpen={openBranch}
-            onRemove={(w) => onWatched(watched.filter((x) => x !== w))}
-            onMenu={(w, e) =>
-              contextMenu.open(e, [
-                { label: t('menu.openBranch'), icon: <PinIcon size={14} />, onSelect: () => openBranch(w.repo, w.branch) },
-                { label: t('menu.copyBranch'), icon: <CopyIcon size={14} />, onSelect: () => copy(w.branch) },
-                '-',
-                { label: t('watch.stop'), danger: true, onSelect: () => onWatched(watched.filter((x) => x !== w)) }
-              ])
-            }
           />
           <SideGroup id="folders" title={t('browse.folders')} className="folders-nav">
             {/* Mount only once the branch is loaded so the initial expansion sees real folders. */}
@@ -1621,19 +1551,6 @@ export function Browse({
           <>
           {!inCatalog && tree.status === 'ready' && shown.length > 0 && (
             <>
-              {newHere.size > 0 && (
-                <div className="watch-banner" role="status">
-                  <strong>{t('watch.banner', { count: newHere.size, more: news[watchKey(repo, branch)]?.more ? '+' : '' })}</strong>
-                  <label className="check small">
-                    <input type="checkbox" checked={newOnly} onChange={(e) => setNewOnly(e.target.checked)} />
-                    {t('watch.onlyNew')}
-                  </label>
-                  <span style={{ flex: 1 }} />
-                  <button type="button" className="btn btn-small" onClick={markSeen}>
-                    {t('watch.seen')}
-                  </button>
-                </div>
-              )}
               <div className="grid">
                 {rankedShown.slice(0, limit).map((a, i) => (
                   <AssetCard
@@ -1649,7 +1566,6 @@ export function Browse({
                     onContextMenu={(e) => cardMenu(a, e)}
                     picked={picked.length > 1 && picked.includes(a.id)}
                     inList={packIds.has(a.id)}
-                    fresh={newHere.has(root + a.path)}
                     starred={favorites.has(`${repo}\n${root + a.path}`)}
                     stats={modelStats[a.sha]}
                     onVisible={

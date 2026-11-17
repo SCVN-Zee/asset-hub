@@ -5,6 +5,7 @@ What changed in each release of Asset Hub. `bun run release` publishes the secti
 ## Unreleased
 
 ### Removed
+- **Pin branch:** the pin button next to the branch picker, the Pinned branches list in the sidebar, the NEW badge and the new-assets banner are gone. Pinned branches saved in settings are ignored.
 - **The shared index:** the app no longer reads or writes the GitHub index repo or a shared folder, and Settings no longer has the Shared index section. The team backend now carries the shared catalogs, facts, measurements and thumbnails.
 - **Usage statistics:** the app no longer records or sends how you use it, and Settings no longer has the Usage statistics section. Asset views still count toward the team's popular assets. Settings files written by earlier versions still load.
 - **Feedback:** the Send feedback button and dialog are gone, and the app no longer writes issues to the feedback repo. Reports still waiting in the outbox are not sent.

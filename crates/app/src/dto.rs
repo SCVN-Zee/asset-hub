@@ -96,14 +96,6 @@ dto! {
         pub exported: Vec<CollectionItem>,
     }
 
-    /// A branch the user follows: new assets since `seen` (a commit) are pointed out.
-    pub struct WatchedBranch {
-        pub repo: String,
-        pub branch: String,
-        /// The commit everything up to which has been seen.
-        pub seen: String,
-    }
-
     /// The user's settings.
     pub struct Settings {
         pub language: Language,
@@ -121,7 +113,6 @@ dto! {
         pub target_project: Option<String>,
         pub collections: Option<Vec<Collection>>,
         pub recent: Option<RecentLists>,
-        pub watched: Option<Vec<WatchedBranch>>,
     }
 }
 
@@ -157,13 +148,6 @@ dto! {
         pub lfs_size: Option<f64>,
         /// sha256 of the real object from the LFS pointer.
         pub lfs_oid: Option<String>,
-    }
-
-    /// What `watchCheck` found: the tip commit and the asset files added since the last one seen.
-    pub struct WatchCheck {
-        pub head: String,
-        pub added: Vec<String>,
-        pub more: bool,
     }
 
     #[derive(Copy, Eq)]

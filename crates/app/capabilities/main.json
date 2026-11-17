@@ -23,7 +23,6 @@
     "allow-source-list-repos",
     "allow-source-list-branches",
     "allow-source-list-tree",
-    "allow-source-watch-check",
     "allow-assets-resolve",
     "allow-assets-read-file",
     "allow-assets-find-by-names",

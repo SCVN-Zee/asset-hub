@@ -150,14 +150,6 @@ export const CollectionIcon = ({ size = 16 }: IconProps) => (
   </svg>
 )
 
-/** A pinned branch: a push pin. */
-export const PinIcon = ({ size = 16, filled }: ToggleIconProps) => (
-  <svg {...base(size)}>
-    <path d="M9 3h6l-1 6 4 4H6l4-4z" fill={filled ? 'currentColor' : 'none'} />
-    <path d="M12 13v8" />
-  </svg>
-)
-
 /** Viewed lately. */
 export const ClockIcon = ({ size = 16 }: IconProps) => (
   <svg {...base(size)}>

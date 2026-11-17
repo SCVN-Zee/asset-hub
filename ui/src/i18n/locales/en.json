@@ -871,16 +871,6 @@
     "uiHint": "A prefab with UI objects (RectTransform or Canvas)",
     "particleSystemHint": "A prefab with a particle system"
   },
-  "watch": {
-    "title": "Pinned branches",
-    "start": "Pin this branch to the sidebar: one click to come back, with its new assets counted",
-    "stop": "Unpin this branch",
-    "new": "NEW",
-    "banner": "{{count}}{{more}} new assets since you last looked",
-    "onlyNew": "Only new assets",
-    "seen": "Mark all seen",
-    "newCount": "{{n}} new"
-  },
   "filters": {
     "title": "Filters",
     "view": "View",
@@ -901,15 +891,11 @@
     "copyLink": "Copy link",
     "github": "Open on GitHub",
     "showFolder": "Show its folder",
-    "openFolder": "Show this folder",
-    "openBranch": "Open this branch",
-    "copyBranch": "Copy branch name"
+    "openFolder": "Show this folder"
   },
   "actions": {
     "export": "Export",
-    "collection": "Collection",
-    "watch": "Pin branch",
-    "watching": "Pinned"
+    "collection": "Collection"
   },
   "sidebar": {
     "yours": "Yours"

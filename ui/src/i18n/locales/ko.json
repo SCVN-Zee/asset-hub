@@ -816,16 +816,6 @@
     "uiHint": "UI 오브젝트(RectTransform 또는 Canvas)가 있는 프리팹",
     "particleSystemHint": "파티클 시스템이 있는 프리팹"
   },
-  "watch": {
-    "title": "고정한 브랜치",
-    "start": "이 브랜치를 사이드바에 고정: 한 번에 돌아오고 새 에셋 수도 표시됩니다",
-    "stop": "브랜치 고정 해제",
-    "new": "NEW",
-    "banner": "지난번 이후 새 에셋 {{count}}{{more}}개",
-    "onlyNew": "새 에셋만",
-    "seen": "모두 확인함",
-    "newCount": "새 항목 {{n}}"
-  },
   "filters": {
     "title": "필터",
     "view": "보기",
@@ -846,15 +836,11 @@
     "copyLink": "링크 복사",
     "github": "GitHub에서 열기",
     "showFolder": "폴더 보기",
-    "openFolder": "이 폴더 보기",
-    "openBranch": "이 브랜치 열기",
-    "copyBranch": "브랜치 이름 복사"
+    "openFolder": "이 폴더 보기"
   },
   "actions": {
     "export": "내보내기",
-    "collection": "컬렉션",
-    "watch": "브랜치 고정",
-    "watching": "고정됨"
+    "collection": "컬렉션"
   },
   "sidebar": {
     "yours": "내 항목"
