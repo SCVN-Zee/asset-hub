@@ -934,7 +934,7 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
           )}
         </div>
 
-        <FactsGrid facts={facts} />
+        <FactsGrid facts={facts} variant="strip" />
         {budget && summary && <BudgetLine issues={issues} budget={budget} />}
 
         {live && repoPath && handler?.delivery === 'file' && (

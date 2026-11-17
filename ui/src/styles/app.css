@@ -577,7 +577,8 @@ body.resizing * { cursor: inherit !important; }
 
 /* Name and where it lives. */
 .insp-title { margin: 0; font: 600 var(--fs-lg)/1.25 var(--font); overflow-wrap: anywhere; }
-.insp-path { display: flex; align-items: flex-start; gap: 8px; margin-top: 4px; }
+.insp-path { display: flex; align-items: flex-start; gap: 8px; }
+.insp-path .insp-title { flex: 1; min-width: 0; }
 .insp-path .mono { flex: 1; min-width: 0; padding-top: 5px; font-size: var(--fs-xs); line-height: 1.4; color: var(--mute); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .insp-path-tools { display: flex; flex: none; align-items: center; gap: 2px; }
 .insp-path-tools .icon-btn { border-color: transparent; background: transparent; }
@@ -585,6 +586,9 @@ body.resizing * { cursor: inherit !important; }
 .copy-status { display: inline-flex; align-items: center; gap: 4px; margin-right: 4px; font-size: var(--fs-xs); color: var(--ok); white-space: nowrap; }
 .copy-status[data-state='failed'] { color: var(--warn); }
 .copy-status:not([data-state]) { display: none; }
+.facts-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px 12px; padding: 8px 0; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; overflow: visible; }
+.facts-strip .fact { padding: 0; background: transparent; }
+.facts-strip .fact dd { font: 600 var(--fs-md) var(--font); font-variant-numeric: tabular-nums; overflow: hidden; overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Facts: three to a row, value in mono, label under it. */
 .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r); background: var(--line); }
@@ -599,6 +603,14 @@ body.resizing * { cursor: inherit !important; }
 .budget[data-state='ok'] svg { color: var(--ok); }
 .budget[data-state='warn'] svg { color: var(--warn); }
 .budget ul { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.acts-split { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.acts-split > .btn, .acts-split .unity-button { width: 100%; min-width: 0; justify-content: center; }
+.acts-split .unity-button > .btn:first-child { flex: 1; min-width: 0; justify-content: center; }
+.acts-split .unity-button > .unity-more { flex: none; }
+.insp-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.open-branch { display: inline-flex; flex: none; align-items: center; gap: 2px; padding: 0 2px; border: 0; border-radius: var(--r); background: transparent; color: var(--text-2); font-size: var(--fs-sm); cursor: pointer; }
+.open-branch:hover { color: var(--text); }
+.open-branch:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
 
 /* The action row: Export, Import into Unity, Add to export list; favourite and "…" at the end. */
 .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
@@ -676,9 +688,29 @@ body.resizing * { cursor: inherit !important; }
 
 /* ---------- shared pieces ---------- */
 .catalog-thumb { max-width: 100%; max-height: 100%; object-fit: contain; }
-.location-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.location-path { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
-.location-path .mono { color: var(--text-2); word-break: break-all; }
+.location-list { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.location-filter { height: var(--control-xs); padding: 0 8px; font-size: var(--fs-sm); }
+.location-groups, .location-paths, .branch-rows { list-style: none; margin: 0; padding: 0; }
+.location-groups { display: flex; flex-direction: column; gap: 2px; }
+.location-group-head { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; height: 28px; padding: 0 4px; border: 0; border-radius: var(--r); background: transparent; color: var(--text); cursor: pointer; text-align: left; }
+.location-group-head:hover { background: var(--raise); }
+.location-group-head:focus-visible, .branch-row:focus-visible, .location-copy:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+.location-paths { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 6px 8px; padding-left: 8px; border-left: 1px solid var(--line); }
+.location-item { min-width: 0; }
+.location-dir-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+/* rtl puts the ellipsis at the start so the folder's tail stays visible; the bdi keeps the slashes in reading order */
+.location-dir { flex: 1; min-width: 0; direction: rtl; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-xs); color: var(--mute); }
+.location-copy { flex: none; width: var(--control-xs); height: var(--control-xs); border-color: transparent; background: transparent; opacity: 0; }
+.location-dir-row:hover .location-copy, .location-copy:focus-visible, .location-copy[data-done] { opacity: 1; }
+.branch-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-width: 0; height: 26px; padding: 0 6px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--text-2); font-size: var(--fs-sm); text-align: left; cursor: pointer; }
+.branch-rows > li:first-child .branch-row { border-top-color: transparent; }
+.branch-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.branch-row svg { flex: none; opacity: 0; }
+.branch-row:hover:not(:disabled), .branch-row:focus-visible { background: var(--raise); color: var(--text); }
+.branch-row:hover svg, .branch-row:focus-visible svg { opacity: 1; }
+.branch-row[aria-current='true'] { color: var(--text); font-weight: 600; cursor: default; }
+.branch-row[aria-current='true']::after { content: '\2022'; flex: none; }
+.branch-more { justify-content: flex-start; color: var(--mute); font-size: var(--fs-xs); }
 .location-repo { font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
 
 /* Texture viewer */

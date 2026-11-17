@@ -67,8 +67,20 @@ export interface Fact {
 const spanOf = (v: ReactNode) => (typeof v === 'string' ? (v.length > 24 ? 3 : v.length > 11 ? 2 : 1) : 2)
 
 /** The facts that decide, three to a row: the value in mono, its label below (the label comes first in the markup, as a definition list needs). */
-export function FactsGrid({ facts }: { facts: Fact[] }) {
+export function FactsGrid({ facts, variant = 'grid' }: { facts: Fact[]; variant?: 'grid' | 'strip' }) {
   if (!facts.length) return null
+  // The strip is a light row of figures: no cells to fill, so no spans or filler.
+  if (variant === 'strip')
+    return (
+      <dl className="facts facts-strip">
+        {facts.map((f, i) => (
+          <div key={`${i}:${f.label}`} className="fact" title={f.title}>
+            <dt>{f.label}</dt>
+            <dd title={typeof f.value === 'string' ? f.value : undefined}>{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+    )
   const cells = facts.reduce((sum, f) => sum + spanOf(f.value), 0)
   // The last row is filled out, so the hairlines between cells run to the edge.
   const filler = (3 - (cells % 3)) % 3

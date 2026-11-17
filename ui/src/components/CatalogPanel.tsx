@@ -4,14 +4,14 @@ import type { RunningUnity } from '@shared/ipc'
 import { UnityControl, useUnityEditors } from './UnityButton'
 import { Section } from './Section'
 import type { BudgetIssue, CatalogAsset, CatalogLocation, StatsSummary } from '@shared/types'
-import { formatBytes, shortPath } from '../format'
+import { formatBytes } from '../format'
 import type { CatalogStatus } from '@shared/ipc'
 import type { SearchScope } from '../useCatalog'
 import { summaryIssues } from '../playable'
 import { useBudget } from '../budget'
 import { DownloadButton } from './DownloadButton'
 import { ErrorNote } from './ErrorNote'
-import { CopyIcon, CubeIcon, ExportIcon, ExternalIcon, LinkIcon } from './Icons'
+import { CheckIcon, ChevronRightIcon, CopyIcon, CubeIcon, ExportIcon, ExternalIcon, LinkIcon } from './Icons'
 import { BudgetLine, CopyStatus, FactsGrid, summaryFacts, useCopy } from './InspectorParts'
 import { assetLink } from '@shared/deeplink'
 import type { AssetTypeHandler } from '../handlers'
@@ -19,8 +19,8 @@ import { useDependencies } from '../useDependencies'
 import { AssetViewer } from './AssetDetails'
 import type { LiveContext } from './ModelViewer'
 
-/** Branch chips shown before "+N more". */
-const BRANCHES_SHOWN = 6
+/** Branch rows shown per path before "Show all". */
+const BRANCHES_SHOWN = 5
 
 const repoName = (repo: string) => repo.split('/').pop() ?? repo
 
@@ -95,45 +95,104 @@ interface LocationsProps {
   onOpen(repo: string, branch: string, path: string): void
 }
 
-/** Where a file is: one row per repo + path, with a chip per branch that opens it there. */
+/** The filter box appears once the list is longer than this many branch rows. */
+const FILTER_FROM = 12
+
+const folderOf = (path: string) => path.split('/').slice(0, -1).join('/')
+
+/** Where a file is: repos fold, each path lists its branches as rows that open the file there. */
 export function LocationList({ locations, here, showRepo, onOpen }: LocationsProps) {
   const { t } = useTranslation()
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  return (
-    <ul className="location-list">
-      {locations.map((l) => {
-        const key = `${l.repo}\n${l.path}`
-        const open = expanded.has(key)
-        const branches = open ? l.branches : l.branches.slice(0, BRANCHES_SHOWN)
-        return (
-          <li key={key}>
-            <div className="location-path" title={`${l.repo}/${l.path}`}>
-              {showRepo && <span className="location-repo">{repoName(l.repo)}</span>}
-              <span className="mono small">{shortPath(l.path)}</span>
-            </div>
-            <div className="chips">
-              {branches.map((b) => {
-                const current = here?.repo === l.repo && here.branch === b
-                return (
-                  <button key={b} type="button" className="chip" aria-current={current} disabled={current} onClick={() => onOpen(l.repo, b, l.path)} title={t('catalog.openIn', { branch: b })}>
-                    {b}
-                  </button>
-                )
-              })}
-              {l.branches.length > BRANCHES_SHOWN && (
-                <button
-                  type="button"
-                  className="chip chip-more"
-                  onClick={() => setExpanded((s) => (s.has(key) ? new Set([...s].filter((k) => k !== key)) : new Set([...s, key])))}
-                >
-                  {open ? t('catalog.less') : t('catalog.more', { count: l.branches.length - BRANCHES_SHOWN })}
+  const { state: copyState, copy } = useCopy()
+  const [copiedKey, setCopiedKey] = useState<string>()
+  const [query, setQuery] = useState('')
+  /** Groups the person folded or unfolded; the rest follow the default (first one open). */
+  const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map())
+  const [showAll, setShowAll] = useState<ReadonlySet<string>>(new Set())
+  const needle = query.trim().toLowerCase()
+  const total = locations.reduce((n, l) => n + l.branches.length, 0)
+  const groups = useMemo(() => {
+    const byRepo = new Map<string, CatalogLocation[]>()
+    for (const l of locations) byRepo.set(l.repo, [...(byRepo.get(l.repo) ?? []), l])
+    return [...byRepo].map(([repo, items]) => ({ repo, items, count: new Set(items.flatMap((l) => l.branches)).size }))
+  }, [locations])
+  const flip = <T,>(set: ReadonlySet<T>, v: T) => (set.has(v) ? new Set([...set].filter((x) => x !== v)) : new Set([...set, v]))
+  const copyPath = (key: string, path: string) => {
+    setCopiedKey(key)
+    void copy(path)
+  }
+
+  const renderPath = (l: CatalogLocation) => {
+    const key = `${l.repo}\n${l.path}`
+    const matches = needle ? l.branches.filter((b) => b.toLowerCase().includes(needle)) : l.branches
+    if (!matches.length) return null
+    const open = !!needle || showAll.has(key)
+    const rows = open ? matches : matches.slice(0, BRANCHES_SHOWN)
+    const dir = folderOf(l.path) || l.path
+    const justCopied = copiedKey === key && copyState === 'copied'
+    return (
+      <li key={key} className="location-item">
+        <div className="location-dir-row">
+          <span className="location-dir mono" title={`${l.repo}/${l.path}`}>
+            <bdi>{dir}</bdi>
+          </span>
+          <button type="button" className="btn icon-btn location-copy" data-done={justCopied || undefined} title={t('details.copyPath')} aria-label={t('details.copyPath')} onClick={() => copyPath(key, l.path)}>
+            {justCopied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+          </button>
+        </div>
+        <ul className="branch-rows">
+          {rows.map((b) => {
+            const current = here?.repo === l.repo && here.branch === b
+            return (
+              <li key={b}>
+                <button type="button" className="branch-row" aria-current={current || undefined} disabled={current} title={t('catalog.openIn', { branch: b })} onClick={() => onOpen(l.repo, b, l.path)}>
+                  <span className="branch-name">{b}</span>
+                  {!current && <ChevronRightIcon size={12} />}
                 </button>
-              )}
-            </div>
-          </li>
-        )
-      })}
-    </ul>
+              </li>
+            )
+          })}
+          {!needle && matches.length > BRANCHES_SHOWN && (
+            <li>
+              <button type="button" className="branch-row branch-more" aria-expanded={open} onClick={() => setShowAll((s) => flip(s, key))}>
+                {open ? t('catalog.less') : t('catalog.showAll', { count: matches.length })}
+              </button>
+            </li>
+          )}
+        </ul>
+      </li>
+    )
+  }
+
+  return (
+    <div className="location-list">
+      {total > FILTER_FROM && (
+        <input type="search" className="input location-filter" value={query} placeholder={t('catalog.filterBranches')} aria-label={t('catalog.filterBranches')} onChange={(e) => setQuery(e.target.value)} />
+      )}
+      <ul className="location-groups">
+        {groups.map((g, i) => {
+          const paths = g.items.map(renderPath).filter(Boolean)
+          if (!paths.length) return null
+          if (!showRepo) return paths
+          const open = !!needle || (toggled.get(g.repo) ?? (i === 0 || groups.length === 1))
+          return (
+            <li key={g.repo} className="location-group">
+              <button type="button" className="location-group-head" aria-expanded={open} onClick={() => setToggled((m) => new Map(m).set(g.repo, !open))}>
+                <span className="section-chevron" data-open={open || undefined}>
+                  <ChevronRightIcon size={12} />
+                </span>
+                <span className="location-repo" title={g.repo}>
+                  {repoName(g.repo)}
+                </span>
+                <span className="muted small">{t('catalog.branchCount', { count: g.count })}</span>
+              </button>
+              {open && <ul className="location-paths">{paths}</ul>}
+            </li>
+          )
+        })}
+      </ul>
+      {needle && !groups.some((g) => g.items.some((l) => l.branches.some((b) => b.toLowerCase().includes(needle)))) && <p className="acts-note">{t('catalog.noBranchMatch')}</p>}
+    </div>
   )
 }
 
@@ -223,16 +282,10 @@ export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpe
       />
       <div className="insp-body">
         <div>
-          <h2 className="insp-title">{asset.name}</h2>
           <div className="insp-path">
-            <span className="mono" title={`${first.repo}/${first.path}`}>
-              {first.path}
-            </span>
+            <h2 className="insp-title">{asset.name}</h2>
             <div className="insp-path-tools">
               <CopyStatus state={copyState} />
-              <button type="button" className="btn icon-btn" title={t('details.copyPath')} aria-label={t('details.copyPath')} onClick={() => void copy(first.path)}>
-                <CopyIcon />
-              </button>
               <button type="button" className="btn icon-btn" title={t('details.openGitHub')} aria-label={t('details.openGitHub')} onClick={openGitHub}>
                 <ExternalIcon />
               </button>
@@ -241,26 +294,24 @@ export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpe
               </button>
             </div>
           </div>
-          <p className="acts-note" style={{ marginTop: 4 }}>
-            {t('catalog.foundIn', { count: asset.branchCount })}
-            {asset.repoCount > 1 && ` · ${t('catalog.repoCount', { count: asset.repoCount })}`}
-          </p>
+          <div className="insp-meta">
+            <span className="acts-note">
+              {[t('catalog.branchCount', { count: asset.branchCount }), asset.repoCount > 1 && t('catalog.repoCount', { count: asset.repoCount })].filter(Boolean).join(' · ')}
+            </span>
+            <button type="button" className="open-branch" title={`${t('catalog.openIn', { branch })}. ${t('catalog.openHint')}`} onClick={() => onOpen(first.repo, branch, first.path)}>
+              {t('catalog.openBranch')}
+              <ChevronRightIcon size={12} />
+            </button>
+          </div>
         </div>
-        <FactsGrid facts={facts} />
+        <FactsGrid facts={facts} variant="strip" />
         {budget && stats && <BudgetLine issues={issues} budget={budget} />}
         {delivery === 'file' ? (
-          <DownloadButton repo={first.repo} branch={branch} path={first.path}>
-            <button type="button" className="btn" onClick={() => onOpen(first.repo, branch, first.path)}>
-              {t('catalog.open', { branch })}
-            </button>
-          </DownloadButton>
+          <DownloadButton repo={first.repo} branch={branch} path={first.path} />
         ) : (
           <>
-            <div className="acts">
-              <button type="button" className="btn btn-primary" title={t('catalog.openHint')} onClick={() => onOpen(first.repo, branch, first.path)}>
-                {t('catalog.open', { branch })}
-              </button>
-              <button type="button" className="btn" title={t('export.exportOne')} disabled={exporting} onClick={() => onExport(asset)}>
+            <div className="acts-split">
+              <button type="button" className="btn btn-primary" title={t('export.exportOne')} disabled={exporting} onClick={() => onExport(asset)}>
                 <ExportIcon />
                 {t('inspector.export')}
               </button>
@@ -273,10 +324,9 @@ export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpe
             )}
           </>
         )}
-        <p className="acts-note">{t('catalog.openHint')}</p>
       </div>
       <div className="folds">
-        <Section id="catalogLocations" title={t('catalog.locations')}>
+        <Section id="catalogLocations" title={t('catalog.locations')} summary={t('catalog.branchCount', { count: asset.branchCount })}>
           <LocationList locations={full?.sha === asset.sha ? full.locations : asset.locations} showRepo={asset.repoCount > 1} onOpen={onOpen} />
         </Section>
       </div>
