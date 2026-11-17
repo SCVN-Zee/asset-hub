@@ -51,6 +51,23 @@ type CellSize = 'small' | 'large'
 const CELL_SIZE_KEY = 'assethub.gridSize'
 const CELL_MIN: Record<CellSize, string> = { small: '120px', large: '180px' }
 
+const SCOPE_KEY = 'assethub.scope'
+
+const isPicks = (v: unknown): v is Selection['repos'] => v === 'all' || (Array.isArray(v) && v.every((x) => typeof x === 'string'))
+
+/** The scope picker as it was left; the open branch when nothing valid is stored. */
+function readSavedScope(): { scope: SearchScope; sel: Selection } {
+  const fallback = { scope: 'branch' as SearchScope, sel: { repos: 'all', branches: 'all' } as Selection }
+  try {
+    const raw = JSON.parse(localStorage.getItem(SCOPE_KEY) ?? 'null')
+    if (!raw || !isPicks(raw.sel?.repos) || !isPicks(raw.sel?.branches)) return fallback
+    const scope: SearchScope = raw.scope === 'repo' || raw.scope === 'all' ? raw.scope : 'branch'
+    return { scope, sel: { repos: raw.sel.repos, branches: raw.sel.branches } }
+  } catch {
+    return fallback
+  }
+}
+
 function useCellSize(): [CellSize, (size: CellSize) => void] {
   const [size, setSize] = useState<CellSize>(() => {
     try {
@@ -255,9 +272,18 @@ export function Browse({
   const [typeFilter, setTypeFilter] = useState(ALL)
   const [folder, setFolder] = useState('')
   const [query, setQuery] = useState('')
-  const [scope, setScope] = useState<SearchScope>('branch')
+  // The scope picker's view and checks are kept between launches.
+  const [savedScope] = useState(readSavedScope)
+  const [scope, setScope] = useState<SearchScope>(savedScope.scope)
   /** What is checked in the scope picker while the catalog is searched; the open branch is the selection otherwise. */
-  const [scopeSel, setScopeSel] = useState<Selection>({ repos: 'all', branches: 'all' })
+  const [scopeSel, setScopeSel] = useState<Selection>(savedScope.sel)
+  useEffect(() => {
+    try {
+      localStorage.setItem(SCOPE_KEY, JSON.stringify({ scope, sel: scopeSel }))
+    } catch {
+      // kept for this session
+    }
+  }, [scope, scopeSel])
   /** Selected result in the other-branches / other-repos views (its blob SHA). */
   const [catalogSel, setCatalogSel] = useState<string>()
   /** Where to land once a branch opened from another view has loaded. */
