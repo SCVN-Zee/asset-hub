@@ -18,3 +18,9 @@ coverage/
 *.pem
 *.p12
 *.cer
+
+# Browser test harness output
+e2e/screenshots/
+e2e/test-results/
+e2e/.vite-cache/
+playwright-report/

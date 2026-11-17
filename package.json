@@ -11,6 +11,7 @@
     "bindings": "ASSETHUB_EXPORT_ONLY=1 cargo run -p asset-hub",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "dist": "tauri build --bundles app,dmg",
     "dist:web": "tauri build && bun scripts/make-web-installer.mjs",
     "release": "bun scripts/publish-release.mjs"
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@fontsource/geist": "^5.3.0",
     "@fontsource/geist-mono": "^5.3.0",
+    "@playwright/test": "^1.65.1",
     "@tauri-apps/api": "2.12.4",
     "@tauri-apps/cli": "2.12.4",
     "@types/node": "^22.10.2",
