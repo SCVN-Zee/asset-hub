@@ -179,20 +179,20 @@ button { cursor: pointer; }
 .update-pill[data-failed] { border-color: var(--warn); color: var(--warn); }
 .update-pill-fill { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--text) 16%, transparent); transition: width 0.2s; }
 .update-pill-label { position: relative; display: block; overflow: hidden; text-overflow: ellipsis; }
-/* Breadcrumb: repo, branch and (when the branch holds several Unity projects) project as one control. */
+/* Breadcrumb: the repos and branches picker and (when the branch holds several Unity projects) the project as one control. */
 .crumb { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; height: var(--control-field); border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
 .crumb-seg { position: relative; min-width: 0; display: flex; align-items: center; height: 100%; }
 .crumb-seg + .crumb-seg { border-left: 1px solid var(--line); }
 .crumb-seg:first-child .picker-trigger { border-radius: var(--r) 0 0 var(--r); }
 .crumb-seg:last-child .picker-trigger { border-radius: 0 var(--r) var(--r) 0; }
+.crumb-seg:only-child .picker-trigger { border-radius: var(--r); }
 .crumb .picker-trigger, .crumb .select { height: 100%; max-width: 100%; padding: 0 10px; border: 0; background: transparent; color: var(--text); justify-content: flex-start; gap: 6px; }
 .crumb .picker-trigger:hover:not(:disabled) { background: var(--raise); }
 .crumb .picker-trigger:disabled { opacity: 0.6; }
 .crumb-seg .dropdown { height: 100%; }
 .crumb-seg .picker-value em { font-style: normal; color: var(--dim); }
-.crumb-seg:first-child .picker-value { max-width: 280px; }
-.crumb-seg + .crumb-seg .picker-value { max-width: 200px; }
-/* Search with the scope control fused to its left edge and the shortcut at the right. */
+.crumb-seg:first-child .picker-value { max-width: 360px; }
+/* Search with the shortcut at the right. */
 .search { display: flex; align-items: center; gap: 8px; height: var(--control-field); padding: 0 10px; background: var(--ground); border: 1px solid var(--line); border-radius: var(--r); color: var(--mute); }
 .search:focus-within { border-color: var(--line-strong); outline: 2px solid var(--text); outline-offset: 1px; }
 .search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--text); }
@@ -203,11 +203,6 @@ button { cursor: pointer; }
 .search-box kbd { flex: none; margin: 0 8px 0 0; padding: 1px 5px; border: 1px solid var(--line); border-radius: var(--r-sm); font: 400 var(--fs-xs) var(--mono); color: var(--mute); }
 .search-suggestions { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20; list-style: none; margin: 0; padding: 6px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); }
 .search-suggestions .picker-option { padding-left: 10px; }
-/* Scope: three choices, one pressed. */
-.scope-tabs { flex: none; align-self: stretch; display: flex; align-items: center; gap: 2px; padding: 2px; border-right: 1px solid var(--line); border-radius: var(--r) 0 0 var(--r); background: var(--ground); }
-.scope-tabs .tab { width: auto; height: 100%; padding: 0 9px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--mute); font-weight: 500; white-space: nowrap; }
-.scope-tabs .tab:hover { background: transparent; color: var(--text); }
-.scope-tabs .tab[aria-pressed='true'] { background: var(--raise); color: var(--text); }
 .topbar-actions { flex: none; display: flex; align-items: center; gap: var(--sp-1); }
 .watch-btn[aria-pressed='true'] { background: var(--raise); color: var(--text); }
 
@@ -286,15 +281,38 @@ body.resizing * { cursor: inherit !important; }
 .picker-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
 .picker-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; width: max(100%, 420px); max-height: 70vh; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--r-lg); box-shadow: var(--shadow-menu); }
 .picker-pop .search { flex: 0 0 auto; background: var(--ground); }
-.picker-list { list-style: none; margin: 0; padding: 0; overflow: auto; }
-.picker-list ul { list-style: none; margin: 0; padding: 0; }
-.picker-group { position: sticky; top: 0; display: flex; justify-content: space-between; padding: 8px 10px 4px; background: var(--panel); font-size: var(--fs-xs); font-weight: 500; color: var(--dim); }
 .picker-option { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 10px 0 18px; border-radius: var(--r); cursor: pointer; font-size: var(--fs-sm); }
 .picker-option[data-active='true'] { background: var(--raise); }
 .picker-option:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
 .picker-option[aria-selected='true'] { color: var(--text); font-weight: 600; }
 .picker-option-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-empty { padding: 12px 10px; }
+/* Repos and branches: two checkbox trees side by side, one above the other on a narrow window. */
+.scope-pop { width: min(640px, calc(100vw - 24px)); }
+.scope-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; }
+@media (max-width: 700px) { .scope-cols { grid-template-columns: minmax(0, 1fr); } }
+.scope-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.scope-title { padding: 4px 6px; font-size: var(--fs-xs); font-weight: 500; color: var(--dim); }
+.scope-list { overflow: auto; max-height: min(46vh, 360px); }
+@media (max-width: 700px) { .scope-list { max-height: 24vh; } }
+.scope-tree { list-style: none; margin: 0; padding: 0; }
+.scope-row { display: flex; align-items: center; gap: 4px; min-height: 28px; padding-right: 4px; border-radius: var(--r); }
+.scope-row:hover, .scope-row:focus-within { background: var(--raise); }
+.scope-row .check { flex: 1; min-width: 0; min-height: 28px; font-size: var(--fs-sm); }
+.scope-all { font-weight: 600; }
+.scope-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scope-gap, .scope-fold { flex: none; width: 18px; height: 18px; }
+.scope-fold { display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--dim); cursor: pointer; }
+.scope-fold:hover { color: var(--text); }
+.scope-fold:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+.scope-fold svg { transition: transform 0.1s; }
+.scope-fold[aria-expanded='true'] svg { transform: rotate(90deg); }
+.scope-only { flex: none; opacity: 0; }
+.scope-row:hover .scope-only, .scope-row:focus-within .scope-only { opacity: 1; }
+@media (hover: none) { .scope-only { opacity: 1; } }
+/* A partly checked group: a dash in the box. */
+.check input:indeterminate { background: var(--text); border-color: var(--text); }
+.check input:indeterminate::after { clip-path: none; height: 2px; transform: scale(1); }
 .lang-trigger { width: 140px; }
 /* Dropdown: Picker look, list fixed-positioned so overflow: hidden parents never clip it. */
 .dropdown { position: relative; display: inline-flex; min-width: 0; }
@@ -386,8 +404,6 @@ body.resizing * { cursor: inherit !important; }
 .chip[aria-current='true'] { cursor: default; }
 .chip-more { border-style: dashed; }
 /* Rows under the toolbar. */
-.catalog-filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px 0; }
-.filter-trigger { max-width: 280px; }
 .catalog-status { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 16px 0; color: var(--mute); font-size: var(--fs-sm); }
 .catalog-status[data-state='error'] { color: var(--warn); }
 .related-line { margin: 0; padding: 8px 16px 0; color: var(--mute); font-size: var(--fs-sm); }

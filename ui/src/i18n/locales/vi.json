@@ -87,9 +87,7 @@
     "noRepos": "Tài khoản này không thấy repo nào.",
     "noResults": "Không có asset nào khớp thư mục và từ khoá.",
     "types": "Loại",
-    "branchNoPrefix": "Branch",
     "defaultBranch": "mặc định",
-    "loadingBranches": "Đang tải branch…",
     "mergeCopies": "Gộp file giống hệt",
     "merged_other": "đã gộp {{count}} bản trùng",
     "copiesTitle": "{{count}} bản giống hệt trong project",
@@ -190,8 +188,19 @@
     "ghInstallFailed": "Không cài được GitHub CLI tự động. Kiểm tra mạng, hoặc đăng nhập bằng token bên dưới."
   },
   "picker": {
-    "search": "Tìm {{label}}…",
     "noMatch": "Không có kết quả."
+  },
+  "scope": {
+    "label": "Repo và branch",
+    "search": "Tìm repo và branch…",
+    "allRepos": "Mọi repo",
+    "allBranches": "Mọi branch",
+    "noRepos": "Không có repo",
+    "noBranches": "Không có branch",
+    "only": "Chỉ",
+    "onlyName": "Chỉ {{name}}",
+    "emptyTitle": "Chọn ít nhất một repo và một branch",
+    "emptyHint": "Đánh dấu chúng ở bộ chọn repo và branch phía trên."
   },
   "viewer": {
     "loading": "Đang tải model…",
@@ -379,12 +388,6 @@
     "includes": "{{names}}…"
   },
   "catalog": {
-    "scope": "Tìm trong",
-    "scopes": {
-      "branch": "Branch này",
-      "repo": "Mọi branch",
-      "all": "Mọi repo"
-    },
     "title": {
       "repo": "Mọi branch của {{repo}}",
       "all": "Mọi repo"
@@ -410,8 +413,6 @@
     "locations": "Nằm ở đâu",
     "alsoIn_one": "Cũng có ở {{count}} branch khác",
     "alsoIn_other": "Cũng có ở {{count}} branch khác",
-    "filterRepo": "Lọc theo repo",
-    "filterBranch": "Lọc theo branch",
     "allRepos": "Mọi repo ({{count}})",
     "allBranches": "Mọi branch ({{count}})",
     "foundIn_one": "có ở {{count}} branch",

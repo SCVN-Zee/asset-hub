@@ -47,16 +47,15 @@ pub async fn catalog_status(state: State<'_, AppState>) -> Result<CatalogStatus,
     traced("catalog_status", async { Ok(state.session()?.catalog.status()) }).await
 }
 
-/// Indexed assets of `repo` (every indexed repo when none), identical files grouped, on `filter`'s repo and branch, with the filters' choices.
+/// Indexed assets of `repo` (every indexed repo when none), identical files grouped, on `filter`'s repos and branches, with the filters' choices.
 #[tauri::command]
 #[specta::specta]
 pub async fn catalog_list(state: State<'_, AppState>, repo: Option<String>, excluded_folders: Vec<String>, filter: Option<CatalogFilter>) -> Result<CatalogListing, IpcError> {
     traced("catalog_list", async {
         let catalog = state.session()?.catalog.clone();
-        let filter = filter.unwrap_or(CatalogFilter { repo: None, branch: None });
-        let (repo_filter, branch_filter) = (filter.repo.filter(|r| !r.is_empty()), filter.branch.filter(|b| !b.is_empty()));
+        let filter = filter.unwrap_or(CatalogFilter { repos: Vec::new(), branches: Vec::new() });
         let repos: Vec<String> = repo.into_iter().collect();
-        let listing = catalog.listing_latest(&repos, &excluded_folders, ListFilter { repo: repo_filter, branch: branch_filter }).await.map_err(ipc_error)?;
+        let listing = catalog.listing_latest(&repos, &excluded_folders, ListFilter { repos: filter.repos, branches: filter.branches }).await.map_err(ipc_error)?;
         // The page has asked again and drops this answer (its effect is cancelled).
         let Some(listing) = listing else { return Err(IpcError::new(AppErrorCode::Unknown, "superseded by a newer listing request")) };
         Ok(listing_dto(&listing))

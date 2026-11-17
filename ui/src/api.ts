@@ -149,7 +149,7 @@ export const api: AssetHubApi = {
     resume: () => result(commands.catalogResume()),
     status: () => result(commands.catalogStatus()),
     list: (repo, excludedFolders, filter) =>
-      result(commands.catalogList(repo, excludedFolders, filter ? { repo: filter.repo ?? null, branch: filter.branch ?? null } : null)),
+      result(commands.catalogList(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null)),
     whereIs: (sha) => result(commands.catalogWhereIs(sha)),
     onStatus: (listener) => on(events.catalogProgress, listener)
   },

@@ -134,7 +134,7 @@ struct Listed {
     key: String,
     version: u64,
     assets: Arc<Vec<CatalogAsset>>,
-    /// Filter counts of the grouped results, per repo filter (counting goes over every branch of every file).
+    /// Filter counts of the grouped results, per repo filter (the repos joined) (counting goes over every branch of every file).
     facets: HashMap<String, CatalogFacets>,
 }
 
@@ -152,11 +152,11 @@ pub struct CatalogService {
     requests: Arc<AtomicU64>,
 }
 
-/// The repo and branch a listing is limited to.
+/// The repos and branches a listing is limited to; an empty list is no limit.
 #[derive(Debug, Clone, Default)]
 pub struct ListFilter {
-    pub repo: Option<String>,
-    pub branch: Option<String>,
+    pub repos: Vec<String>,
+    pub branches: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -544,7 +544,7 @@ impl CatalogService {
     // ---- reading ----
 
     /// `repos` (all saved repos when empty) grouped by content and made small enough for a page,
-    /// limited to `filter`'s repo and branch (see [`list_catalog`]).
+    /// limited to `filter`'s repos and branches (see [`list_catalog`]).
     pub async fn listing(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter) -> Result<CatalogListing, SourceError> {
         self.list_with(repos, excluded_folders, filter, None).await?.ok_or_else(|| SourceError::new(SourceErrorCode::Unknown, "the listing was given up"))
     }
@@ -589,15 +589,19 @@ impl CatalogService {
         }
         let Some(listed) = slot.as_mut() else { return Ok(Some(CatalogListing { assets: Vec::new(), facets: CatalogFacets { repos: Vec::new(), branches: Vec::new() } })) };
         let assets = listed.assets.clone();
-        let facets = match listed.facets.get(filter.repo.as_deref().unwrap_or("")) {
+        // The facets follow the repos only: the branch filter must not narrow its own choices.
+        let mut repos_key = filter.repos.clone();
+        repos_key.sort();
+        let repos_key = repos_key.join("\n");
+        let facets = match listed.facets.get(&repos_key) {
             Some(facets) => facets.clone(),
             None => {
-                let facets = catalog_facets(&assets, filter.repo.as_deref());
-                listed.facets.insert(filter.repo.clone().unwrap_or_default(), facets.clone());
+                let facets = catalog_facets(&assets, &filter.repos);
+                listed.facets.insert(repos_key, facets.clone());
                 facets
             }
         };
-        tauri::async_runtime::spawn_blocking(move || list_catalog(&assets, CatalogFilter { repo: filter.repo.as_deref(), branch: filter.branch.as_deref() }, Some(facets)))
+        tauri::async_runtime::spawn_blocking(move || list_catalog(&assets, CatalogFilter { repos: &filter.repos, branches: &filter.branches }, Some(facets)))
             .await
             .map(Some)
             .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not list the catalog: {e}")))
@@ -1062,9 +1066,9 @@ mod tests {
         let a = all.assets.iter().find(|x| x.sha == "a").unwrap();
         assert_eq!((a.repo_count, a.branch_count), (2, 3));
 
-        let in_a = h.service.listing(&[], &["Plugins".into()], ListFilter { repo: Some("o/a".into()), branch: None }).await.unwrap();
+        let in_a = h.service.listing(&[], &["Plugins".into()], ListFilter { repos: vec!["o/a".into()], branches: vec![] }).await.unwrap();
         assert_eq!(in_a.assets.iter().map(|x| x.sha.as_str()).collect::<BTreeSet<_>>(), BTreeSet::from(["a", "d"]));
-        let on_dev = h.service.listing(&[], &["Plugins".into()], ListFilter { repo: Some("o/a".into()), branch: Some("dev".into()) }).await.unwrap();
+        let on_dev = h.service.listing(&[], &["Plugins".into()], ListFilter { repos: vec!["o/a".into()], branches: vec!["dev".into()] }).await.unwrap();
         assert_eq!(on_dev.assets.iter().map(|x| x.sha.as_str()).collect::<BTreeSet<_>>(), BTreeSet::from(["a", "d"]));
         // The filter's choices count every repo, the branches only those of the filtered repo.
         assert_eq!(in_a.facets.repos.iter().map(|(r, _)| r.as_str()).collect::<BTreeSet<_>>(), BTreeSet::from(["o/a", "o/b"]));

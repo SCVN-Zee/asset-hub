@@ -741,9 +741,12 @@ dto! {
         pub branch: Option<String>,
     }
 
+    /// The repos and branches a listing is limited to; an empty list is no limit.
     pub struct CatalogFilter {
-        pub repo: Option<String>,
-        pub branch: Option<String>,
+        #[serde(default)]
+        pub repos: Vec<String>,
+        #[serde(default)]
+        pub branches: Vec<String>,
     }
 
     /// One place an asset lives: a path in a repo, on one or more branches.

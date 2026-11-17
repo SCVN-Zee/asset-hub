@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Asset, AssetFacts, AssetSource, CatalogAsset, CatalogFacets, DependencyReport, FactKind, RepoRef, StatsSummary } from '@shared/types'
+import type { Asset, AssetFacts, AssetSource, CatalogAsset, DependencyReport, FactKind, RepoRef, StatsSummary } from '@shared/types'
 import { formatBytes } from '../format'
 import type { HandlerRegistry } from '../handlers'
 import { parse } from '../parse'
@@ -12,7 +12,7 @@ import { ExportBar, packCapacity, type ExportOptions, type ExportState, type Pac
 import { unwrap } from '../remoteSource'
 import { useThumbnailQueue, type ThumbKind } from '../useThumbnailQueue'
 import { Dropdown } from '../components/Dropdown'
-import { Picker } from '../components/Picker'
+import { ScopePicker } from '../components/ScopePicker'
 import { ErrorNote } from '../components/ErrorNote'
 import { FolderTree } from '../components/FolderTree'
 import { CloseIcon, PinIcon, ExportListIcon, CollectionIcon, CopyIcon, ExportIcon, ExternalIcon, FilterIcon, FolderIcon, GearIcon, LinkIcon, RefreshIcon, StarIcon, UnityIcon } from '../components/Icons'
@@ -26,6 +26,7 @@ import { DRAWABLE } from '../viewer/formats'
 import { CatalogDetails, CatalogStatusLine, githubUrl, locationNote } from '../components/CatalogPanel'
 import { useCatalog, type SearchScope } from '../useCatalog'
 import type { BudgetPreset } from '@shared/types'
+import { filterOf, selectionOf, targetOf, type Selection } from '../scopeTree'
 import { BUDGET_PRESETS, rankForPlayable, summaryIssues, type SortMode } from '../playable'
 import { usePopularity } from '../usePopularity'
 import { useBudget } from '../budget'
@@ -141,7 +142,6 @@ function tagsByAsset(list: readonly Asset[], stats: Record<string, StatsSummary>
 
 /** What a scan of the prefabs finds, for the tags of prefabs. */
 const TAG_FACTS: readonly FactKind[] = ['effects', 'uiPrefabs']
-const NO_FACETS: CatalogFacets = { repos: [], branches: [] }
 /** Cards rendered per step while scrolling. */
 const PAGE = 60
 /** Models bigger than this are only rendered when opened, not for grid thumbnails. */
@@ -182,11 +182,6 @@ async function thumbToPng(src: string, size = 128): Promise<Uint8Array | undefin
     return undefined
   }
 }
-
-/** 'owner/repo' → 'owner/' */
-const ownerPrefix = (fullName: string) => fullName.slice(0, fullName.indexOf('/') + 1)
-/** 'vn/net-catch' → 'vn/'; branches without a slash are ungrouped. */
-const branchPrefix = (name: string) => (name.includes('/') ? name.slice(0, name.indexOf('/') + 1) : '')
 
 type Load<T> = { status: 'loading' } | { status: 'error'; error: unknown } | { status: 'ready'; data: T }
 
@@ -261,6 +256,8 @@ export function Browse({
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<SearchScope>('branch')
   /** Selected result in the other-branches / other-repos views (its blob SHA). */
+  /** What is checked in the scope picker while the catalog is searched; the open branch is the selection otherwise. */
+  const [scopeSel, setScopeSel] = useState<Selection>({ repos: 'all', branches: 'all' })
   const [catalogSel, setCatalogSel] = useState<string>()
   /** Where to land once a branch opened from another view has loaded. */
   const nav = useRef<{ repo: string; branch: string; path: string }>()
@@ -317,7 +314,6 @@ export function Browse({
 
   const repoList = repos.status === 'ready' ? repos.data : []
   const repoNames = useMemo(() => repoList.map((r) => r.fullName), [repoList])
-  const defaultBranch = repoList.find((r) => r.fullName === repo)?.defaultBranch
 
   useEffect(() => {
     if (!repo) return
@@ -455,17 +451,11 @@ export function Browse({
   const merged = visible.length - shown.length
   const selected = visible.find((a) => a.id === selectedId)
 
-  const [catalogRepo, setCatalogRepo] = useState('')
-  const [catalogBranch, setCatalogBranch] = useState('')
-  useEffect(() => {
-    setCatalogRepo('')
-    setCatalogBranch('')
-  }, [scope])
-  // Filtered by repo and branch where the catalog is: every repo's results are too many to send whole.
-  const catalogFilter = useMemo(() => ({ repo: catalogRepo, branch: catalogBranch }), [catalogRepo, catalogBranch])
-  const catalog = useCatalog(scope, repo, branch, excludedFolders, true, catalogFilter)
-  /** Repos and branches present in the results, most files first, for the filters. */
-  const catalogFacets = catalog.facets ?? NO_FACETS
+  const selection = scope === 'branch' ? selectionOf(repo, branch) : scopeSel
+  const target = useMemo(() => targetOf(selection, repoNames), [selection, repoNames])
+  // Filtered by repos and branches where the catalog is: every repo's results are too many to send whole.
+  const catalogFilter = useMemo(() => filterOf(scopeSel), [scopeSel])
+  const catalog = useCatalog(scope, repo, branch, excludedFolders, scope === 'branch' || !target.empty, catalogFilter)
   const catalogOfType = useMemo(() => (catalog.assets ?? []).filter((a) => inTab(a, typeFilter)), [catalog.assets, typeFilter, inTab])
   const catalogTags = useMemo(() => tagsByAsset(catalogOfType, modelStats, known), [catalogOfType, withClips, known])
   const { found: catalogFound, suggest: suggestCatalog } = useSearch(catalogOfType, clipNames, query, '', catalogTags)
@@ -526,6 +516,21 @@ export function Browse({
     setScope('branch')
     setOpenCollection(undefined)
     if (toRepo !== repo) {
+  /** One repo and one branch checked opens that branch; anything else searches the catalog. */
+  const pickScope = (next: Selection) => {
+    const to = targetOf(next, repoNames)
+    if (to.scope === 'branch') return openBranch(to.repo!, to.branch!)
+    setScopeSel(next)
+    setScope(to.scope)
+    if (to.scope === 'repo' && to.repo !== repo) setRepo(to.repo!)
+  }
+  const pickedRepos = selection.repos === 'all' ? repoNames : selection.repos
+  // One repo: its live branch list. Several: the branch names the catalog knows of them.
+  const scopeBranches = useMemo(
+    () => (pickedRepos.length === 1 ? branches : (catalog.facets?.branches.map(([b]) => b) ?? branches)),
+    [pickedRepos, branches, catalog.facets]
+  )
+  const defaultBranches = useMemo(() => new Set(pickedRepos.flatMap((r) => repoList.find((x) => x.fullName === r)?.defaultBranch ?? [])), [pickedRepos, repoList])
       nav.current = { repo: toRepo, branch: toBranch, path: '' }
       setRepo(toRepo)
     } else setBranch(toBranch)
@@ -561,7 +566,7 @@ export function Browse({
   }, [recent, storedCollections])
   // Back to the first page only when the user asks for a different list, not when
   // measurements arrive and re-rank it (that used to jump the grid back to the top).
-  const listKey = [scope, repo, branch, root, folder, typeFilter, query, sortMode, onlyFits, mergeCopies, catalogRepo, catalogBranch].join('\n')
+  const listKey = [scope, repo, branch, root, folder, typeFilter, query, sortMode, onlyFits, mergeCopies, JSON.stringify(catalogFilter)].join('\n')
   // The scores are taken once for each list and kept while it is shown: a view or a favorite
   // counts for the next list, and never moves a card under the pointer. The history that
   // arrives after the settings load belongs to the list the user is already looking at.
@@ -641,10 +646,10 @@ export function Browse({
     setSelectedId(repoPath.slice(projectRoot.length))
   }
 
-  /** Where to read a result from for its thumbnail: the filtered repo / branch when set, else its main location. */
+  /** Where to read a result from for its thumbnail: a filtered repo / branch when set, else its main location. */
   const catalogSource = (a: CatalogAsset) => {
-    const at = a.locations.find((l) => !catalogRepo || l.repo === catalogRepo) ?? a.locations[0]
-    const atBranch = catalogBranch && at.branches.includes(catalogBranch) ? catalogBranch : at.branches[0]
+    const at = a.locations.find((l) => !catalogFilter.repos.length || catalogFilter.repos.includes(l.repo)) ?? a.locations[0]
+    const atBranch = at.branches.find((b) => catalogFilter.branches.includes(b)) ?? at.branches[0]
     return { path: at.path, ctx: { repo: at.repo, branch: atBranch, root: projectRootOf(at.path) } }
   }
   const previewKind = (a: Asset) => registry.get(a.type)?.preview.kind
@@ -1226,25 +1231,13 @@ export function Browse({
           <TeamStatus />
         </div>
         <div className="crumb">
-          <Picker
-            label={t('browse.repo')}
-            value={repo}
-            options={repoNames}
-            groupOf={ownerPrefix}
-            ungroupedLabel=""
+          <ScopePicker
+            selection={selection}
+            repos={repoNames}
+            branches={scopeBranches}
+            defaultBranches={defaultBranches}
             placeholder={repos.status === 'loading' ? t('browse.loadingRepos') : t('browse.noRepos')}
-            dimPrefix
-            onChange={setRepo}
-          />
-          <Picker
-            label={t('browse.branch')}
-            value={branch}
-            options={branches}
-            groupOf={branchPrefix}
-            ungroupedLabel={t('browse.branchNoPrefix')}
-            tagOf={(b) => (b === defaultBranch ? t('browse.defaultBranch') : undefined)}
-            placeholder={repo ? t('browse.loadingBranches') : '—'}
-            onChange={setBranch}
+            onChange={pickScope}
           />
           {roots.length > 1 && (
             <div className="crumb-seg">
@@ -1252,7 +1245,7 @@ export function Browse({
             </div>
           )}
         </div>
-        <SearchBox value={query} suggest={inCatalog ? suggestCatalog : suggestHere} onChange={onQuery} scope={scope} onScope={setScope} />
+        <SearchBox value={query} suggest={inCatalog ? suggestCatalog : suggestHere} onChange={onQuery} />
         <div className="topbar-actions">
           <button
             type="button"
@@ -1471,34 +1464,6 @@ export function Browse({
               ))}
             </div>
           )}
-          {inCatalog && catalog.assets && (
-            <div className="catalog-filters">
-              {scope === 'all' && (
-                <Dropdown
-                  size="sm"
-                  className="filter-trigger"
-                  value={catalogRepo}
-                  options={[
-                    { value: '', label: t('catalog.allRepos', { count: catalogFacets.repos.length }) },
-                    ...catalogFacets.repos.map(([r, n]) => ({ value: r, label: r.split('/').pop() ?? r, hint: String(n) }))
-                  ]}
-                  onChange={(r) => (setCatalogRepo(r), setCatalogBranch(''))}
-                  label={t('catalog.filterRepo')}
-                />
-              )}
-              <Dropdown
-                size="sm"
-                className="filter-trigger"
-                value={catalogBranch}
-                options={[
-                  { value: '', label: t('catalog.allBranches', { count: catalogFacets.branches.length }) },
-                  ...catalogFacets.branches.map(([b, n]) => ({ value: b, label: b, hint: String(n) }))
-                ]}
-                onChange={setCatalogBranch}
-                label={t('catalog.filterBranch')}
-              />
-            </div>
-          )}
           {inCatalog && <CatalogStatusLine status={catalog.status} error={catalog.error} onPause={catalog.pause} onResume={catalog.resume} />}
           {(searchFound.related.length > 0 || searchFound.typos.length > 0) && (
             <p className="related-line">
@@ -1507,7 +1472,8 @@ export function Browse({
               {searchFound.typos.length > 0 && t('search.typos', { names: searchFound.typos.slice(0, 5).join(', ') })}
             </p>
           )}
-          {inCatalog && !catalog.assets && !catalog.error && (
+          {inCatalog && target.empty && <EmptyState title={t('scope.emptyTitle')} hint={t('scope.emptyHint')} />}
+          {inCatalog && !target.empty && !catalog.assets && !catalog.error && (
             <div className="grid">
               {Array.from({ length: 12 }, (_, i) => (
                 <SkeletonCard key={i} />

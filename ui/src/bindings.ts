@@ -148,7 +148,7 @@ export const commands = {
 	catalogResume: () => typedError<CatalogStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("catalog_resume")),
 	/**  Where the scan is. */
 	catalogStatus: () => typedError<CatalogStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("catalog_status")),
-	/**  Indexed assets of `repo` (every indexed repo when none), identical files grouped, on `filter`'s repo and branch, with the filters' choices. */
+	/**  Indexed assets of `repo` (every indexed repo when none), identical files grouped, on `filter`'s repos and branches, with the filters' choices. */
 	catalogList: (repo: string | null, excludedFolders: string[], filter: CatalogFilter_Deserialize | null) => typedError<CatalogListing_Serialize, IpcError_Serialize>(__TAURI_INVOKE("catalog_list", { repo, excludedFolders, filter })),
 	/**  Every repo, branch and path holding a file with this blob SHA. */
 	catalogWhereIs: (sha: string) => typedError<CatalogLocation_Serialize[], IpcError_Serialize>(__TAURI_INVOKE("catalog_where_is", { sha })),
@@ -372,16 +372,19 @@ export type CatalogFacets = {
 	branches: ([string, number | null])[],
 };
 
+/**  The repos and branches a listing is limited to; an empty list is no limit. */
 export type CatalogFilter = CatalogFilter_Serialize | CatalogFilter_Deserialize;
 
+/**  The repos and branches a listing is limited to; an empty list is no limit. */
 export type CatalogFilter_Deserialize = {
-	repo?: string | null,
-	branch?: string | null,
+	repos?: string[],
+	branches?: string[],
 };
 
+/**  The repos and branches a listing is limited to; an empty list is no limit. */
 export type CatalogFilter_Serialize = {
-	repo?: string,
-	branch?: string,
+	repos: string[],
+	branches: string[],
 };
 
 export type CatalogListing = CatalogListing_Serialize | CatalogListing_Deserialize;

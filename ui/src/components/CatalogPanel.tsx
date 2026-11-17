@@ -32,25 +32,6 @@ export function locationNote(asset: CatalogAsset, scope: SearchScope, t: (key: s
   return where
 }
 
-interface ScopeProps {
-  scope: SearchScope
-  onScope(scope: SearchScope): void
-}
-
-/** Where the search looks: this branch, every branch of the repo, or every repo. Sits fused to the search field. */
-export function ScopeTabs({ scope, onScope }: ScopeProps) {
-  const { t } = useTranslation()
-  return (
-    <div className="scope-tabs" role="group" aria-label={t('catalog.scope')}>
-      {(['branch', 'repo', 'all'] as const).map((s) => (
-        <button key={s} type="button" className="tab" aria-pressed={scope === s} onClick={() => onScope(s)}>
-          {t(`catalog.scopes.${s}`)}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 interface StatusProps {
   status: CatalogStatus
   error?: unknown

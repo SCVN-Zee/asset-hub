@@ -226,9 +226,9 @@ export interface AssetHubApi {
     status(): Promise<IpcResult<CatalogStatus>>
     /**
      * Indexed assets of `repo` (every indexed repo when null), identical files grouped, on `filter`'s
-     * repo and branch, with the filters' choices. Each location carries its first few branches only.
+     * repos and branches (an empty list is no limit), with the filters' choices. Each location carries its first few branches only.
      */
-    list(repo: string | null, excludedFolders: string[], filter?: { repo?: string; branch?: string }): Promise<IpcResult<CatalogListing>>
+    list(repo: string | null, excludedFolders: string[], filter?: { repos?: string[]; branches?: string[] }): Promise<IpcResult<CatalogListing>>
     /** Every repo, branch and path holding a file with this blob SHA. */
     whereIs(sha: string): Promise<IpcResult<CatalogLocation[]>>
     onStatus(listener: (status: CatalogStatus) => void): () => void

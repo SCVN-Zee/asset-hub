@@ -470,8 +470,9 @@ pub struct CatalogListing {
 pub const LISTED_BRANCHES: usize = 3;
 pub const LISTED_LOCATIONS: usize = 5;
 
-/// Counts per repo (over every location) and per branch (of `repo` when given), most first.
-pub fn catalog_facets(assets: &[CatalogAsset], repo: Option<&str>) -> CatalogFacets {
+/// Counts per repo (over every location) and per branch (of `in_repos`; every repo when empty), most
+/// first. The branch filter of a listing never narrows these: they are the choices for it.
+pub fn catalog_facets(assets: &[CatalogAsset], in_repos: &[String]) -> CatalogFacets {
     let mut repos: OrderedMap<usize> = OrderedMap::new();
     let mut branches: OrderedMap<usize> = OrderedMap::new();
     let bump = |m: &mut OrderedMap<usize>, key: &str| match m.get_mut(key) {
@@ -481,7 +482,7 @@ pub fn catalog_facets(assets: &[CatalogAsset], repo: Option<&str>) -> CatalogFac
     for a in assets {
         for l in &a.locations {
             bump(&mut repos, &l.repo);
-            if repo.is_none_or(|r| r.is_empty() || l.repo == r) {
+            if in_repos.is_empty() || in_repos.contains(&l.repo) {
                 for b in &l.branches {
                     bump(&mut branches, b);
                 }
@@ -496,24 +497,24 @@ pub fn catalog_facets(assets: &[CatalogAsset], repo: Option<&str>) -> CatalogFac
     CatalogFacets { repos: sorted(repos), branches: sorted(branches) }
 }
 
-/// Which repo and branch a listing is limited to; an empty text is no limit.
+/// Which repos and branches a listing is limited to; an empty list is no limit. A location fits
+/// when its repo is listed and any of its branches is.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct CatalogFilter<'a> {
-    pub repo: Option<&'a str>,
-    pub branch: Option<&'a str>,
+    pub repos: &'a [String],
+    pub branches: &'a [String],
 }
 
-/// The assets of a grouped catalog on the filter's repo and branch, made small enough to send to a
+/// The assets of a grouped catalog on the filter's repos and branches, made small enough to send to a
 /// page: hundreds of thousands of files on thousands of branches would be hundreds of megabytes
-/// with every branch name. Locations in the filter come first, the filtered branch first in each;
+/// with every branch name. Locations in the filter come first, the filtered branches first in each;
 /// an asset keeps its first [`LISTED_LOCATIONS`] locations (and `location_total`), each its first
 /// [`LISTED_BRANCHES`] branches (and `branch_total`).
 pub fn list_catalog(assets: &[CatalogAsset], filter: CatalogFilter, facets: Option<CatalogFacets>) -> CatalogListing {
-    let repo = filter.repo.filter(|r| !r.is_empty());
-    let branch = filter.branch.filter(|b| !b.is_empty());
-    let facets = facets.unwrap_or_else(|| catalog_facets(assets, repo));
-    let fits = |l: &CatalogLocation| repo.is_none_or(|r| l.repo == r) && branch.is_none_or(|b| l.branches.iter().any(|x| x == b));
-    let filtered = repo.is_some() || branch.is_some();
+    let (repos, branches) = (filter.repos, filter.branches);
+    let facets = facets.unwrap_or_else(|| catalog_facets(assets, repos));
+    let fits = |l: &CatalogLocation| (repos.is_empty() || repos.contains(&l.repo)) && (branches.is_empty() || l.branches.iter().any(|x| branches.contains(x)));
+    let filtered = !repos.is_empty() || !branches.is_empty();
     let mut out = Vec::new();
     for a in assets {
         if filtered && !a.locations.iter().any(fits) {
@@ -524,10 +525,8 @@ pub fn list_catalog(assets: &[CatalogAsset], filter: CatalogFilter, facets: Opti
             .into_iter()
             .take(LISTED_LOCATIONS)
             .map(|l| {
-                let branches: Vec<String> = match branch {
-                    Some(b) if l.branches.iter().any(|x| x == b) => std::iter::once(b.to_string()).chain(l.branches.iter().filter(|x| *x != b).cloned()).collect(),
-                    _ => l.branches.clone(),
-                };
+                let (wanted, rest): (Vec<&String>, Vec<&String>) = l.branches.iter().partition(|x| branches.contains(x));
+                let branches: Vec<String> = wanted.into_iter().chain(rest).cloned().collect();
                 CatalogLocation { repo: l.repo.clone(), path: l.path.clone(), branches: branches.into_iter().take(LISTED_BRANCHES).collect(), branch_total: Some(l.branches.len()) }
             })
             .collect();
@@ -592,6 +591,66 @@ mod tests {
         c.set_branches(&[CatalogBranch { name: "main".into(), commit: "c1".into(), date: None }], Some("main"), 1);
         let files: Vec<_> = c.files().collect();
         assert_eq!((files[0].size, files[0].lfs), (None, true));
+    }
+
+    fn two_repos() -> Vec<CatalogAsset> {
+        let head = |name: &str, commit: &str| CatalogBranch { name: name.into(), commit: commit.into(), date: None };
+        let mut a = RepoCatalog::empty("o/a", None);
+        a.add_commit("a1", &[entry("A.fbx", "sa", 1)]);
+        a.add_commit("a2", &[entry("A.fbx", "sa", 1), entry("D.fbx", "sd", 1)]);
+        a.set_branches(&[head("main", "a1"), head("dev", "a2")], Some("main"), 1);
+        let mut b = RepoCatalog::empty("p/b", None);
+        b.add_commit("b1", &[entry("B.fbx", "sb", 1)]);
+        b.add_commit("b2", &[entry("A.fbx", "sa", 1)]);
+        b.set_branches(&[head("main", "b1"), head("feature/x", "b2")], Some("main"), 1);
+        group_catalog(&[&a, &b], &|_| Some("fbx".to_string()), &[])
+    }
+
+    fn shas(listing: &CatalogListing) -> Vec<&str> {
+        let mut v: Vec<&str> = listing.assets.iter().map(|a| a.sha.as_str()).collect();
+        v.sort();
+        v
+    }
+
+    fn names(facets: &[(String, usize)]) -> Vec<&str> {
+        let mut v: Vec<&str> = facets.iter().map(|(n, _)| n.as_str()).collect();
+        v.sort();
+        v
+    }
+
+    #[test]
+    fn a_listing_is_limited_to_several_repos_and_branches_at_once() {
+        let assets = two_repos();
+        let all = list_catalog(&assets, CatalogFilter::default(), None);
+        assert_eq!(shas(&all), ["sa", "sb", "sd"]);
+        let (repos, branches) = (["o/a".to_string(), "p/b".to_string()], ["dev".to_string(), "feature/x".to_string()]);
+        // dev of o/a holds A and D; feature/x of p/b holds A; main of either is not asked for.
+        let listing = list_catalog(&assets, CatalogFilter { repos: &repos, branches: &branches }, None);
+        assert_eq!(shas(&listing), ["sa", "sd"]);
+        let a = listing.assets.iter().find(|x| x.sha == "sa").unwrap();
+        assert_eq!(a.locations.len(), 2);
+        // A branch of the filter comes first in its location.
+        assert_eq!(a.locations.iter().find(|l| l.repo == "o/a").unwrap().branches, ["dev", "main"]);
+        // One repo with every branch.
+        let only_b = list_catalog(&assets, CatalogFilter { repos: &repos[1..], branches: &[] }, None);
+        assert_eq!(shas(&only_b), ["sa", "sb"]);
+        // A branch name in every repo (a union by name).
+        let mains = list_catalog(&assets, CatalogFilter { repos: &[], branches: &["main".to_string()] }, None);
+        assert_eq!(shas(&mains), ["sa", "sb"]);
+    }
+
+    #[test]
+    fn facets_follow_the_repos_but_never_the_branch_filter() {
+        let assets = two_repos();
+        let everything = catalog_facets(&assets, &[]);
+        assert_eq!(names(&everything.branches), ["dev", "feature/x", "main"]);
+        let in_a = catalog_facets(&assets, &["o/a".to_string()]);
+        assert_eq!(names(&in_a.branches), ["dev", "main"]);
+        assert_eq!(names(&in_a.repos), ["o/a", "p/b"]);
+        // Listing with a branch filter keeps the branches of its repos choosable.
+        let repos = ["o/a".to_string(), "p/b".to_string()];
+        let listing = list_catalog(&assets, CatalogFilter { repos: &repos, branches: &["dev".to_string()] }, None);
+        assert_eq!(names(&listing.facets.branches), ["dev", "feature/x", "main"]);
     }
 
     #[test]

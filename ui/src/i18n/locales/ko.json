@@ -87,9 +87,7 @@
     "noRepos": "이 계정으로 볼 수 있는 저장소가 없습니다.",
     "noResults": "이 폴더와 검색어에 맞는 에셋이 없습니다.",
     "types": "유형",
-    "branchNoPrefix": "브랜치",
     "defaultBranch": "기본",
-    "loadingBranches": "브랜치 불러오는 중…",
     "mergeCopies": "동일한 파일 합치기",
     "merged_other": "동일한 사본 {{count}}개 합침",
     "copiesTitle": "이 프로젝트에 동일한 사본 {{count}}개",
@@ -190,8 +188,19 @@
     "ghInstallFailed": "GitHub CLI를 자동으로 설치하지 못했습니다. 네트워크를 확인하거나 아래에서 토큰으로 로그인하세요."
   },
   "picker": {
-    "search": "{{label}} 검색…",
     "noMatch": "일치하는 항목이 없습니다."
+  },
+  "scope": {
+    "label": "저장소와 브랜치",
+    "search": "저장소와 브랜치 검색…",
+    "allRepos": "모든 저장소",
+    "allBranches": "모든 브랜치",
+    "noRepos": "저장소 없음",
+    "noBranches": "브랜치 없음",
+    "only": "이것만",
+    "onlyName": "{{name}}만",
+    "emptyTitle": "저장소와 브랜치를 하나 이상 선택하세요",
+    "emptyHint": "상단의 저장소·브랜치 선택에서 체크하세요."
   },
   "viewer": {
     "loading": "모델 불러오는 중…",
@@ -377,12 +386,6 @@
     "includes": "{{names}}…"
   },
   "catalog": {
-    "scope": "검색 범위",
-    "scopes": {
-      "branch": "이 브랜치",
-      "repo": "모든 브랜치",
-      "all": "모든 저장소"
-    },
     "title": {
       "repo": "{{repo}}의 모든 브랜치",
       "all": "모든 저장소"
@@ -405,8 +408,6 @@
     "openHint": "해당 브랜치를 열어 모델을 미리보고 내보냅니다.",
     "locations": "위치",
     "alsoIn_other": "다른 브랜치 {{count}}개에도 있음",
-    "filterRepo": "저장소로 필터",
-    "filterBranch": "브랜치로 필터",
     "allRepos": "모든 저장소 ({{count}})",
     "allBranches": "모든 브랜치 ({{count}})",
     "foundIn_other": "브랜치 {{count}}개에 있음",

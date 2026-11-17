@@ -90,9 +90,7 @@
     "noRepos": "No repositories are visible to this account.",
     "noResults": "No assets match this folder and search.",
     "types": "Types",
-    "branchNoPrefix": "Branches",
     "defaultBranch": "default",
-    "loadingBranches": "Loading branches…",
     "mergeCopies": "Merge identical files",
     "merged_one": "{{count}} identical copy merged",
     "merged_other": "{{count}} identical copies merged",
@@ -197,8 +195,19 @@
     "ghInstallFailed": "Could not install GitHub CLI automatically. Check the network, or sign in with a token below."
   },
   "picker": {
-    "search": "Search {{label}}…",
     "noMatch": "No matches."
+  },
+  "scope": {
+    "label": "Repos and branches",
+    "search": "Search repos and branches…",
+    "allRepos": "All repos",
+    "allBranches": "All branches",
+    "noRepos": "No repos",
+    "noBranches": "No branches",
+    "only": "Only",
+    "onlyName": "Only {{name}}",
+    "emptyTitle": "Pick at least one repo and one branch",
+    "emptyHint": "Check them in the repos and branches picker at the top."
   },
   "viewer": {
     "loading": "Loading model…",
@@ -405,12 +414,6 @@
     "includes": "{{names}}…"
   },
   "catalog": {
-    "scope": "Search in",
-    "scopes": {
-      "branch": "This branch",
-      "repo": "All branches",
-      "all": "All repos"
-    },
     "title": {
       "repo": "All branches of {{repo}}",
       "all": "All repos"
@@ -436,8 +439,6 @@
     "locations": "Where it is",
     "alsoIn_one": "Also in {{count}} other branch",
     "alsoIn_other": "Also in {{count}} other branches",
-    "filterRepo": "Filter by repo",
-    "filterBranch": "Filter by branch",
     "allRepos": "All repos ({{count}})",
     "allBranches": "All branches ({{count}})",
     "foundIn_one": "on {{count}} branch",

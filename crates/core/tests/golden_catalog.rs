@@ -155,12 +155,12 @@ fn grouping_facets_and_listings_match() {
         let case = |func: &str, name: &str| cases(DIR, func).into_iter().find(|c| c.name == name).unwrap_or_else(|| panic!("no case {func}.{name}"));
         check(&case("groupCatalog", &format!("groupCatalog.{tag}")).result.expect("result"), &ser(&grouped), &tag);
         groups += 1;
-        check(&case("catalogFacets", &format!("catalogFacets.{tag}")).result.expect("result"), &ser(&catalog_facets(&grouped, None)), &tag);
+        check(&case("catalogFacets", &format!("catalogFacets.{tag}")).result.expect("result"), &ser(&catalog_facets(&grouped, &[])), &tag);
         facets += 1;
         let filters = [("{}", None, None), ("{\"repo\":\"org/hero\"}", Some("org/hero"), None), ("{\"branch\":\"dev\"}", None, Some("dev")), ("{\"repo\":\"org/hero\",\"branch\":\"feature/x\"}", Some("org/hero"), Some("feature/x")), ("{\"repo\":\"org/none\"}", Some("org/none"), None)];
         for (json_text, repo, branch) in filters {
             let name = format!("listCatalog.{tag}.{}", slug(json_text));
-            let listing = list_catalog(&grouped, CatalogFilter { repo, branch }, None);
+            let listing = list_catalog(&grouped, CatalogFilter { repos: &repo.map(|r| vec![r.to_string()]).unwrap_or_default(), branches: &branch.map(|b| vec![b.to_string()]).unwrap_or_default() }, None);
             check(&case("listCatalog", &name).result.expect("result"), &ser(&listing), &name);
             lists += 1;
         }

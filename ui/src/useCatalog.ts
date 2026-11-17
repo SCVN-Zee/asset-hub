@@ -21,8 +21,8 @@ export function useCatalog(
   branch: string,
   excludedFolders: readonly string[],
   enabled: boolean,
-  /** The results' repo and branch filters (applied where the catalog is). */
-  filter: { repo: string; branch: string }
+  /** The results' repo and branch filters (applied where the catalog is); an empty list is no limit. */
+  filter: { repos: string[]; branches: string[] }
 ) {
   const [status, setStatus] = useState<CatalogStatus>({ state: 'idle', done: 0, total: 0 })
   const [assets, setAssets] = useState<CatalogAsset[]>()
@@ -34,6 +34,7 @@ export function useCatalog(
   const readTime = useRef(0)
   const active = enabled && scope !== 'branch' && (scope === 'all' || !!repo)
   const target = scope === 'repo' ? repo : null
+  const filterKey = JSON.stringify(filter)
 
   useEffect(() => {
     if (!enabled) return
@@ -66,7 +67,7 @@ export function useCatalog(
     let cancelled = false
     const started = Date.now()
     lastRead.current = started
-    window.api.catalog.list(target, [...excludedFolders], { repo: filter.repo, branch: filter.branch }).then(
+    window.api.catalog.list(target, [...excludedFolders], filter).then(
       (r) => {
         if (cancelled) return
         try {
@@ -84,7 +85,7 @@ export function useCatalog(
     return () => {
       cancelled = true
     }
-  }, [active, target, version, excludedFolders, filter.repo, filter.branch])
+  }, [active, target, version, excludedFolders, filterKey])
 
   return {
     status,
