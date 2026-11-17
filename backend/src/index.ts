@@ -1,4 +1,5 @@
 import pkg from '../package.json'
+import { B2HttpError } from './b2'
 import { assertRepoAccess, authenticate } from './auth'
 import type { Env } from './env'
 import { getObject, putObject } from './objects'
@@ -55,7 +56,8 @@ export default {
     try {
       return await handle(req, env, exec)
     } catch (err) {
-      console.error('internal', err instanceof Error ? err.name : 'unknown')
+      // A B2 error message holds only the operation and status, never a key or a signature.
+      console.error('internal', err instanceof B2HttpError ? err.message : err instanceof Error ? err.name : 'unknown')
       return errorJson('internal', 500)
     }
   },

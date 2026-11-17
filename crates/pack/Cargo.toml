@@ -1,0 +1,9 @@
+[package]
+name = "asset_hub_pack"
+description = "The binary pack of named blobs shared by the desktop app and the team Worker."
+version = "0.1.0"
+edition = "2021"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]

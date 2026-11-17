@@ -1,0 +1,13 @@
+-- Thumbnail bytes move from B2 to the shard databases. The index rows that the TypeScript Worker
+-- wrote name B2 versions (ids that are not UUIDs) that no shard holds. The Rust Worker already
+-- treats such rows as absent: it does not list them and does not serve them. This migration deletes
+-- them, and it is safe before or after the Rust deploy and safe to run again, because it never
+-- touches a row with a generation id of the Rust Worker (a lower-case UUID).
+--
+-- `thumb_rev` is not reset. It stays monotonic, so a cursor that a client kept never points past
+-- a new revision. Clients start their thumbnail state again when the list reply carries a new epoch.
+--
+-- Before this runs on the live database, export the rows for the B2 purge script. Run the export
+-- after the Rust deploy, so no further B2 row can appear:
+--   SELECT repo, schema, name, version_id, size FROM thumbs WHERE NOT (version_id LIKE '________-____-____-____-____________' AND version_id NOT GLOB '*[^0-9a-f-]*')
+DELETE FROM thumbs WHERE NOT (version_id LIKE '________-____-____-____-____________' AND version_id NOT GLOB '*[^0-9a-f-]*');

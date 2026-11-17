@@ -4,7 +4,7 @@ import { decodePack, encodeEntryHeader, encodePack } from './pack'
 const hex = (bytes: Uint8Array) => [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
 const fromHex = (text: string) => new Uint8Array(text.match(/../g)!.map((h) => parseInt(h, 16)))
 
-// The same vectors are asserted in src/shared/thumbPack.test.ts on the desktop side.
+// The same vectors are asserted in crates/pack/src/lib.rs on the desktop side.
 const VECTORS = [
   {
     entries: [{ name: 'ab', bytes: [1, 2, 3] }],

@@ -1,7 +1,10 @@
 import { createExecutionContext, env, fetchMock, waitOnExecutionContext } from 'cloudflare:test'
-import { beforeEach, afterEach } from 'vitest'
+import { beforeEach, afterEach, vi, type MockInstance } from 'vitest'
 import worker from '../src/index'
+import { fakeB2 } from './fake-b2'
 import { fakeRedis } from './fake-redis'
+
+export { fakeB2 }
 
 /**
  * Each test gets its own token. GitHub mocks match on it, so a mock that persists from an earlier
@@ -53,16 +56,68 @@ export function denyRepo(repo: string): void {
 }
 
 async function clearStorage(): Promise<void> {
-  await env.DB.batch([env.DB.prepare('DELETE FROM events'), env.DB.prepare('DELETE FROM thumbs'), env.DB.prepare('DELETE FROM thumb_rev')])
-  let cursor: string | undefined
-  do {
-    const page = await env.CACHE.list({ cursor })
-    if (page.objects.length > 0) await env.CACHE.delete(page.objects.map((o) => o.key))
-    cursor = page.truncated ? page.cursor : undefined
-  } while (cursor)
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM events'),
+    env.DB.prepare('DELETE FROM thumbs'),
+    env.DB.prepare('DELETE FROM thumb_rev'),
+    env.DB.prepare('DELETE FROM objects'),
+    env.DB.prepare('UPDATE storage SET reserved_bytes = 0')
+  ])
+  fakeB2.reset()
 }
 
-/** Clears D1, R2 and Redis, and resets GitHub mocks, before every test of the calling file. */
+/** Bytes the Worker counts against its storage cap. */
+export async function reservedBytes(): Promise<number> {
+  return (await env.DB.prepare('SELECT reserved_bytes AS n FROM storage WHERE id = 1').first<{ n: number }>())!.n
+}
+
+let d1Spies: MockInstance[] = []
+
+/**
+ * Makes D1 statements whose SQL matches `sql` throw when they run. `after` runs the statement first,
+ * so the write is committed but the caller sees a failure, as with a lost response. `before` throws
+ * without running it. The harness restores D1 after every test.
+ */
+export function breakD1(...rules: Array<{ sql: RegExp; mode: 'before' | 'after' }>): void {
+  const real = env.DB.prepare.bind(env.DB)
+  const lost = new Error('d1 lost')
+  d1Spies.push(
+    vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+      const rule = rules.find((r) => r.sql.test(query))
+      const statement = real(query)
+      if (!rule) return statement
+      const wrap = (bound: D1PreparedStatement): D1PreparedStatement =>
+        new Proxy(bound, {
+          get(target, prop) {
+            if (prop === 'bind') return (...values: unknown[]) => wrap(target.bind(...values))
+            if (prop === 'run' || prop === 'first' || prop === 'all') {
+              return async (...args: unknown[]) => {
+                if (rule.mode === 'after') await (target[prop] as (...a: unknown[]) => Promise<unknown>)(...args)
+                throw lost
+              }
+            }
+            const value = Reflect.get(target, prop)
+            return typeof value === 'function' ? value.bind(target) : value
+          }
+        })
+      return wrap(statement)
+    })
+  )
+}
+
+/** Makes the next `env.DB.batch` call throw, after committing (`after`) or without running (`before`). Later calls run normally. */
+export function breakD1Batch(mode: 'before' | 'after'): void {
+  const real = env.DB.batch.bind(env.DB)
+  const spy = vi.spyOn(env.DB, 'batch')
+  d1Spies.push(spy)
+  spy.mockImplementation((async (statements: D1PreparedStatement[]) => {
+      spy.mockImplementation(real as never)
+      if (mode === 'after') await real(statements)
+      throw new Error('d1 lost')
+    }) as never)
+}
+
+/** Clears D1, the fake B2 and Redis, and resets GitHub mocks, before every test of the calling file. */
 export function useApiHarness(): void {
   beforeEach(async () => {
     tokenCounter += 1
@@ -71,8 +126,12 @@ export function useApiHarness(): void {
     fakeRedis.reset()
     fetchMock.activate()
     fetchMock.disableNetConnect()
+    fakeB2.install()
   })
   afterEach(() => {
+    fakeB2.uninstall()
+    for (const spy of d1Spies) spy.mockRestore()
+    d1Spies = []
     fetchMock.deactivate()
   })
 }

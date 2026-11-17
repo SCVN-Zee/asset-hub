@@ -148,6 +148,7 @@ version = "2.1.1"
 dependencies = [
  "arboard",
  "asset_hub_core",
+ "asset_hub_pack",
  "base64 0.22.1",
  "block2",
  "chrono",
@@ -206,6 +207,10 @@ dependencies = [
  "thiserror 2.0.21",
  "unicode-normalization",
 ]
+
+[[package]]
+name = "asset_hub_pack"
+version = "0.1.0"
 
 [[package]]
 name = "async-broadcast"

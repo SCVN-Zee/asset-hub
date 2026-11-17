@@ -5,16 +5,19 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    "test:contract": "vitest run -c vitest.contract.config.ts",
     "typecheck": "tsc --noEmit",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "@upstash/redis": "1.41.0"
+    "@upstash/redis": "1.41.0",
+    "aws4fetch": "1.0.20"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.12.21",
     "@cloudflare/workers-types": "4.20260331.1",
+    "miniflare": "4.20260310.0",
     "typescript": "5.9.3",
     "vitest": "3.2.7",
     "wrangler": "4.72.0"

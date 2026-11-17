@@ -1,0 +1,76 @@
+# Do not deploy this file before the cutover phase. It uses the same Worker name as the live
+# TypeScript Worker, so `wrangler deploy -c wrangler.rust.toml` would replace the live Worker.
+# Build and test it only through the contract suite (`CONTRACT_TARGET=rust`) and `--dry-run`.
+name = "asset-hub-api"
+main = "build/worker/shim.mjs"
+account_id = "15d0e54a256f69e39dbc0c1e1141b7c6"
+compatibility_date = "2026-03-01"
+
+[build]
+command = 'cargo install -q worker-build@0.8.7 --locked && "$HOME/.cargo/bin/worker-build" --release'
+
+[[d1_databases]]
+binding = "DB"
+database_name = "asset-hub"
+database_id = "2bde477c-335b-44dc-b257-c10fbc8a4f25"
+migrations_dir = "migrations"
+
+[[d1_databases]]
+binding = "THUMBS_0"
+database_name = "asset-hub-thumbs-0"
+database_id = "e1b5cafe-3112-49a1-9f15-a5834ab6a606"
+migrations_dir = "migrations-thumbs"
+
+[[d1_databases]]
+binding = "THUMBS_1"
+database_name = "asset-hub-thumbs-1"
+database_id = "ae52fb04-fb87-4cfe-b1ef-258b601027d3"
+migrations_dir = "migrations-thumbs"
+
+[[d1_databases]]
+binding = "THUMBS_2"
+database_name = "asset-hub-thumbs-2"
+database_id = "861e04b4-bc5e-4e70-a180-0d1b31ba4961"
+migrations_dir = "migrations-thumbs"
+
+[[d1_databases]]
+binding = "THUMBS_3"
+database_name = "asset-hub-thumbs-3"
+database_id = "7377a6f5-2264-401d-87e2-fb3e9e72ed44"
+migrations_dir = "migrations-thumbs"
+
+[[d1_databases]]
+binding = "THUMBS_4"
+database_name = "asset-hub-thumbs-4"
+database_id = "4a55d634-6ffe-4904-a50b-f8d408b05eaf"
+migrations_dir = "migrations-thumbs"
+
+[[d1_databases]]
+binding = "THUMBS_5"
+database_name = "asset-hub-thumbs-5"
+database_id = "b130f9dc-9129-496e-a2e8-3e5c64fefc41"
+migrations_dir = "migrations-thumbs"
+
+[[d1_databases]]
+binding = "THUMBS_6"
+database_name = "asset-hub-thumbs-6"
+database_id = "cb7ffcbf-30a1-49f8-a330-09d621f70577"
+migrations_dir = "migrations-thumbs"
+
+[[d1_databases]]
+binding = "THUMBS_7"
+database_name = "asset-hub-thumbs-7"
+database_id = "34bfe674-e426-43fd-b35f-8ca5a1325db3"
+migrations_dir = "migrations-thumbs"
+
+[vars]
+ALLOWED_OWNERS = "supercent-io,SCVN-Dan"
+B2_ENDPOINT = "https://s3.us-west-004.backblazeb2.com"
+B2_REGION = "us-west-004"
+B2_BUCKET = "asset-hub-cache"
+
+[triggers]
+crons = ["17 */3 * * *"]
+
+# Secrets UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, B2_KEY_ID and B2_APP_KEY: `wrangler secret put`
+# in production, `.dev.vars` (git-ignored) locally.

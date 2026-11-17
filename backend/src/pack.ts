@@ -1,6 +1,6 @@
 /**
  * Binary pack of named blobs: repeated `[u16 nameLength][name utf8][u32 byteLength][bytes]`,
- * big-endian lengths. The same codec lives in `src/shared/thumbPack.ts` for the desktop; keep
+ * big-endian lengths. The same codec lives in `crates/pack/src/lib.rs` for the desktop; keep
  * both files and their test vectors identical.
  */
 export interface PackEntry {

@@ -1,3 +1,7 @@
 .dev.vars
 .wrangler/
 node_modules/
+target/
+build/
+.contract/
+.backups/

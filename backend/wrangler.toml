@@ -1,24 +1,23 @@
 name = "asset-hub-api"
 main = "src/index.ts"
+account_id = "15d0e54a256f69e39dbc0c1e1141b7c6"
 compatibility_date = "2026-03-01"
 compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "asset-hub"
-# Replace with the id printed by `wrangler d1 create asset-hub` before deploying.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "2bde477c-335b-44dc-b257-c10fbc8a4f25"
 migrations_dir = "migrations"
-
-[[r2_buckets]]
-binding = "CACHE"
-bucket_name = "asset-hub-cache"
 
 [vars]
 ALLOWED_OWNERS = "supercent-io,SCVN-Dan"
+B2_ENDPOINT = "https://s3.us-west-004.backblazeb2.com"
+B2_REGION = "us-west-004"
+B2_BUCKET = "asset-hub-cache"
 
 [triggers]
 crons = ["17 */3 * * *"]
 
-# Secrets UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN: `wrangler secret put`
+# Secrets UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, B2_KEY_ID and B2_APP_KEY: `wrangler secret put`
 # in production, `.dev.vars` (git-ignored) locally.

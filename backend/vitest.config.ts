@@ -9,8 +9,7 @@ export default defineWorkersConfig(async () => {
       setupFiles: ['./test/apply-migrations.ts'],
       poolOptions: {
         workers: {
-          // Isolated storage cannot pop R2 state (it trips over SQLite sidecar files), so the
-          // harness in test/helpers.ts clears D1 and R2 before every test instead.
+          // The harness in test/helpers.ts clears D1 and the fake B2 before every test instead.
           isolatedStorage: false,
           singleWorker: true,
           // No `main` or wrangler config: the pool must not load the Worker before a test mocks the
@@ -19,12 +18,16 @@ export default defineWorkersConfig(async () => {
             compatibilityDate: '2026-03-01',
             compatibilityFlags: ['nodejs_compat'],
             d1Databases: ['DB'],
-            r2Buckets: ['CACHE'],
             bindings: {
               ALLOWED_OWNERS: 'supercent-io,SCVN-Dan',
               TEST_MIGRATIONS: migrations,
               UPSTASH_REDIS_REST_URL: 'https://redis.invalid',
-              UPSTASH_REDIS_REST_TOKEN: 'test-redis-token'
+              UPSTASH_REDIS_REST_TOKEN: 'test-redis-token',
+              B2_ENDPOINT: 'https://b2.fake.invalid',
+              B2_REGION: 'us-west-000',
+              B2_BUCKET: 'test-bucket',
+              B2_KEY_ID: 'test-key-id',
+              B2_APP_KEY: 'test-app-key'
             }
           }
         }

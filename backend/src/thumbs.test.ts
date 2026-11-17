@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { allowRepo, api, repoPath, SCHEMA, sha, unsizedBody, useApiHarness } from '../test/helpers'
+import { allowRepo, api, breakD1, breakD1Batch, fakeB2, repoPath, reservedBytes, SCHEMA, sha, unsizedBody, useApiHarness } from '../test/helpers'
+import { STORAGE_CAP_BYTES } from './storage'
 import { decodePack, encodePack, type PackEntry } from './pack'
 
 vi.mock('./redis', async (importOriginal) => {
@@ -87,8 +88,7 @@ describe('thumbnails', () => {
     await putPack([entry(1)])
     const other = await getPack([sha(1)], { 'x-asset-hub-schema': '2' })
     expect((await other.arrayBuffer()).byteLength).toBe(0)
-    const keys = (await env.CACHE.list()).objects.map((o) => o.key)
-    expect(keys).toEqual([`repos/supercent-io/game/s1/thumbs/${sha(1)}`])
+    expect(fakeB2.keys()).toEqual([`repos/supercent-io/game/s1/thumbs/${sha(1)}`])
   })
 
   it('cursor handles equal timestamps', async () => {
@@ -136,7 +136,7 @@ describe('thumbnails', () => {
     const res = await putPack([entry(1)])
     expect(res.status).toBe(403)
     expect(await res.json()).toEqual({ error: 'readOnly' })
-    expect((await env.CACHE.list()).objects).toHaveLength(0)
+    expect(fakeB2.keys()).toEqual([])
     expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM thumbs').first<{ n: number }>())!.n).toBe(0)
   })
 
@@ -191,23 +191,76 @@ describe('thumbnails', () => {
     expect(decoded[0].bytes).toEqual(bytesFor(3))
   })
 
-  it('get reads R2 only as the client consumes', async () => {
+  it('get reads B2 only as the client consumes', async () => {
     allowRepo('game', true)
     await putPack(Array.from({ length: 20 }, (_, i) => entry(i + 1)))
-    const get = vi.spyOn(env.CACHE, 'get')
+    fakeB2.calls = []
     const res = await getPack(Array.from({ length: 20 }, (_, i) => sha(i + 1)))
     const reader = res.body!.getReader()
     await reader.read()
-    expect(get.mock.calls.length).toBeLessThan(5)
+    expect(fakeB2.callsTo('GET').length).toBeLessThanOrEqual(6)
     await reader.cancel()
-    get.mockRestore()
+  })
+
+  it('get runs at most 6 B2 requests at once and keeps request order', async () => {
+    allowRepo('game', true)
+    const names = Array.from({ length: 40 }, (_, i) => sha(i + 1))
+    await putPack(names.slice(0, 20).map((_n, i) => entry(i + 1)))
+    await putPack(names.slice(20).map((_n, i) => entry(i + 21)))
+    // Later names answer first, so only an ordered writer keeps the request order.
+    fakeB2.hold = async (call) => {
+      if (call.method === 'GET') await new Promise((r) => setTimeout(r, 40 - Number.parseInt(call.key.slice(-40), 16)))
+    }
+    const order = [...names].reverse()
+    const decoded = decodePack(new Uint8Array(await (await getPack(order)).arrayBuffer()))
+    expect(decoded.map((e) => e.name)).toEqual(order)
+    expect(fakeB2.maxInflightGets).toBeGreaterThan(1)
+    expect(fakeB2.maxInflightGets).toBeLessThanOrEqual(6)
+  })
+
+  it('a replaced thumbnail deletes its old version and releases its bytes', async () => {
+    allowRepo('game', true)
+    await putPack([entry(1)])
+    const key = `repos/supercent-io/game/s1/thumbs/${sha(1)}`
+    expect(fakeB2.versionsOf(key)).toHaveLength(1)
+    await putPack([{ name: sha(1), bytes: new Uint8Array([9, 9, 9, 9, 9]) }])
+    expect(fakeB2.versionsOf(key)).toHaveLength(1)
+    expect(await reservedBytes()).toBe(5)
+    expect(fakeB2.callsTo('DELETE').every((c) => c.versionId)).toBe(true)
+  })
+
+  it('507 at the cap leaves B2 and the index untouched', async () => {
+    allowRepo('game', true)
+    await env.DB.prepare('UPDATE storage SET reserved_bytes = ?').bind(STORAGE_CAP_BYTES - 3).run()
+    const res = await putPack([entry(1)])
+    expect(res.status).toBe(507)
+    expect(await res.json()).toEqual({ error: 'storageFull' })
+    expect(fakeB2.calls).toEqual([])
+    expect((await list()).body.items).toEqual([])
+  })
+
+  it('a refused upload undoes the versions that landed', async () => {
+    allowRepo('game', true)
+    fakeB2.failWith = (call) => (call.method === 'PUT' && call.key.endsWith(sha(2)) ? 503 : null)
+    const res = await putPack([entry(1), entry(2), entry(3)])
+    expect(res.status).toBe(500)
+    expect(fakeB2.keys()).toEqual([])
+    expect(await reservedBytes()).toBe(0)
+    expect((await list()).body.items).toEqual([])
+  })
+
+  it('a name sent twice stores one version', async () => {
+    allowRepo('game', true)
+    await putPack([entry(1), { name: sha(1), bytes: new Uint8Array([5, 5]) }])
+    expect(fakeB2.versionsOf(`repos/supercent-io/game/s1/thumbs/${sha(1)}`)).toHaveLength(1)
+    expect(await reservedBytes()).toBe(2)
   })
 
   it('put rejects thumbnail over 1 MB', async () => {
     allowRepo('game', true)
     const res = await putPack([{ name: sha(1), bytes: new Uint8Array(1024 * 1024 + 1) }])
     expect(res.status).toBe(413)
-    expect((await env.CACHE.list()).objects).toHaveLength(0)
+    expect(fakeB2.keys()).toEqual([])
     expect((await putPack([{ name: sha(1), bytes: new Uint8Array(1024 * 1024) }])).status).toBe(200)
   })
 
@@ -227,30 +280,84 @@ describe('thumbnails', () => {
     expect(body.items.map((i) => i.rev).sort()).toEqual([1, 2, 3])
   })
 
-  it('cancel during pending lookup cancels the body', async () => {
+  it('cancel aborts B2 requests that are still in flight', async () => {
     allowRepo('game', true)
-    let bodyCancelled = false
-    let release!: (object: unknown) => void
-    const get = vi.spyOn(env.CACHE, 'get').mockImplementation(() => new Promise((resolve) => (release = resolve)) as never)
-    try {
-      const res = await getPack([sha(1)])
-      const reader = res.body!.getReader()
-      const pending = reader.read() // starts the lookup, which stays pending
-      await vi.waitFor(() => expect(get).toHaveBeenCalledTimes(1))
-      await reader.cancel()
-      await pending
-      release({
-        size: 3,
-        body: new ReadableStream({
-          pull: (c) => c.enqueue(new Uint8Array(3)),
-          cancel: () => {
-            bodyCancelled = true
-          }
+    await putPack([entry(1)])
+    let aborted = false
+    fakeB2.hold = (_call, signal) =>
+      new Promise<void>((_resolve, reject) =>
+        signal.addEventListener('abort', () => {
+          aborted = true
+          reject(new DOMException('aborted', 'AbortError'))
         })
-      })
-      await vi.waitFor(() => expect(bodyCancelled).toBe(true))
-    } finally {
-      get.mockRestore()
-    }
+      )
+    const res = await getPack([sha(1)])
+    const reader = res.body!.getReader()
+    const pending = reader.read().catch(() => {}) // starts the lookup, which stays pending
+    await vi.waitFor(() => expect(fakeB2.callsTo('GET')).toHaveLength(1))
+    await reader.cancel()
+    await pending
+    await vi.waitFor(() => expect(aborted).toBe(true))
+  })
+
+  it('get asks B2 for the version the index names', async () => {
+    allowRepo('game', true)
+    await putPack([entry(1)])
+    const key = `repos/supercent-io/game/s1/thumbs/${sha(1)}`
+    const [indexed] = fakeB2.versionsOf(key)
+    // A newer upload that the index does not name must not be served.
+    fakeB2.seed(key, new Uint8Array([66, 66]))
+    fakeB2.calls = []
+    const res = await getPack([sha(1)])
+    expect(decodePack(new Uint8Array(await res.arrayBuffer()))[0].bytes).toEqual(bytesFor(1))
+    expect(fakeB2.callsTo('GET').map((c) => c.versionId)).toEqual([indexed])
+  })
+
+  it('a pack error aborts the sibling downloads', async () => {
+    allowRepo('game', true)
+    await putPack(Array.from({ length: 6 }, (_, i) => entry(i + 1)))
+    let aborted = 0
+    fakeB2.failWith = (call) => (call.key.endsWith(sha(1)) ? 503 : null)
+    fakeB2.hold = (call, signal) =>
+      call.key.endsWith(sha(1))
+        ? Promise.resolve()
+        : new Promise<void>((_resolve, reject) =>
+            signal.addEventListener('abort', () => {
+              aborted += 1
+              reject(new DOMException('aborted', 'AbortError'))
+            })
+          )
+    const res = await getPack(Array.from({ length: 6 }, (_, i) => sha(i + 1)))
+    await expect(res.body!.getReader().read()).rejects.toBeTruthy()
+    await vi.waitFor(() => expect(aborted).toBe(5))
+  })
+
+  const THUMB_ROWS = /^SELECT name, version_id FROM thumbs/
+
+  it('a batch that threw but landed keeps the live versions and their bytes', async () => {
+    allowRepo('game', true)
+    breakD1Batch('after')
+    expect((await putPack([entry(1), entry(2)])).status).toBe(500)
+    expect(fakeB2.keys()).toHaveLength(2)
+    expect(await reservedBytes()).toBe(8)
+    expect(fakeB2.callsTo('DELETE')).toEqual([])
+  })
+
+  it('a batch that threw and did not land deletes the new versions and releases their bytes', async () => {
+    allowRepo('game', true)
+    breakD1Batch('before')
+    expect((await putPack([entry(1), entry(2)])).status).toBe(500)
+    expect(fakeB2.keys()).toEqual([])
+    expect(await reservedBytes()).toBe(0)
+  })
+
+  it('when the batch outcome cannot be read, nothing is deleted and the bytes stay charged', async () => {
+    allowRepo('game', true)
+    breakD1Batch('after')
+    breakD1({ sql: THUMB_ROWS, mode: 'before' })
+    expect((await putPack([entry(1), entry(2)])).status).toBe(500)
+    expect(fakeB2.keys()).toHaveLength(2)
+    expect(fakeB2.callsTo('DELETE')).toEqual([])
+    expect(await reservedBytes()).toBe(8)
   })
 })
