@@ -204,8 +204,12 @@
   },
   "viewer": {
     "loading": "모델 불러오는 중…",
+    "loadingFile": "불러오는 중…",
     "error": "이 모델을 표시할 수 없습니다: {{message}}",
     "tools": "보기 컨트롤",
+    "options": "보기 옵션",
+    "play": "재생",
+    "pause": "일시정지",
     "view": {
       "reset": "초기화"
     },
@@ -450,6 +454,7 @@
     "fit": "맞춤",
     "actual": "1:1",
     "backdrop": {
+      "label": "배경",
       "checker": "체커",
       "dark": "어둡게",
       "light": "밝게",
@@ -514,6 +519,7 @@
       "transparent": "투명"
     },
     "shape": {
+      "label": "미리보기 모양",
       "sphere": "구",
       "cube": "큐브",
       "plane": "평면"
@@ -537,8 +543,6 @@
     },
     "overrides": "플랫폼 오버라이드: {{list}}",
     "noMeta": ".meta 파일 없음: Unity가 기본 임포트 설정(Vorbis 100%)을 사용합니다.",
-    "play": "▶ 재생",
-    "pause": "❚❚ 일시정지",
     "loop": "반복",
     "seek": "파형 — 클릭해서 이동",
     "cannotPlay": "이 클립을 재생할 수 없습니다: {{message}}",
@@ -574,7 +578,6 @@
     "noRig": "근처 모델 중 이 클립의 본을 가진 모델이 없습니다 — 목록에서 선택하세요.",
     "pickRig": "모델 선택…",
     "rig": "재생할 모델",
-    "on": "{{name}}에서 재생 · 본 {{percent}}% 일치",
     "compressed": "압축된 클립: 커브가 키로 저장되지 않아 미리볼 수 없습니다.",
     "unsupported": {
       "humanoid": "Humanoid 클립: 재생하려면 리그로 리타게팅이 필요합니다 — 아직 미리보기를 지원하지 않습니다.",
@@ -647,8 +650,7 @@
   "particles": {
     "title": "파티클",
     "timeline": "타임라인",
-    "prevFrame": "이전 프레임 (←)",
-    "nextFrame": "다음 프레임 (→)",
+    "scrubHint": "드래그로 탐색 · 방향키로 한 프레임씩 이동",
     "frame": "{{frame}} 프레임",
     "emitters": "이미터",
     "peak": "동시 파티클",

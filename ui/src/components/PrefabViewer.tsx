@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DependencyReport, ModelStats } from '@shared/types'
+import { PauseIcon, PlayIcon, RefreshIcon, ResetViewIcon, SparkIcon, WarnIcon } from './Icons'
+import { MenuItem, MenuLabel, MenuSep } from './InspectorParts'
 import { ViewGizmo } from './ViewGizmo'
+import { ViewerBar, ViewerButton, ViewerFrame, ViewTools } from './ViewerBar'
 import { FbxViewer } from '../viewer/FbxViewer'
 import { buildPrefab, dressPrefab, type PrefabBuild } from '../viewer/prefabBuild'
 import { buildEffect } from '../viewer/effectBuild'
@@ -16,12 +19,10 @@ interface Props {
   onStats(stats: ModelStats): void
   onThumb(dataUrl: string): void
   onLoading?(loading: boolean): void
-  /** What the viewer sits on now, so the calibration strip can say so. */
-  onBackdrop?(backdrop: FxBackdrop): void
 }
 
 /** An effect is judged on the stage grey or on dark, where glow and additive particles read as in a game. */
-export type FxBackdrop = 'stage' | 'dark'
+type FxBackdrop = 'stage' | 'dark'
 const BACKDROP_KEY = 'assethub.fxBackdrop'
 
 /** Remembered per machine; effects start on dark, and storage can be unavailable (then it is dark too). */
@@ -47,7 +48,7 @@ type Status = 'waiting' | 'loading' | 'ready' | 'empty' | 'error'
 const buildKey = (r: DependencyReport) => [...Object.keys(r.guidPaths ?? {}).sort(), ...r.materials.flatMap((m) => m.textures.map((t) => t.path ?? ''))].join('|')
 
 /** A prefab put together from its models and materials, with the model viewer's controls. */
-export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, onBackdrop }: Props) {
+export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading }: Props) {
   const { t } = useTranslation()
   const host = useRef<HTMLDivElement>(null)
   const viewer = useRef<FbxViewer>()
@@ -64,13 +65,8 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
   const [backdrop, setBackdrop] = useState(readBackdrop)
   // Only effects have the choice; a model always sits on the stage.
   const shownBackdrop: FxBackdrop = fx ? backdrop : 'stage'
-  const callbacks = useRef({ onStats, onThumb, onLoading, onBackdrop })
-  callbacks.current = { onStats, onThumb, onLoading, onBackdrop }
-
-  useEffect(() => {
-    callbacks.current.onBackdrop?.(shownBackdrop)
-  }, [shownBackdrop])
-  useEffect(() => () => callbacks.current.onBackdrop?.('stage'), [])
+  const callbacks = useRef({ onStats, onThumb, onLoading })
+  callbacks.current = { onStats, onThumb, onLoading }
 
   useEffect(() => {
     callbacks.current.onLoading?.(status === 'loading' || status === 'waiting')
@@ -204,138 +200,110 @@ export function PrefabViewer({ live, path, report, onStats, onThumb, onLoading, 
     effect.fire()
   }
 
+  const toggleWireframe = () => {
+    viewer.current?.setWireframe(!wireframe)
+    setWireframe(!wireframe)
+  }
+  const toggleAutoRotate = () => {
+    viewer.current?.setAutoRotate(!autoRotate)
+    setAutoRotate(!autoRotate)
+  }
+  const toggleBackdrop = () => {
+    const next = backdrop === 'dark' ? 'stage' : 'dark'
+    writeBackdrop(next)
+    setBackdrop(next)
+  }
+  const ready = status === 'ready'
+
   return (
-    <div
-      className="viewer"
-      data-backdrop={shownBackdrop}
-      // Focused (clicked) viewer: Space fires the effect again.
-      tabIndex={fx ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (!fx || status !== 'ready') return
-        // Arrows step a frame back or on (held: keeps stepping); Space fires the effect again.
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          if ((e.target as HTMLElement).tagName === 'INPUT') return
+    <ViewerFrame>
+      <div
+        className="viewer"
+        data-backdrop={shownBackdrop}
+        title={t('viewer.hint')}
+        // Focused (clicked) viewer: Space fires the effect again.
+        tabIndex={fx ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (!fx || !ready) return
+          // Arrows step a frame back or on (held: keeps stepping); Space fires the effect again.
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            e.preventDefault()
+            return seek((frameNow + (e.key === 'ArrowLeft' ? -1 : 1)) * FRAME)
+          }
+          if (e.key !== ' ') return
           e.preventDefault()
-          return seek((frameNow + (e.key === 'ArrowLeft' ? -1 : 1)) * FRAME)
-        }
-        if (e.key !== ' ') return
-        e.preventDefault()
-        if (!e.repeat) fire()
-      }}
-    >
-      <div className="viewer-canvas" ref={host} />
-      {overlay && (
-        <div className="viewer-overlay" role="status">
-          {overlay}
-        </div>
-      )}
-      {status === 'ready' && (
-        <>
-          <ViewGizmo viewer={viewer.current} />
-          <div className="viewer-tools viewer-tools-top" role="toolbar" aria-label={t('viewer.tools')}>
-            <button type="button" className="viewer-btn" onClick={() => viewer.current?.setView('reset')}>
-              {t('viewer.view.reset')}
-            </button>
-            <button
-              type="button"
-              className="viewer-btn"
-              aria-pressed={autoRotate}
-              onClick={() => {
-                viewer.current?.setAutoRotate(!autoRotate)
-                setAutoRotate(!autoRotate)
-              }}
-            >
-              {t('viewer.autoRotate')}
-            </button>
-            <button
-              type="button"
-              className="viewer-btn"
-              aria-pressed={wireframe}
-              onClick={() => {
-                viewer.current?.setWireframe(!wireframe)
-                setWireframe(!wireframe)
-              }}
-            >
-              {t('viewer.wireframe')}
-            </button>
-            {fx && (
-              <button
-                type="button"
-                className="viewer-btn"
-                aria-pressed={backdrop === 'dark'}
-                title={t('viewer.backdropHint')}
-                onClick={() => {
-                  const next = backdrop === 'dark' ? 'stage' : 'dark'
-                  writeBackdrop(next)
-                  setBackdrop(next)
-                }}
-              >
-                {t('viewer.backdropDark')}
-              </button>
-            )}
+          if (!e.repeat) fire()
+        }}
+      >
+        <div className="viewer-canvas" ref={host} />
+        {overlay && (
+          <div className="viewer-overlay" role="status">
+            {overlay}
           </div>
-          {fx && (
-            // Timeline above the play controls, stacked from the bottom: a narrow viewer wraps the controls without covering it.
-            <div className="viewer-tools viewer-dock">
-              <div className="viewer-row viewer-timeline" role="group" aria-label={t('particles.timeline')}>
-                <button type="button" className="viewer-btn" title={t('particles.prevFrame')} aria-label={t('particles.prevFrame')} onClick={() => seek((frameNow - 1) * FRAME)}>
-                  ‹
-                </button>
-                <input
-                  type="range"
-                  className="viewer-scrub"
-                  min={0}
-                  max={clock.length}
-                  step={FRAME}
-                  value={Math.min(clock.time, clock.length)}
-                  aria-label={t('particles.timeline')}
-                  onChange={(e) => seek(Number(e.target.value))}
-                />
-                <button type="button" className="viewer-btn" title={t('particles.nextFrame')} aria-label={t('particles.nextFrame')} onClick={() => seek((frameNow + 1) * FRAME)}>
-                  ›
-                </button>
-                <span className="viewer-clock">
-                  {clock.time.toFixed(2)}s · {t('particles.frame', { frame: frameNow })}
-                </span>
-              </div>
-              <div className="viewer-row" role="toolbar" aria-label={t('particles.title')}>
-                <button
-                  type="button"
-                  className="viewer-btn"
-                  aria-pressed={!fx.paused}
-                  onClick={() => {
-                    // Play starts the effect over at once; pause holds it where it is.
-                    if (fx.paused) built.current?.effect?.restart()
-                    setEffect({ paused: !fx.paused })
-                  }}
-                >
-                  {fx.paused ? t('particles.play') : t('particles.pause')}
-                </button>
-                <button type="button" className="viewer-btn" title={t('particles.fireHint')} onClick={fire}>
-                  {t('particles.fire')}
-                </button>
-                <button type="button" className="viewer-btn" onClick={() => built.current?.effect?.restart()}>
-                  {t('particles.restart')}
-                </button>
-                <span className="viewer-sep" aria-hidden="true" />
-                <button type="button" className="viewer-btn" aria-pressed={fx.loop} title={t('particles.loopHint')} onClick={() => setEffect({ loop: !fx.loop })}>
-                  {t('particles.loop')}
-                </button>
-                {/* Speed apart, on the right: one choice among three, drawn as a single control. */}
-                <div className="viewer-seg" role="group" aria-label={t('particles.speed')}>
-                  <span className="viewer-seg-label">{t('particles.speed')}</span>
-                  {[0.25, 0.5, 1].map((s) => (
-                    <button key={s} type="button" className="viewer-btn" aria-pressed={fx.speed === s} onClick={() => setEffect({ speed: s })}>
-                      {s}×
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-          <span className="viewer-hint">{missing > 0 ? t('prefabView.missing', { count: missing }) : t('viewer.hint')}</span>
-        </>
-      )}
-    </div>
+        )}
+        {ready && <ViewGizmo viewer={viewer.current} />}
+      </div>
+      {/* The bar stays while loading, so the stage does not change size when the controls arrive. */}
+      <ViewerBar
+        stage={shownBackdrop}
+        menu={
+          ready &&
+          fx && (
+            <>
+              <MenuItem icon={<RefreshIcon size={14} />} label={t('particles.restart')} onSelect={() => built.current?.effect?.restart()} />
+              <MenuItem label={t('particles.loop')} title={t('particles.loopHint')} checked={fx.loop} keepOpen onSelect={() => setEffect({ loop: !fx.loop })} />
+              <MenuLabel>{t('particles.speed')}</MenuLabel>
+              {[0.25, 0.5, 1].map((s) => (
+                <MenuItem key={s} label={`${s}×`} checked={fx.speed === s} keepOpen onSelect={() => setEffect({ speed: s })} />
+              ))}
+              <MenuSep />
+              <MenuItem label={t('viewer.backdropDark')} title={t('viewer.backdropHint')} checked={backdrop === 'dark'} keepOpen onSelect={toggleBackdrop} />
+              <MenuItem label={t('viewer.wireframe')} checked={wireframe} keepOpen onSelect={toggleWireframe} />
+              <MenuItem label={t('viewer.autoRotate')} checked={autoRotate} keepOpen onSelect={toggleAutoRotate} />
+              <MenuItem icon={<ResetViewIcon size={14} />} label={t('viewer.view.reset')} onSelect={() => viewer.current?.setView('reset')} />
+            </>
+          )
+        }
+      >
+        {ready &&
+          (fx ? (
+            <>
+              <ViewerButton
+                icon={fx.paused ? <PlayIcon /> : <PauseIcon />}
+                label={fx.paused ? t('viewer.play') : t('viewer.pause')}
+                pressed={!fx.paused}
+                onClick={() => {
+                  // Play starts the effect over at once; pause holds it where it is.
+                  if (fx.paused) built.current?.effect?.restart()
+                  setEffect({ paused: !fx.paused })
+                }}
+              />
+              <ViewerButton icon={<SparkIcon />} label={t('particles.fire')} title={t('particles.fireHint')} onClick={fire} />
+              <input
+                type="range"
+                className="viewer-scrub"
+                min={0}
+                max={clock.length}
+                step={FRAME}
+                value={Math.min(clock.time, clock.length)}
+                aria-label={t('particles.timeline')}
+                title={t('particles.scrubHint')}
+                onChange={(e) => seek(Number(e.target.value))}
+              />
+              <span className="viewer-clock" title={t('particles.frame', { frame: frameNow })}>
+                {clock.time.toFixed(2)}s
+              </span>
+            </>
+          ) : (
+            <ViewTools view={viewer.current} autoRotate={autoRotate} wireframe={wireframe} onAutoRotate={setAutoRotate} onWireframe={setWireframe} />
+          ))}
+        {ready && missing > 0 && (
+          <span className="viewer-warn">
+            <WarnIcon size={12} />
+            <span>{t('prefabView.missing', { count: missing })}</span>
+          </span>
+        )}
+      </ViewerBar>
+    </ViewerFrame>
   )
 }

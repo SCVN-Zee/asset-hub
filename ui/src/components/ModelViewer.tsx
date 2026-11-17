@@ -5,6 +5,7 @@ import { parse } from '../parse'
 import { unwrap } from '../remoteSource'
 import { Dropdown } from './Dropdown'
 import { ViewGizmo } from './ViewGizmo'
+import { ViewerBar, ViewerFrame, ViewTools } from './ViewerBar'
 import { FbxViewer, type MaterialSlot, type TextureFile } from '../viewer/FbxViewer'
 import { modelFormat } from '../viewer/modelLoaders'
 import { DRAWABLE, fetchTextureFile, guessedSlots, materialSlotPaths, reportSlotPaths } from '../viewer/textures'
@@ -156,45 +157,22 @@ export function ModelViewer({ live, path, report, prefabMaterial, onStats, onThu
   }, [status, report, prefabMaterial])
 
   return (
-    <div className="viewer">
-      <div className="viewer-canvas" ref={host} />
-      {status !== 'ready' && (
-        <div className="viewer-overlay" role="status">
-          {status === 'loading' ? t('viewer.loading') : t('viewer.error', { message: error })}
-        </div>
-      )}
-      {status === 'ready' && (
-        <>
-          <ViewGizmo viewer={viewer.current} />
-          <div className="viewer-tools viewer-tools-top" role="toolbar" aria-label={t('viewer.tools')}>
-            <button type="button" className="viewer-btn" onClick={() => viewer.current?.setView('reset')}>
-              {t('viewer.view.reset')}
-            </button>
-            <button
-              type="button"
-              className="viewer-btn"
-              aria-pressed={autoRotate}
-              onClick={() => {
-                viewer.current?.setAutoRotate(!autoRotate)
-                setAutoRotate(!autoRotate)
-              }}
-            >
-              {t('viewer.autoRotate')}
-            </button>
-            <button
-              type="button"
-              className="viewer-btn"
-              aria-pressed={wireframe}
-              onClick={() => {
-                viewer.current?.setWireframe(!wireframe)
-                setWireframe(!wireframe)
-              }}
-            >
-              {t('viewer.wireframe')}
-            </button>
+    <ViewerFrame>
+      <div className="viewer" title={t('viewer.hint')}>
+        <div className="viewer-canvas" ref={host} />
+        {status !== 'ready' && (
+          <div className="viewer-overlay" role="status">
+            {status === 'loading' ? t('viewer.loading') : t('viewer.error', { message: error })}
           </div>
-          {clips.length > 0 && (
-            <div className="viewer-clips">
+        )}
+        {status === 'ready' && <ViewGizmo viewer={viewer.current} />}
+      </div>
+      {/* The bar stays while loading, so the stage does not change size when the controls arrive. */}
+      <ViewerBar stage="stage">
+        {status === 'ready' && (
+          <>
+            <ViewTools view={viewer.current} autoRotate={autoRotate} wireframe={wireframe} onAutoRotate={setAutoRotate} onWireframe={setWireframe} />
+            {clips.length > 0 && (
               <Dropdown
                 size="xs"
                 className="viewer-select"
@@ -206,11 +184,10 @@ export function ModelViewer({ live, path, report, prefabMaterial, onStats, onThu
                   viewer.current?.playAnimation(value === '' ? null : Number(value))
                 }}
               />
-            </div>
-          )}
-          <span className="viewer-hint">{t('viewer.hint')}</span>
-        </>
-      )}
-    </div>
+            )}
+          </>
+        )}
+      </ViewerBar>
+    </ViewerFrame>
   )
 }

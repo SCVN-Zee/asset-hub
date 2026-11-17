@@ -147,7 +147,7 @@ components:
 
 **Creative North Star: "The Calibration Bench"**
 
-Asset Hub is a look-dev bench, not a showroom. Every thumbnail and viewer sits on the same true 18% grey stage with a soft floor shadow. An asset is judged in the same light wherever it appears. A graphite shell frames that stage and stays quiet: three close greys for ground, panel and raised surfaces, hairline borders, and warm off-white text. The calibration tools of a lighting artist are the visual source: the grey ball, the chrome ball and the colour checker.
+Asset Hub is a look-dev bench, not a showroom. Every thumbnail and viewer sits on the same true 18% grey stage with a soft floor shadow. An asset is judged in the same light wherever it appears. A graphite shell frames that stage and stays quiet: three close greys for ground, panel and raised surfaces, hairline borders, and warm off-white text. The calibration tools of a lighting artist are the visual source: the grey ball and the colour checker.
 
 Colour carries meaning only. The colour checker's orange patch marks the one primary action on a surface. The other checker patches mark asset types, as small swatches on chips and sidebar rows. Green, yellow and red mark state. Nothing else is coloured. The density is high and steady: a 48px top bar, a 232px sidebar, 28px rows, a grid of small cells (120px or 180px minimum) and a 380px inspector. People scan hundreds of assets at once and read the facts that decide.
 
@@ -170,7 +170,7 @@ A neutral graphite shell around a mid-grey stage, with colour reserved for actio
 - **Burnt Umber Ink** (`on-orange`): text and icons on orange.
 
 ### Asset types (the colour checker)
-- **Checker patches** (`type-fbx`, `type-texture`, `type-material`, `type-audio`, `type-prefab`, `type-animation`, `type-font`, `type-vfx`, `type-sprite`): one per asset type. They appear only as the 7–8px swatch on a type chip over a card and as the dot in a sidebar type row. They also appear as the patch row in the inspector's calibration strip. The type word stays in text colour. The model and font patches are lifted a little so they hold 3:1 on the panel.
+- **Checker patches** (`type-fbx`, `type-texture`, `type-material`, `type-audio`, `type-prefab`, `type-animation`, `type-font`, `type-vfx`, `type-sprite`): one per asset type. They appear only as the 7–8px swatch on a type chip over a card and as the dot in a sidebar type row. The type word stays in text colour. The model and font patches are lifted a little so they hold 3:1 on the panel.
 
 ### State
 - **Checker Green** (`state-ok`): budget fits, new assets, copied, done, the live-watch dot.
@@ -180,7 +180,7 @@ A neutral graphite shell around a mid-grey stage, with colour reserved for actio
 - State tints are mixed, not new hues: 14% of the state colour into the panel for a background, 40% for a border.
 
 ### Neutral
-- **Graphite Ground** (`graphite-ground`): the app background, top bar, toolbars, fields and the calibration strip.
+- **Graphite Ground** (`graphite-ground`): the app background, top bar, toolbars, fields and the viewer bar.
 - **Graphite Panel** (`graphite-panel`): sidebar, inspector, export strip, menus, dialogs and the Settings sheet.
 - **Graphite Raise** (`graphite-raise`): buttons, the pressed sidebar row, hovered menu rows and pills.
 - **Hairline** (`hairline`) and **Strong Hairline** (`hairline-strong`): every border and divider. The strong one marks floating panels, hovered controls and focus-adjacent edges.
@@ -243,7 +243,7 @@ The shell is flat. Depth comes from three tonal steps (ground, panel, raise) and
 
 ## Shapes
 
-Corners are gently rounded and small: 4px for chips, inner tabs, context rows and checkboxes, 6px for buttons, fields, rows, cards and stages, and 8px for floating panels and dialogs. Pills (filter pills at 12px, badges, counts, the update pill and the viewer hint at 999px) are the only round forms. Circles are reserved for the account avatar, the brand mark and the calibration balls. Type swatches are 2px-rounded squares. They read as checker patches, not as round status dots. State dots are circles. Hover rings on cards are drawn as two stacked box-shadows: a ground gap, then a Dim Grey ring at hover or a Paper White ring at 4px when selected. They are not borders.
+Corners are gently rounded and small: 4px for chips, inner tabs, context rows and checkboxes, 6px for buttons, fields, rows, cards and stages, and 8px for floating panels and dialogs. Pills (filter pills at 12px, badges, counts and the update pill at 999px) are the only round forms. Circles are reserved for the account avatar, the brand mark and the calibration balls. Type swatches are 2px-rounded squares. They read as checker patches, not as round status dots. State dots are circles. Hover rings on cards are drawn as two stacked box-shadows: a ground gap, then a Dim Grey ring at hover or a Paper White ring at 4px when selected. They are not borders.
 
 ## Components
 
@@ -278,11 +278,19 @@ Plain, compact and confident. One weight of emphasis per surface.
 - **Group heads:** a Label in Dim Grey with a chevron that rotates 90° when open.
 - **Breadcrumb and scope:** one bordered control per group, its segments split by hairlines. The pressed scope tab is Raise on a Ground track.
 
-### Calibration strip (signature)
-A 34px Ground strip under the inspector viewer that states the viewing condition: an 18px grey ball, a chrome ball, a row of 16px checker patches, and the stage reading ("Stage 18% grey") in Measure at the right.
-
 ### Viewer (signature)
-The inspector viewer is a Stage Grey field with the floor shadow. Its controls are a translucent set (82% ground, 12% white hairline, 24px, 11px text, 4px blur). The set appears on hover or focus and stays visible on touch. Live readouts (time, frame) are Measure on a dark pill. The 3D viewer adds a faint neutral floor grid (centre #666666, lines #6f6f6f) for spatial reference. Captured thumbnails are drawn without the grid and with a transparent background, so the page's stage shows through.
+The inspector viewer is a Stage Grey field with the floor shadow, and nothing floats over it. The stage keeps only the axis gizmo (top right, shown on hover or focus), a centred loading or error label, and an effect's caption. The drag-to-rotate hint is the stage's tooltip. The 3D viewer adds a faint neutral floor grid (centre #666666, lines #6f6f6f) for spatial reference. Captured thumbnails are drawn without the grid and with a transparent background, so the page's stage shows through.
+
+The stage and its bar are one box that takes the viewer height. The resize bar under it drags that box.
+
+### Viewer bar (signature)
+One 32px Ground bar under the stage, with a hairline above and below. It is always visible and has the same shape for every viewer type. From the left it holds two to four icon buttons for the main actions, then the "…" menu for everything else, then the calibration reading at the right end.
+- **Icon buttons:** 24px, transparent, Mute Grey icon at 14px. Hover turns the icon Paper White on a Raise fill. Pressed, the button takes Raise, Paper White and the strong hairline. It is never orange and never a white fill. Focus is the usual 2px Paper White outline.
+- **Menu:** the "…" button is the same 24px square. Its rows are the standard menu rows: tick rows for options (loop, wireframe, backdrop, speed) and plain rows for one-off actions.
+- **Fields in the bar:** a dropdown (rig, shape, clip) is the 24px select. It shrinks and cuts long names with an ellipsis. The effect timeline and the font size are range inputs with a Paper White accent.
+- **Readouts:** time and size are Measure (Geist Mono 11px, tabular figures) in Soft Paper, with no pill behind them: `m:ss` for audio, `1.40s` for an effect, `32px` for a font, `1024×1024` for a TMP font atlas. The bar of a font or TMP font is there while it loads, empty until it is ready.
+- **State text:** a count of missing meshes or a playback error is Checker Yellow text with a warning icon.
+- **Calibration reading:** a 12px grey ball and "18%" in Measure at the right end, for the 3D stages and materials. Its tooltip says "Stage 18% grey". On an effect's dark backdrop the ball turns dark and the reading says "Dark". Audio, images and fonts show no reading.
 
 ### Dependency list
 Rows of 28px at 13px. A 40px column holds short type codes (MAT, TEX…) in 11px Mute Grey, because that column is too narrow for the full label. Children hang from drawn tree branches in the strong hairline.

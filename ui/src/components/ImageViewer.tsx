@@ -4,7 +4,10 @@ import type { SpriteBorder, SpriteImport, StatsSummary, TextureImport } from '@s
 import { parse } from '../parse'
 import { unwrap } from '../remoteSource'
 import { builtSizeOf, decodeImage } from '../viewer/textures'
+import { ActualSizeIcon, FitIcon } from './Icons'
+import { MenuItem, MenuLabel, MenuSep } from './InspectorParts'
 import type { LiveContext } from './ModelViewer'
+import { ViewerBar, ViewerButton, ViewerFrame } from './ViewerBar'
 
 /** What the texture panel shows about an image. */
 export interface ImageInfo {
@@ -165,32 +168,37 @@ export function ImageViewer({ live, path, onInfo, onStats, onLoading }: Props) {
   }, [status, sprite, outlines, actual])
 
   return (
-    <div className={`viewer image-viewer backdrop-${backdrop}`} data-actual={actual}>
-      <div className="image-scroll">
-        <canvas ref={canvas} className="image-canvas" />
+    <ViewerFrame>
+      <div className={`viewer image-viewer backdrop-${backdrop}`} data-actual={actual}>
+        <div className="image-scroll">
+          <canvas ref={canvas} className="image-canvas" />
+        </div>
+        {status !== 'ready' && (
+          <div className="viewer-overlay" role="status">
+            {status === 'loading' ? t('viewer.loadingFile') : t('texture.cannotShow', { message: error })}
+          </div>
+        )}
       </div>
-      {status !== 'ready' && (
-        <div className="viewer-overlay" role="status">
-          {status === 'loading' ? t('viewer.loading') : t('texture.cannotShow', { message: error })}
-        </div>
-      )}
-      {status === 'ready' && (
-        <div className="viewer-tools" role="toolbar" aria-label={t('viewer.tools')}>
-          <button type="button" className="viewer-btn" aria-pressed={actual} onClick={() => setActual((a) => !a)}>
-            {actual ? t('texture.fit') : t('texture.actual')}
-          </button>
-          {(['stage', 'checker', 'dark', 'light'] as const).map((b) => (
-            <button key={b} type="button" className="viewer-btn" aria-pressed={backdrop === b} onClick={() => setBackdrop(b)}>
-              {t(`texture.backdrop.${b}`)}
-            </button>
-          ))}
-          {sprite && hasOverlay(sprite) && (
-            <button type="button" className="viewer-btn" aria-pressed={outlines} onClick={() => setOutlines((o) => !o)}>
-              {sprite.sprites.length ? t('sprite.outlines') : t('sprite.slices')}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+      <ViewerBar
+        menu={
+          status === 'ready' && (
+            <>
+              <MenuLabel>{t('texture.backdrop.label')}</MenuLabel>
+              {(['stage', 'checker', 'dark', 'light'] as const).map((b) => (
+                <MenuItem key={b} label={t(`texture.backdrop.${b}`)} checked={backdrop === b} keepOpen onSelect={() => setBackdrop(b)} />
+              ))}
+              {sprite && hasOverlay(sprite) && (
+                <>
+                  <MenuSep />
+                  <MenuItem label={sprite.sprites.length ? t('sprite.outlines') : t('sprite.slices')} checked={outlines} keepOpen onSelect={() => setOutlines((o) => !o)} />
+                </>
+              )}
+            </>
+          )
+        }
+      >
+        {status === 'ready' && <ViewerButton icon={actual ? <FitIcon /> : <ActualSizeIcon />} label={actual ? t('texture.fit') : t('texture.actual')} onClick={() => setActual((a) => !a)} />}
+      </ViewerBar>
+    </ViewerFrame>
   )
 }

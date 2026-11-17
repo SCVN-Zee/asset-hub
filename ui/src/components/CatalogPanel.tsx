@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RunningUnity } from '@shared/ipc'
 import { UnityControl, useUnityEditors } from './UnityButton'
@@ -14,6 +14,10 @@ import { ErrorNote } from './ErrorNote'
 import { CopyIcon, CubeIcon, ExportIcon, ExternalIcon, LinkIcon } from './Icons'
 import { BudgetLine, CopyStatus, FactsGrid, summaryFacts, useCopy } from './InspectorParts'
 import { assetLink } from '@shared/deeplink'
+import type { AssetTypeHandler } from '../handlers'
+import { useDependencies } from '../useDependencies'
+import { AssetViewer } from './AssetDetails'
+import type { LiveContext } from './ModelViewer'
 
 /** Branch chips shown before "+N more". */
 const BRANCHES_SHOWN = 6
@@ -144,10 +148,24 @@ interface DetailsProps {
   /** Exports the file as found on its main branch, without opening that branch. */
   onExport(asset: CatalogAsset): void
   onImportToUnity(asset: CatalogAsset, editor: RunningUnity): void
+  /** Where the live viewer reads the file from: the location the thumbnail comes from. */
+  source?: { path: string; ctx: LiveContext }
+  handler?: AssetTypeHandler
+  /** Every model of the branch, for picking a rig to play a clip on. */
+  models?: readonly string[]
+  /** Opened from a tab of animations: a model starts playing its first clip. */
+  playClips?: boolean
+  /** Bar under the preview that resizes it. */
+  viewerResizer?: ReactNode
+  onThumb?(key: string, dataUrl: string): void
+  /** The viewer of `sha` started or stopped loading. */
+  onViewerLoading?(loading: boolean, sha: string): void
+  /** Full measurements of the viewed file, kept for ranking results. */
+  onModelStats?(key: string, stats: StatsSummary): void
 }
 
 /** Right panel for a result found in other branches / repos: the same anatomy as an opened asset. */
-export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpen, onExport, onImportToUnity }: DetailsProps) {
+export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpen, onExport, onImportToUnity, source, handler, models, playClips, viewerResizer, onThumb, onViewerLoading, onModelStats }: DetailsProps) {
   const { t } = useTranslation()
   const budget = useBudget()
   const editors = useUnityEditors()
@@ -155,6 +173,10 @@ export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpe
   /** Every branch of every location: listings carry only the first few of each. */
   const [full, setFull] = useState<{ sha: string; locations: CatalogLocation[] }>()
   const sha = asset?.sha
+  // A viewer says which asset it loads, so a load of the previous asset cannot pass for this one.
+  const reportLoading = useMemo(() => (sha && onViewerLoading ? (loading: boolean) => onViewerLoading(loading, sha) : undefined), [onViewerLoading, sha])
+  // Models, prefabs and materials need their textures; the viewer waits for this report.
+  const deps = useDependencies(source?.ctx, source?.path, handler)
   const trimmed = !!asset && ((asset.locationTotal ?? 0) > asset.locations.length || asset.locations.some((l) => (l.branchTotal ?? l.branches.length) > l.branches.length))
   // In the listing's scope: a file listed in one repo (one repo's search) stays in that repo.
   const onlyRepo = asset?.repoCount === 1 ? asset.locations[0]?.repo : undefined
@@ -186,7 +208,19 @@ export function CatalogDetails({ asset, thumb, stats, delivery, exporting, onOpe
   const link = assetLink({ repo: first.repo, branch, path: first.path })
   return (
     <aside className="details" aria-label={t('details.label')}>
-      <div className="insp-preview">{thumb ? <img className="catalog-thumb" src={thumb} alt="" /> : <CubeIcon size={72} />}</div>
+      <AssetViewer
+        live={source?.ctx}
+        path={source?.path}
+        kind={handler?.preview.kind}
+        report={deps.status === 'ready' ? deps.report : undefined}
+        playClips={playClips}
+        models={models}
+        resizer={viewerResizer}
+        onSummary={(s) => onModelStats?.(asset.sha, s)}
+        onThumb={(url) => onThumb?.(asset.sha, url)}
+        onLoading={reportLoading}
+        fallback={<div className="insp-preview">{thumb ? <img className="catalog-thumb" src={thumb} alt="" /> : <CubeIcon size={72} />}</div>}
+      />
       <div className="insp-body">
         <div>
           <h2 className="insp-title">{asset.name}</h2>

@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AnimClipInfo, DependencyReport } from '@shared/types'
 import { parse } from '../parse'
+import { PauseIcon, PlayIcon, ResetViewIcon } from './Icons'
+import { MenuItem } from './InspectorParts'
 import { ViewGizmo } from './ViewGizmo'
+import { ViewerBar, ViewerButton, ViewerFrame } from './ViewerBar'
 import { FbxViewer } from '../viewer/FbxViewer'
 import { GOOD_ENOUGH, loadRig, pickRig, rememberRig, rigCoverage, rigOrder, THUMB_POSE, toThreeClip, type Rig } from '../viewer/animPlayer'
 import { Dropdown } from './Dropdown'
@@ -157,48 +160,51 @@ export function AnimViewer({ live, path, report, models = [], onInfo, onThumb, o
   const OTHER = '__other'
 
   return (
-    <div className="viewer">
-      <div className="viewer-canvas" ref={host} />
-      {overlay && (
-        <div className="viewer-overlay" role="status">
-          {overlay}
-        </div>
-      )}
-      {status === 'ready' && <ViewGizmo viewer={viewer.current} />}
-      {(status === 'ready' || status === 'norig' || (status === 'error' && !!info)) && (
-        <div className="viewer-tools viewer-tools-top" role="toolbar" aria-label={t('viewer.tools')}>
-          {status === 'ready' && (
-            <>
-              <button
-                type="button"
-                className="viewer-btn"
-                aria-pressed={playing}
-                onClick={() => {
-                  viewer.current?.setPaused(playing)
-                  setPlaying(!playing)
-                }}
-              >
-                {playing ? t('audio.pause') : t('audio.play')}
-              </button>
-              <button
-                type="button"
-                className="viewer-btn"
-                aria-pressed={loop}
-                onClick={() => {
-                  const next = !loop
-                  setLoop(next)
-                  // Restarts the clip with the new loop setting.
-                  if (info && current.current) viewer.current?.playClip(toThreeClip(info, current.current), next)
-                }}
-              >
-                {t('audio.loop')}
-              </button>
-              <button type="button" className="viewer-btn" onClick={() => viewer.current?.setView('reset')}>
-                {t('viewer.view.reset')}
-              </button>
-            </>
-          )}
-          {searching ? (
+    <ViewerFrame>
+      <div className="viewer" title={t('viewer.hint')}>
+        <div className="viewer-canvas" ref={host} />
+        {overlay && (
+          <div className="viewer-overlay" role="status">
+            {overlay}
+          </div>
+        )}
+        {status === 'ready' && <ViewGizmo viewer={viewer.current} />}
+      </div>
+      {/* The bar stays while a rig is being found, so the stage does not change size when the controls arrive. */}
+      <ViewerBar
+        stage="stage"
+        menu={
+          status === 'ready' && (
+            <MenuItem
+              label={t('audio.loop')}
+              checked={loop}
+              keepOpen
+              onSelect={() => {
+                const next = !loop
+                setLoop(next)
+                // Restarts the clip with the new loop setting.
+                if (info && current.current) viewer.current?.playClip(toThreeClip(info, current.current), next)
+              }}
+            />
+          )
+        }
+      >
+        {status === 'ready' && (
+          <>
+            <ViewerButton
+              icon={playing ? <PauseIcon /> : <PlayIcon />}
+              label={playing ? t('viewer.pause') : t('viewer.play')}
+              pressed={playing}
+              onClick={() => {
+                viewer.current?.setPaused(playing)
+                setPlaying(!playing)
+              }}
+            />
+            <ViewerButton icon={<ResetViewIcon />} label={t('viewer.view.reset')} onClick={() => viewer.current?.setView('reset')} />
+          </>
+        )}
+        {(status === 'ready' || status === 'norig' || (status === 'error' && !!info)) &&
+          (searching ? (
             <input
               className="input viewer-select"
               list="anim-models"
@@ -226,11 +232,9 @@ export function AnimViewer({ live, path, report, models = [], onInfo, onThumb, o
               ]}
               onChange={(value) => (value === OTHER ? setSearching(true) : void chooseRig(value))}
             />
-          )}
-          <datalist id="anim-models">{searching && models.map((m) => <option key={m} value={m} />)}</datalist>
-        </div>
-      )}
-      {status === 'ready' && rig && <span className="viewer-hint">{t('anim.on', { name: rig.split('/').pop(), percent: Math.round((coverage[rig] ?? 0) * 100) })}</span>}
-    </div>
+          ))}
+        <datalist id="anim-models">{searching && models.map((m) => <option key={m} value={m} />)}</datalist>
+      </ViewerBar>
+    </ViewerFrame>
   )
 }

@@ -521,7 +521,7 @@ body.resizing * { cursor: inherit !important; }
 .unity-menu { position: fixed; z-index: 1000; top: 0; left: 0; min-width: min(240px, calc(100vw - 16px)); max-width: min(360px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; display: flex; flex-direction: column; padding: 4px; border-radius: var(--r-lg); border: 1px solid var(--line-strong); background: var(--panel); box-shadow: var(--shadow-menu); }
 .unity-menu-item { display: flex; min-width: 0; overflow-wrap: anywhere; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 0; border-radius: var(--r); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
 .unity-menu-item:hover, .unity-menu-item[aria-current] { background: var(--raise); }
-/* ---------- inspector: viewer on the stage, then calibration, name, facts, budget, actions, folds ---------- */
+/* ---------- inspector: viewer on the stage with its bar, then name, facts, budget, actions, folds ---------- */
 .details { overflow: auto; border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-width: 0; }
 .details > .empty { padding: 48px 24px; }
 .insp-body { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; min-width: 0; }
@@ -533,7 +533,10 @@ body.resizing * { cursor: inherit !important; }
 /* The stage: a flat 18% grey with a soft floor shadow, so every asset is judged in the same light. */
 @keyframes motion-x { from { background-position-x: 0%; } to { background-position-x: 133.333%; } }
 @keyframes motion-y { from { background-position-y: 0%; } to { background-position-y: 133.333%; } }
-.viewer { position: relative; flex: 0 0 auto; height: var(--viewer-h, 300px); overflow: hidden; background: var(--stage); isolation: isolate; }
+/* The stage and its bar are one box. The box owns the viewer height, so the resize bar (which measures what is above it) drags the same thing it reads. */
+.viewer-frame { display: flex; flex: 0 0 auto; flex-direction: column; height: var(--viewer-h, 300px); min-width: 0; }
+.viewer-frame.audio-frame { height: 212px; }
+.viewer { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: var(--stage); isolation: isolate; }
 .viewer:not(.audio-viewer):not(.font-viewer):not(.tmp-viewer)::before { content: ''; position: absolute; left: 20%; right: 20%; bottom: 12%; height: 30px; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.32), transparent); pointer-events: none; }
 .viewer[data-backdrop='dark'] { background: var(--ground); }
 .viewer[data-backdrop='dark']::before { display: none; }
@@ -542,31 +545,35 @@ body.resizing * { cursor: inherit !important; }
 /* A small label over the stage: the grey stays the stage while it loads. */
 .viewer-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 32px); padding: 6px 12px; border-radius: var(--r-lg); text-align: center; color: var(--text); font-size: var(--fs-md); background: rgba(31, 31, 32, 0.82); }
 
-/* The viewer controls: one compact translucent set, shown while the pointer or focus is on the viewer. */
-.viewer .viewer-tools, .viewer .viewer-hint, .viewer .viewer-clips, .viewer .view-gizmo { opacity: 0; transition: opacity 0.15s; }
-.viewer:hover .viewer-tools, .viewer:hover .viewer-hint, .viewer:hover .viewer-clips, .viewer:hover .view-gizmo, .viewer:focus-within .viewer-tools, .viewer:focus-within .viewer-clips, .viewer:focus-within .view-gizmo { opacity: 1; }
-@media (hover: none) { .viewer .viewer-tools, .viewer .viewer-clips, .viewer .view-gizmo { opacity: 1; } }
-.viewer-tools { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 4px; }
-.viewer-tools-top { right: 110px; }
-.viewer-btn { height: var(--control-xs); padding: 0 8px; border-radius: var(--r); border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(31, 31, 32, 0.82); color: var(--text); font-size: var(--fs-xs); font-weight: 500; backdrop-filter: blur(4px); }
-.viewer-btn:hover { background: rgba(31, 31, 32, 0.96); border-color: rgba(255, 255, 255, 0.28); }
-.viewer-btn[aria-pressed='true'] { background: var(--text); border-color: var(--text); color: var(--ground); }
-.viewer-clips { position: absolute; left: 10px; bottom: 34px; }
-.viewer-hint { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 20px); padding: 2px 8px; border-radius: 999px; background: rgba(31, 31, 32, 0.78); color: var(--text-2); font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
-.view-gizmo { position: absolute; top: 8px; right: 10px; overflow: visible; border-radius: 50%; background: rgba(31, 31, 32, 0.55); }
-.viewer-select { height: var(--control-xs); padding: 0 8px; font-size: var(--fs-xs); max-width: 220px; background: rgba(31, 31, 32, 0.86); }
-/* Live readouts (time, frame) are numbers: mono, on a dark pill so they read on the grey. */
-.viewer-clock { min-width: 96px; padding: 0 8px; border-radius: var(--r); background: rgba(31, 31, 32, 0.78); color: var(--text); font: 500 var(--fs-xs)/var(--control-xs) var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.audio-time { align-self: center; margin-left: auto; padding: 0 8px; border-radius: var(--r); background: rgba(31, 31, 32, 0.78); color: var(--text); font: 500 var(--fs-xs)/var(--control-xs) var(--mono); }
-.audio-error { align-self: center; min-width: 0; padding: 0 8px; border-radius: var(--r); background: rgba(31, 31, 32, 0.9); font-size: var(--fs-xs); line-height: var(--control-xs); color: var(--warn); overflow-wrap: anywhere; }
+/* The gizmo is the only control on the stage: shown while the pointer or focus is on the viewer, always on touch. */
+.viewer .view-gizmo { opacity: 0; transition: opacity 0.15s; }
+.viewer:hover .view-gizmo, .viewer:focus-within .view-gizmo { opacity: 1; }
+@media (hover: none) { .viewer .view-gizmo { opacity: 1; } }
+.view-gizmo { position: absolute; top: 6px; right: 8px; overflow: visible; border-radius: 50%; background: rgba(31, 31, 32, 0.55); }
 
-/* Calibration strip: the viewing condition, stated. */
-.calibration { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 16px; background: var(--ground); border-bottom: 1px solid var(--line); }
-.cal-ball { flex: none; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #bdbdbd, #767676 45%, #2e2e2e 95%); }
-.cal-chrome { background: radial-gradient(circle at 34% 28%, #fff 0 8%, transparent 14%), linear-gradient(170deg, #f4f4f2 0 30%, #5b5b5d 46%, #1b1b1c 52%, #9a9a96 70%, #e8e8e4); }
-.cal-patches { display: flex; gap: 2px; margin-left: 8px; }
-.cal-patches i { width: 16px; height: 16px; border-radius: 2px; }
-.calibration .num { margin-left: auto; }
+/* The viewer bar: one 32px row under the stage for the main actions, a "…" menu and the calibration reading. */
+.viewer-bar { display: flex; flex: none; align-items: center; gap: 4px; height: 32px; padding: 0 8px; min-width: 0; background: var(--ground); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.viewer-btn, .viewer-bar .icon-btn { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--control-xs); min-width: var(--control-xs); height: var(--control-xs); padding: 0; border: 1px solid transparent; border-radius: var(--r); background: transparent; color: var(--mute); }
+.viewer-btn:hover, .viewer-bar .icon-btn:hover:not(:disabled) { border-color: transparent; background: var(--raise); color: var(--text); }
+.viewer-btn[aria-pressed='true'], .viewer-bar .icon-btn[aria-expanded='true'] { border-color: var(--line-strong); background: var(--raise); color: var(--text); }
+.viewer-btn:focus-visible, .viewer-bar .icon-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.viewer-bar .dropdown { flex: 0 1 200px; min-width: 0; }
+.viewer-bar .dropdown .viewer-select { width: 100%; min-width: 0; max-width: 100%; }
+.viewer-bar > .input { flex: 0 1 200px; min-width: 0; height: var(--control-xs); padding: 0 8px; font-size: var(--fs-sm); }
+.viewer-bar > .viewer-text { flex: 1 1 80px; }
+.viewer-scrub, .viewer-size { min-width: 40px; margin: 0 4px; accent-color: var(--text); }
+.viewer-scrub { flex: 1 1 60px; }
+.viewer-size { flex: 0 1 96px; }
+/* Live readouts (time, size) are figures: mono, tabular. */
+.viewer-clock { flex: none; padding: 0 4px; color: var(--text-2); font: 400 var(--fs-xs)/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* A state, not a control: warn colour with its icon, so colour is never alone. */
+.viewer-warn { display: flex; align-items: center; flex: 0 1 auto; gap: 4px; min-width: 0; color: var(--warn); font-size: var(--fs-xs); }
+.viewer-warn svg { flex: none; }
+.viewer-warn span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The viewing condition, stated at the right end: a grey ball and its reading. */
+.viewer-cal { display: inline-flex; flex: none; align-items: center; gap: 6px; margin-left: auto; padding-left: 8px; }
+.cal-ball { flex: none; width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #bdbdbd, #767676 45%, #2e2e2e 95%); }
+.cal-ball[data-dark='true'] { background: radial-gradient(circle at 35% 30%, #4b4b4e, #1f1f20 55%, #111112 95%); box-shadow: 0 0 0 1px var(--line-strong); }
 
 /* Name and where it lives. */
 .insp-title { margin: 0; font: 600 var(--fs-lg)/1.25 var(--font); overflow-wrap: anywhere; }
@@ -627,17 +634,14 @@ body.resizing * { cursor: inherit !important; }
 .fold-body .stat-grid { font-size: var(--fs-sm); }
 .fold-body .note { margin: 0; }
 
-/* Splitter under the viewer: sits on the stage's edge. */
-.details > .splitter-y { margin: -5px 0 -4px; }
-.details > .splitter-y::after { background: rgba(31, 31, 32, 0.55); }
+/* Splitter under the viewer: sits on the bar's lower edge. */
+.details > .splitter-y { margin: -4px 0 -5px; }
 .viewer-canvas { position: absolute; inset: 0; }
 .viewer-canvas canvas { display: block; cursor: grab; }
 .viewer-canvas canvas:active { cursor: grabbing; }
-.view-gizmo { position: absolute; top: 6px; right: 8px; overflow: visible; }
 .view-gizmo-ball { cursor: pointer; outline: none; }
 .view-gizmo-ball:focus-visible circle { stroke: #fff; stroke-width: 1.5; }
 .view-gizmo-label { font-size: var(--fs-xs); font-weight: 600; pointer-events: none; user-select: none; }
-/* Bottom controls sit above the one-line hint, so wrapping grows upwards instead of over it. */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); column-gap: 16px; margin: 0; font-size: var(--fs-sm); }
 .stat-grid div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .stat-grid .stat-wide { grid-column: 1 / -1; }
@@ -678,7 +682,7 @@ body.resizing * { cursor: inherit !important; }
 .location-repo { font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
 
 /* Texture viewer */
-.image-viewer .image-scroll { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 44px 12px 12px; }
+.image-viewer .image-scroll { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 12px; }
 .image-viewer[data-actual='true'] .image-scroll { display: block; overflow: auto; }
 .image-viewer[data-actual='false'] .image-canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
 .image-canvas { display: block; image-rendering: auto; }
@@ -688,7 +692,6 @@ body.resizing * { cursor: inherit !important; }
 .backdrop-checker { background-color: var(--raise); background-image: linear-gradient(45deg, var(--line-strong) 25%, transparent 25%), linear-gradient(-45deg, var(--line-strong) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--line-strong) 75%), linear-gradient(-45deg, transparent 75%, var(--line-strong) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; }
 .swatch-cell { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { width: 12px; height: 12px; border-radius: var(--r-sm); border: 1px solid var(--line); flex: none; }
-.audio-viewer { height: 180px; }
 .audio-viewer:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .audio-wave { position: absolute; left: 12px; right: 12px; top: 48px; bottom: 16px; width: calc(100% - 24px); height: calc(100% - 64px); cursor: pointer; }
 .sprite-list summary { cursor: pointer; color: var(--text-2); }
@@ -699,12 +702,9 @@ body.resizing * { cursor: inherit !important; }
 .budget-input { width: 80px; height: var(--control-xs); padding: 0 6px; font-size: var(--fs-sm); text-align: right; }
 
 /* Font preview */
-.font-viewer { height: auto; min-height: 240px; display: flex; flex-direction: column; gap: 10px; padding: 12px; overflow: hidden; }
-.font-tools { display: flex; align-items: center; gap: 8px; }
-.font-tools .input { flex: 1; min-width: 0; }
-.font-tools input[type='range'] { width: 96px; }
-.font-sample { margin: 0; line-height: 1.25; color: var(--ground); overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
-.font-glyphs { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 2px; max-height: 200px; overflow: auto; font-size: var(--fs-lg); color: var(--ground); }
+.font-viewer { display: flex; flex-direction: column; gap: 10px; padding: 12px; overflow: auto; }
+.font-sample { flex: none; margin: 0; line-height: 1.25; color: var(--ground); overflow-wrap: anywhere; }
+.font-glyphs { display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 2px; flex: none; font-size: var(--fs-lg); color: var(--ground); }
 .font-glyphs span { display: flex; align-items: center; justify-content: center; height: 30px; border-radius: var(--r-sm); background: rgba(31, 31, 32, 0.14); }
 .font-more { margin: 0; }
 /* Secondary text on the stage needs the darkest ink to hold 4.5:1. */
@@ -719,22 +719,6 @@ body.resizing * { cursor: inherit !important; }
 .emitter-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; padding: 4px 8px; border-radius: var(--r); background: var(--ground); font-size: var(--fs-sm); }
 .emitter-list li > .small:nth-child(2) { grid-column: 1; overflow-wrap: anywhere; }
 .emitter-list li > .mono { grid-column: 2; grid-row: 1; align-self: center; }
-/* Particle controls along the bottom of the viewer; the hint moves above them. */
-.viewer-dock { top: auto; bottom: 34px; flex-direction: column; flex-wrap: nowrap; }
-.viewer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.viewer-timeline { flex-wrap: nowrap; }
-.viewer-scrub { flex: 1; min-width: 60px; accent-color: var(--text); }
-.viewer-timeline { padding: 0 2px; border-radius: var(--r); background: rgba(31, 31, 32, 0.78); }
-.viewer-sep { width: 1px; height: 16px; margin: 0 4px; background: rgba(31, 31, 32, 0.5); }
-/* Speed: pushed to the right, its buttons joined into one control. */
-.viewer-seg { display: flex; align-items: center; margin-left: auto; padding-left: 8px; border-radius: var(--r); background: rgba(31, 31, 32, 0.78); }
-.viewer-seg-label { margin-right: 6px; font-size: var(--fs-xs); color: var(--text-2); }
-.viewer-seg .viewer-btn { padding: 0 7px; border-radius: 0; }
-.viewer-seg .viewer-btn + .viewer-btn { margin-left: -1px; }
-.viewer-seg .viewer-btn:first-of-type { border-radius: var(--r) 0 0 var(--r); }
-.viewer-seg .viewer-btn:last-of-type { border-radius: 0 var(--r) var(--r) 0; }
-.viewer-seg .viewer-btn[aria-pressed='true'] { position: relative; z-index: 1; }
-
 @media (prefers-reduced-motion: reduce) { .weight-fill { transition: none; } }
 /* ---------- export list: a strip docked at the foot of the centre column; open, it grows upward ---------- */
 /* Docked flush: full width of the centre column, no outer radius, one top rule. */

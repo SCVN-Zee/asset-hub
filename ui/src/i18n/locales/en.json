@@ -211,8 +211,12 @@
   },
   "viewer": {
     "loading": "Loading model…",
+    "loadingFile": "Loading…",
     "error": "Could not display this model: {{message}}",
     "tools": "View controls",
+    "options": "View options",
+    "play": "Play",
+    "pause": "Pause",
     "view": {
       "reset": "Reset"
     },
@@ -485,6 +489,7 @@
     "fit": "Fit",
     "actual": "1:1",
     "backdrop": {
+      "label": "Backdrop",
       "checker": "Checker",
       "dark": "Dark",
       "light": "Light",
@@ -550,6 +555,7 @@
       "transparent": "Transparent"
     },
     "shape": {
+      "label": "Preview shape",
       "sphere": "Sphere",
       "cube": "Cube",
       "plane": "Plane"
@@ -573,8 +579,6 @@
     },
     "overrides": "Platform overrides: {{list}}",
     "noMeta": "No .meta file: Unity will use default import settings (Vorbis 100%).",
-    "play": "▶ Play",
-    "pause": "❚❚ Pause",
     "loop": "Loop",
     "seek": "Waveform — click to jump",
     "cannotPlay": "Cannot play this clip: {{message}}",
@@ -610,7 +614,6 @@
     "noRig": "No nearby model has this clip’s bones — pick one from the list.",
     "pickRig": "Pick a model…",
     "rig": "Model to play on",
-    "on": "On {{name}} · {{percent}}% of bones",
     "compressed": "Compressed clip: its curves are not stored as keys, so it cannot be previewed.",
     "unsupported": {
       "humanoid": "Humanoid clip: playing it needs retargeting to a rig — not previewed yet.",
@@ -684,8 +687,7 @@
   "particles": {
     "title": "Particles",
     "timeline": "Timeline",
-    "prevFrame": "Previous frame (←)",
-    "nextFrame": "Next frame (→)",
+    "scrubHint": "Drag to scrub · arrow keys step one frame",
     "frame": "frame {{frame}}",
     "emitters": "Emitters",
     "peak": "Particles at once",

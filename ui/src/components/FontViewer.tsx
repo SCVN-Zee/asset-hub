@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { StatsSummary } from '@shared/types'
 import { fontStats, loadFont, type LoadedFont } from '../viewer/font'
 import type { LiveContext } from './ModelViewer'
+import { ViewerBar, ViewerFrame } from './ViewerBar'
 
 interface Props {
   live: LiveContext
@@ -65,38 +66,44 @@ export function FontViewer({ live, path, onInfo, onStats, onLoading }: Props) {
   const sample = [...(text || t('font.sample'))]
 
   return (
-    <div className="viewer font-viewer">
-      {status !== 'ready' || !font ? (
-        <div className="viewer-overlay" role="status">
-          {status === 'error' ? t('font.cannotRead', { message: error }) : t('viewer.loading')}
-        </div>
-      ) : (
-        <>
-          <div className="font-tools">
-            <input className="input" value={text} onChange={(e) => setText(e.target.value)} aria-label={t('font.sampleLabel')} placeholder={t('font.sampleLabel')} />
-            <input type="range" min={12} max={96} value={size} onChange={(e) => setSize(Number(e.target.value))} aria-label={t('font.size')} />
-            <span className="muted small mono">{size}px</span>
+    <ViewerFrame>
+      <div className="viewer font-viewer">
+        {status !== 'ready' || !font ? (
+          <div className="viewer-overlay" role="status">
+            {status === 'error' ? t('font.cannotRead', { message: error }) : t('viewer.loadingFile')}
           </div>
-          <p className="font-sample" style={{ fontFamily: family, fontSize: size }}>
-            {sample.map((ch, i) => {
-              const c = ch.codePointAt(0)!
-              return c <= 0x20 || font.codepoints.has(c) ? ch : (
-                <span key={i} className="font-missing" title={t('font.missingChar', { char: ch })}>
-                  {ch}
+        ) : (
+          <>
+            <p className="font-sample" style={{ fontFamily: family, fontSize: size }}>
+              {sample.map((ch, i) => {
+                const c = ch.codePointAt(0)!
+                return c <= 0x20 || font.codepoints.has(c) ? ch : (
+                  <span key={i} className="font-missing" title={t('font.missingChar', { char: ch })}>
+                    {ch}
+                  </span>
+                )
+              })}
+            </p>
+            <div className="font-glyphs" style={{ fontFamily: family }} aria-label={t('font.glyphs')}>
+              {glyphs.map((c) => (
+                <span key={c} title={`U+${c.toString(16).toUpperCase().padStart(4, '0')}`}>
+                  {String.fromCodePoint(c)}
                 </span>
-              )
-            })}
-          </p>
-          <div className="font-glyphs" style={{ fontFamily: family }} aria-label={t('font.glyphs')}>
-            {glyphs.map((c) => (
-              <span key={c} title={`U+${c.toString(16).toUpperCase().padStart(4, '0')}`}>
-                {String.fromCodePoint(c)}
-              </span>
-            ))}
-          </div>
-          {font.codepoints.size > glyphs.length && <p className="muted small font-more">{t('font.moreGlyphs', { count: font.codepoints.size - glyphs.length })}</p>}
-        </>
-      )}
-    </div>
+              ))}
+            </div>
+            {font.codepoints.size > glyphs.length && <p className="muted small font-more">{t('font.moreGlyphs', { count: font.codepoints.size - glyphs.length })}</p>}
+          </>
+        )}
+      </div>
+      <ViewerBar>
+        {status === 'ready' && font && (
+            <>
+            <input className="input viewer-text" value={text} onChange={(e) => setText(e.target.value)} aria-label={t('font.sampleLabel')} placeholder={t('font.sampleLabel')} />
+            <input type="range" className="viewer-size" min={12} max={96} value={size} onChange={(e) => setSize(Number(e.target.value))} aria-label={t('font.size')} />
+          <span className="viewer-clock">{size}px</span>
+          </>
+        )}
+      </ViewerBar>
+    </ViewerFrame>
   )
 }

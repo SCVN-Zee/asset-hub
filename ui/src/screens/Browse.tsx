@@ -1677,6 +1677,14 @@ export function Browse({
             onOpen={openLocation}
             onExport={(a) => void exportFromCatalog(a)}
             onImportToUnity={(a, editor) => void exportFromCatalog(a, editor)}
+            source={catalogSelected && catalogSource(catalogSelected)}
+            handler={catalogSelected && registry.get(catalogSelected.type)}
+            models={modelPaths}
+            playClips={registry.get(typeFilter)?.preview.kind === 'animation'}
+            viewerResizer={<Splitter axis="y" target="prev" min={160} max={() => window.innerHeight - 220} onResize={setViewerHeight} label={t('details.resizeViewer')} />}
+            onThumb={saveThumb}
+            onViewerLoading={onViewerLoading}
+            onModelStats={saveStats}
           />
         ) : (
         <AssetDetails

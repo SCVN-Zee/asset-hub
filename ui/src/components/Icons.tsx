@@ -239,3 +239,62 @@ export const MoreIcon = ({ size = 16 }: IconProps) => (
     <circle cx="18.5" cy="12" r="1.7" />
   </svg>
 )
+
+/** The viewer bar's own icons, 14px so a 24px button keeps its air. */
+export const PlayIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M7.5 5v14L19 12z" fill="currentColor" />
+  </svg>
+)
+
+export const PauseIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" />
+    <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
+  </svg>
+)
+
+/** Back to the default camera: a crosshair. */
+export const ResetViewIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="6" />
+    <path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" />
+  </svg>
+)
+
+/** The camera orbits the model: an ellipse with an arrow head. */
+export const AutoRotateIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M20.5 9.5C19.5 7.3 16.2 6 12 6c-5 0-9 2.7-9 6s4 6 9 6 9-2.7 9-6" />
+    <path d="M20.5 5v4.5H16" />
+  </svg>
+)
+
+/** A cube drawn with all its edges. */
+export const WireframeIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <rect x="3" y="9" width="12" height="12" />
+    <path d="M7 9V5h12v12h-4M3 9l4-4M15 9l4-4M15 21l4-4" />
+  </svg>
+)
+
+/** A four-point spark: fire the effect again. */
+export const SparkIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M12 3c.6 5 3.5 8 9 9-5.5 1-8.4 4-9 9-.6-5-3.5-8-9-9 5.5-1 8.4-4 9-9z" />
+  </svg>
+)
+
+/** Shrink the image to the stage: corners pointing in. */
+export const FitIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M4 9h5V4M15 4v5h5M20 15h-5v5M9 20v-5" />
+  </svg>
+)
+
+/** Show the image at its own pixels: corners pointing out. */
+export const ActualSizeIcon = ({ size = 14 }: IconProps) => (
+  <svg {...base(size)}>
+    <path d="M9 4H4v5M20 9V4h-5M15 20h5v-5M4 15v5h5" />
+  </svg>
+)

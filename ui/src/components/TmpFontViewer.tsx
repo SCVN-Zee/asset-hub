@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { StatsSummary } from '@shared/types'
 import { loadTmpFont, tmpFontStats, type LoadedTmpFont } from '../viewer/tmpFont'
 import type { LiveContext } from './ModelViewer'
+import { ViewerBar, ViewerFrame } from './ViewerBar'
 
 interface Props {
   live: LiveContext
@@ -53,14 +54,17 @@ export function TmpFontViewer({ live, path, onInfo, onStats, onLoading }: Props)
   }, [live.repo, live.branch, path])
 
   return (
-    <div className="viewer tmp-viewer">
-      {status === 'ready' && font?.atlas ? (
-        <img className="tmp-atlas" src={font.atlas} alt={t('tmpFont.atlas')} />
-      ) : (
-        <div className="viewer-overlay" role="status">
-          {status === 'loading' ? t('viewer.loading') : status === 'error' ? t('font.cannotRead', { message: error }) : t('tmpFont.noAtlas')}
-        </div>
-      )}
-    </div>
+    <ViewerFrame>
+      <div className="viewer tmp-viewer">
+        {status === 'ready' && font?.atlas ? (
+          <img className="tmp-atlas" src={font.atlas} alt={t('tmpFont.atlas')} />
+        ) : (
+          <div className="viewer-overlay" role="status">
+            {status === 'loading' ? t('viewer.loadingFile') : status === 'error' ? t('font.cannotRead', { message: error }) : t('tmpFont.noAtlas')}
+          </div>
+        )}
+      </div>
+      <ViewerBar>{status === 'ready' && font && <span className="viewer-clock">{font.info.atlasWidth}×{font.info.atlasHeight}</span>}</ViewerBar>
+    </ViewerFrame>
   )
 }

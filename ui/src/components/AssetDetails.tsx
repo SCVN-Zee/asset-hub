@@ -11,17 +11,18 @@ import { parse } from '../parse'
 import type { Asset, CatalogLocation, DependencyReport, AnimClipInfo, MaterialLook, MaterialRef, ModelStats, SpriteBorder, PartRef, ParticleTotals, PrefabMaterialsResult, StatsSummary, TextureRef } from '@shared/types'
 import { assetLink } from '@shared/deeplink'
 import type { Collection, CollectionItem } from '@shared/collections'
-import { RemoteError, unwrap } from '../remoteSource'
+import { unwrap } from '../remoteSource'
+import { useDependencies } from '../useDependencies'
 import { githubUrl, LocationList } from './CatalogPanel'
 import { ErrorNote } from './ErrorNote'
 import { CheckIcon, HalfCircleIcon, ExportListIcon, CopyIcon, CubeIcon, DownloadIcon, ExportIcon, ExternalIcon, FolderIcon, LinkIcon } from './Icons'
 import type { LiveContext } from './ModelViewer'
 import type { ImageInfo } from './ImageViewer'
-import type { FxBackdrop } from './PrefabViewer'
 import { AudioViewer } from './AudioViewer'
 import { audioStats, formatDuration, type DecodedAudio } from '../viewer/audio'
 import { FontViewer } from './FontViewer'
 import { TmpFontViewer } from './TmpFontViewer'
+import { ViewerFrame } from './ViewerBar'
 import type { LoadedTmpFont } from '../viewer/tmpFont'
 import { particleStats } from '../viewer/particleThumb'
 import { fontStats, type LoadedFont } from '../viewer/font'
@@ -30,7 +31,7 @@ import { BundleNotice, useModelBundle } from './ModelBundleButtons'
 import { CollectionMenuItems, FavoriteButton } from './Collections'
 import { TagChips } from './TagChips'
 import type { AssetTag } from '../tags'
-import { BudgetLine, CalibrationStrip, CopyStatus, FactsGrid, MenuItem, MenuLabel, MenuSep, MoreMenu, useCopy, type Fact } from './InspectorParts'
+import { BudgetLine, CopyStatus, FactsGrid, MenuItem, MenuLabel, MenuSep, MoreMenu, useCopy, type Fact } from './InspectorParts'
 
 // Viewers drawing with three.js load when first opened: the app starts without the 3D engine.
 const ModelViewer = lazy(() => import('./ModelViewer').then((m) => ({ default: m.ModelViewer })))
@@ -87,8 +88,6 @@ type PrefabSearch =
   /** Remembered prefabs use this model; their materials load when asked. */
   | { status: 'known'; result: PrefabMaterialsResult }
   | { status: 'running'; scope: 'cached' | 'near' | 'all' } | { status: 'ready'; result: PrefabMaterialsResult } | { status: 'error'; error: unknown }
-
-type Deps = { status: 'idle' } | { status: 'loading' } | { status: 'error'; error: unknown } | { status: 'ready'; report: DependencyReport }
 
 type Translate = (key: string, options?: Record<string, unknown>) => string
 
@@ -577,8 +576,112 @@ function depsSummary(report: DependencyReport, t: Translate): string {
   return list.length ? `${head}: ${list.join(', ')}` : head
 }
 
-/** The viewer kinds that draw in 3D under the grey stage: they get the calibration strip. */
-const CALIBRATED = new Set(['three', 'prefab', 'animation', 'material'])
+/** Stands for a callback nobody listens to; one identity, so a viewer's effects do not restart. */
+const ignore = () => undefined
+
+/** The kinds that have a viewer. */
+const VIEWER_KINDS = new Set(['three', 'prefab', 'animation', 'material', 'audio', 'tmpfont', 'font', 'image'])
+
+interface ViewerProps {
+  /** Repo context; absent with sample data, where nothing can be viewed. */
+  live?: LiveContext
+  /** Repo path of the file. */
+  path?: string
+  kind?: string
+  report?: DependencyReport
+  /** A material tried on a model that has none. */
+  prefabMaterial?: MaterialRef
+  /** A model starts playing its first clip. */
+  playClips?: boolean
+  /** Every model of the branch, for picking a rig to play a clip on. */
+  models?: readonly string[]
+  /** Bar under the preview that resizes it. */
+  resizer?: ReactNode
+  onStats?(stats: ModelStats): void
+  /** A measurement in the shape the budget judges. */
+  onSummary?(summary: StatsSummary): void
+  onThumb?(dataUrl: string): void
+  onLoading?(loading: boolean): void
+  onLook?(look: MaterialLook): void
+  onAnimInfo?(info: AnimClipInfo): void
+  onAudioInfo?(info: DecodedAudio): void
+  onTmpInfo?(info: LoadedTmpFont): void
+  onFontInfo?(info: LoadedFont): void
+  onImageInfo?(info: ImageInfo): void
+  /** Shown instead of the "needs a repo" note when the file has no viewer (catalog results show their thumbnail). */
+  fallback?: ReactNode
+}
+
+/** The live preview of a file, picked by its kind, with the resizer under it. */
+export function AssetViewer({ live, path, kind, report, prefabMaterial, playClips, models, resizer, onStats, onSummary, onThumb = ignore, onLoading, onLook = ignore, onAnimInfo = ignore, onAudioInfo = ignore, onTmpInfo = ignore, onFontInfo = ignore, onImageInfo = ignore, fallback }: ViewerProps) {
+  const { t } = useTranslation()
+  const publish = (s: StatsSummary) => onSummary?.(s)
+  const viewing = !!live && !!path && !!kind && VIEWER_KINDS.has(kind)
+  return (
+    <>
+      <Suspense
+        fallback={
+          <ViewerFrame>
+            <div className="viewer" />
+          </ViewerFrame>
+        }
+      >
+        {live && path && kind === 'three' ? (
+          <ModelViewer
+            key={path}
+            live={live}
+            path={path}
+            report={report}
+            prefabMaterial={prefabMaterial}
+            autoPlay={playClips}
+            onStats={(s) => {
+              onStats?.(s)
+              publish(summarizeStats(s, 'viewer'))
+            }}
+            onThumb={onThumb}
+            onLoading={onLoading}
+          />
+        ) : live && path && kind === 'prefab' ? (
+          <PrefabViewer
+            key={path}
+            live={live}
+            path={path}
+            report={report}
+            onStats={(s) => {
+              onStats?.(s)
+              const summary = summarizeStats(s, report?.partial ? 'thumb' : 'viewer')
+              publish(summary)
+              if (report?.particles) void particleStats(report, summary).then(publish, () => undefined)
+            }}
+            onThumb={onThumb}
+            onLoading={onLoading}
+          />
+        ) : live && path && kind === 'animation' ? (
+          <AnimViewer key={path} live={live} path={path} report={report} models={models} onInfo={onAnimInfo} onThumb={onThumb} onLoading={onLoading} />
+        ) : live && path && kind === 'material' ? (
+          <MaterialViewer key={path} live={live} path={path} report={report} onLook={onLook} onStats={publish} onThumb={onThumb} onLoading={onLoading} />
+        ) : live && path && kind === 'audio' ? (
+          <AudioViewer key={path} live={live} path={path} onInfo={onAudioInfo} onStats={publish} onLoading={onLoading} />
+        ) : live && path && kind === 'tmpfont' ? (
+          <TmpFontViewer key={path} live={live} path={path} onInfo={onTmpInfo} onStats={publish} onLoading={onLoading} />
+        ) : live && path && kind === 'font' ? (
+          <FontViewer key={path} live={live} path={path} onInfo={onFontInfo} onStats={publish} onLoading={onLoading} />
+        ) : live && path && kind === 'image' ? (
+          <ImageViewer key={path} live={live} path={path} onInfo={onImageInfo} onStats={publish} onLoading={onLoading} />
+        ) : (
+          (fallback ?? (
+            <div className="insp-preview">
+              <CubeIcon size={72} />
+              <span>{t('viewer.needsRepo')}</span>
+            </div>
+          ))
+        )}
+      </Suspense>
+      {/* A fallback is a fixed-height box: there is nothing to resize. */}
+      {(!fallback || viewing) && resizer}
+    </>
+  )
+}
 
 export function AssetDetails({ asset, handler, live, onThumb, onReport, primary = true, inPack, exporting, onTogglePack, onExport, onImportToUnity, copies, tags, onSelectCopy, excludedFolders, onPrefabFiles, onOpenLocation, onViewerLoading, onModelStats, playClips, models, viewerResizer, collections, onShowFolder }: Props) {
   const { t } = useTranslation()
@@ -588,7 +691,6 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
   // A viewer says which asset it loads, so a load of the previous asset cannot pass for this one.
   const sha = asset?.sha ?? ''
   const reportLoading = useMemo(() => (onViewerLoading ? (loading: boolean) => onViewerLoading(loading, sha) : undefined), [onViewerLoading, sha])
-  const [deps, setDeps] = useState<Deps>({ status: 'idle' })
   const [stats, setStats] = useState<ModelStats>()
   /** What the viewer measured, in the shape the budget judges. */
   const [summary, setSummary] = useState<StatsSummary>()
@@ -610,9 +712,8 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
   /** Other branches / repos with this exact file, from the catalog (empty until they are indexed). */
   const [elsewhere, setElsewhere] = useState<CatalogLocation[]>([])
   const [prefabProgress, setPrefabProgress] = useState<{ done: number; total: number }>()
-  /** What an effect sits on (stage or dark); the strip under the viewer names it. */
-  const [backdrop, setBackdrop] = useState<FxBackdrop>('stage')
   const repoPath = asset && live ? live.root + asset.path : undefined
+  const deps = useDependencies(live, repoPath, handler, onReport)
   /** Bumped when the selection changes, so a search started for another model is ignored. */
   const searchToken = useRef(0)
 
@@ -670,12 +771,8 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
     setProgress(undefined)
     setPrefab({ status: 'idle' })
     setPicked(undefined)
-    if (!live || !repoPath || !handler?.resolvesDependencies) {
-      setDeps({ status: 'idle' })
-      return
-    }
+    if (!live || !repoPath || !handler?.resolvesDependencies) return
     let cancelled = false
-    setDeps({ status: 'loading' })
     // Materials found on prefabs in an earlier search come back without downloading anything.
     // Only says whether remembered prefabs use it; loading their materials is up to the user.
     if (handler.materialsFromPrefabs)
@@ -683,34 +780,6 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
       if (cancelled || !result.ok || !result.data.prefabs.length) return
       setPrefab({ status: 'known', result: result.data })
     })
-    // Shown in steps: what is known at once, then nearby files and the whole branch side by side.
-    // The whole-branch answer reads every .meta in one download and often arrives first (about 10 s on a
-    // large repo, while nearby lookups take 20-30 s), so it no longer waits for the nearby one; once it is
-    // there, a later nearby answer is dropped.
-    let complete = false
-    const load = (mode: 'instant' | 'quick' | 'full'): Promise<void> =>
-      window.api.assets.resolve(live.repo, live.branch, repoPath, live.root, mode).then(
-        (result) => {
-          if (cancelled || complete) return
-          try {
-            const report = unwrap(result)
-            if (!report.partial) complete = true
-            setDeps({ status: 'ready', report })
-            onReport(repoPath, report)
-            if (mode === 'instant' && report.partial) {
-              void load('quick')
-              void load('full')
-            }
-          } catch (error) {
-            // A failed later step keeps the earlier answer on screen.
-            if (mode === 'instant') setDeps({ status: 'error', error })
-          }
-        },
-        (error: unknown) => {
-          if (!cancelled && mode === 'instant') setDeps({ status: 'error', error: new RemoteError({ code: 'unknown', message: String(error) }) })
-        }
-      )
-    void load('instant')
     return () => {
       cancelled = true
     }
@@ -804,59 +873,26 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
 
   return (
     <aside className="details" aria-label={t('details.label')}>
-      <Suspense fallback={<div className="viewer" />}>
-      {live && repoPath && kind === 'three' ? (
-        <ModelViewer
-          key={repoPath}
-          live={live}
-          path={repoPath}
-          report={report}
-          prefabMaterial={prefabMaterial}
-          autoPlay={playClips}
-          onStats={(s) => {
-            setStats(s)
-            publish(summarizeStats(s, 'viewer'))
-          }}
-          onThumb={(url) => onThumb(asset.sha, url)}
-          onLoading={reportLoading}
-        />
-      ) : live && repoPath && kind === 'prefab' ? (
-        <PrefabViewer
-          key={repoPath}
-          live={live}
-          path={repoPath}
-          report={report}
-          onStats={(s) => {
-            setStats(s)
-            const summary = summarizeStats(s, report?.partial ? 'thumb' : 'viewer')
-            publish(summary)
-            if (report?.particles) void particleStats(report, summary).then(publish, () => undefined)
-          }}
-          onThumb={(url) => onThumb(asset.sha, url)}
-          onLoading={reportLoading}
-          onBackdrop={setBackdrop}
-        />
-      ) : live && repoPath && kind === 'animation' ? (
-        <AnimViewer key={repoPath} live={live} path={repoPath} report={report} models={models} onInfo={setAnimInfo} onThumb={(url) => onThumb(asset.sha, url)} onLoading={reportLoading} />
-      ) : live && repoPath && kind === 'material' ? (
-        <MaterialViewer key={repoPath} live={live} path={repoPath} report={report} onLook={setLook} onStats={publish} onThumb={(url) => onThumb(asset.sha, url)} onLoading={reportLoading} />
-      ) : live && repoPath && kind === 'audio' ? (
-        <AudioViewer key={repoPath} live={live} path={repoPath} onInfo={setAudioInfo} onStats={publish} onLoading={reportLoading} />
-      ) : live && repoPath && kind === 'tmpfont' ? (
-        <TmpFontViewer key={repoPath} live={live} path={repoPath} onInfo={setTmpInfo} onStats={publish} onLoading={reportLoading} />
-      ) : live && repoPath && kind === 'font' ? (
-        <FontViewer key={repoPath} live={live} path={repoPath} onInfo={setFontInfo} onStats={publish} onLoading={reportLoading} />
-      ) : live && repoPath && kind === 'image' ? (
-        <ImageViewer key={repoPath} live={live} path={repoPath} onInfo={setImageInfo} onStats={publish} onLoading={reportLoading} />
-      ) : (
-        <div className="insp-preview">
-          <CubeIcon size={72} />
-          <span>{t('viewer.needsRepo')}</span>
-        </div>
-      )}
-      </Suspense>
-      {viewerResizer}
-      {live && repoPath && kind && CALIBRATED.has(kind) && <CalibrationStrip dark={kind === 'prefab' && backdrop === 'dark'} />}
+      <AssetViewer
+        live={live}
+        path={repoPath}
+        kind={kind}
+        report={report}
+        prefabMaterial={prefabMaterial}
+        playClips={playClips}
+        models={models}
+        resizer={viewerResizer}
+        onStats={setStats}
+        onSummary={publish}
+        onThumb={(url) => onThumb(asset.sha, url)}
+        onLoading={reportLoading}
+        onLook={setLook}
+        onAnimInfo={setAnimInfo}
+        onAudioInfo={setAudioInfo}
+        onTmpInfo={setTmpInfo}
+        onFontInfo={setFontInfo}
+        onImageInfo={setImageInfo}
+      />
 
       <div className="insp-body">
         <div>

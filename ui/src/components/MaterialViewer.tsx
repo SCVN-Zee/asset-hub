@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DependencyReport, MaterialLook, StatsSummary } from '@shared/types'
 import { parse } from '../parse'
+import { Dropdown } from './Dropdown'
+import { AutoRotateIcon } from './Icons'
+import { ViewerBar, ViewerButton, ViewerFrame } from './ViewerBar'
 import { FbxViewer, type PreviewShape } from '../viewer/FbxViewer'
 import { fetchMaterialTextures, materialSlots, materialStats, type MaterialTexture } from '../viewer/materialPreview'
 import type { LiveContext } from './ModelViewer'
@@ -112,45 +115,42 @@ export function MaterialViewer({ live, path, report, onLook, onStats, onThumb, o
   }, [status, report])
 
   return (
-    <div className="viewer">
-      <div className="viewer-canvas" ref={host} />
-      {status !== 'ready' && (
-        <div className="viewer-overlay" role="status">
-          {status === 'loading' ? t('viewer.loading') : t('viewer.error', { message: error })}
-        </div>
-      )}
-      {status === 'ready' && (
-        <>
-          <div className="viewer-tools" role="toolbar" aria-label={t('viewer.tools')}>
-            {SHAPES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="viewer-btn"
-                aria-pressed={shape === s}
-                onClick={() => {
-                  viewer.current?.showShape(s)
-                  setShape(s)
-                }}
-              >
-                {t(`material.shape.${s}`)}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="viewer-btn"
-              aria-pressed={autoRotate}
+    <ViewerFrame>
+      <div className="viewer" title={t('viewer.hint')}>
+        <div className="viewer-canvas" ref={host} />
+        {status !== 'ready' && (
+          <div className="viewer-overlay" role="status">
+            {status === 'loading' ? t('viewer.loading') : t('viewer.error', { message: error })}
+          </div>
+        )}
+      </div>
+      {/* The bar stays while loading, so the stage does not change size when the controls arrive. */}
+      <ViewerBar stage="stage">
+        {status === 'ready' && (
+          <>
+            <Dropdown
+              size="xs"
+              className="viewer-select"
+              label={t('material.shape.label')}
+              value={shape}
+              options={SHAPES.map((s) => ({ value: s, label: t(`material.shape.${s}`) }))}
+              onChange={(next) => {
+                viewer.current?.showShape(next)
+                setShape(next)
+              }}
+            />
+            <ViewerButton
+              icon={<AutoRotateIcon />}
+              label={t('viewer.autoRotate')}
+              pressed={autoRotate}
               onClick={() => {
                 viewer.current?.setAutoRotate(!autoRotate)
                 setAutoRotate(!autoRotate)
               }}
-            >
-              {t('viewer.autoRotate')}
-            </button>
-          </div>
-          <span className="viewer-hint">{t('viewer.hint')}</span>
-        </>
-      )}
-    </div>
+            />
+          </>
+        )}
+      </ViewerBar>
+    </ViewerFrame>
   )
 }

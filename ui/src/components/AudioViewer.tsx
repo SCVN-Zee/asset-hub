@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { StatsSummary } from '@shared/types'
 import { unwrap } from '../remoteSource'
-import { audioStats, decodeAudio, drawWaveform, formatDuration, WAVE_INK, WAVE_PLAYED, type DecodedAudio } from '../viewer/audio'
+import { audioStats, decodeAudio, drawWaveform, WAVE_INK, WAVE_PLAYED, type DecodedAudio } from '../viewer/audio'
+import { PauseIcon, PlayIcon, WarnIcon } from './Icons'
+import { MenuItem } from './InspectorParts'
 import type { LiveContext } from './ModelViewer'
+import { ViewerBar, ViewerButton, ViewerFrame } from './ViewerBar'
+
+/** 75.4 → "1:15"; the bar always reads m:ss so the figures keep their width. */
+const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
 
 interface Props {
   live: LiveContext
@@ -151,53 +157,59 @@ export function AudioViewer({ live, path, onInfo, onStats, onLoading }: Props) {
   }
 
   return (
-    <div
-      className="viewer audio-viewer"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === ' ' && status === 'ready') {
-          e.preventDefault()
-          toggle()
+    <ViewerFrame className="audio-frame">
+      <div
+        className="viewer audio-viewer"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === ' ' && status === 'ready') {
+            e.preventDefault()
+            toggle()
+          }
+        }}
+      >
+        <canvas ref={canvas} className="audio-wave" onClick={seek} aria-label={t('audio.seek')} />
+        {url && <audio ref={audio} src={url} loop={loop} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => setError(audio.current?.error?.message || t('audio.unsupported'))} />}
+        {status !== 'ready' && (
+          <div className="viewer-overlay" role="status">
+            {status === 'loading' ? t('viewer.loadingFile') : t('audio.cannotPlay', { message: error })}
+          </div>
+        )}
+      </div>
+      <ViewerBar
+        menu={
+          status === 'ready' && (
+            <>
+              <MenuItem label={t('audio.loop')} checked={loop} keepOpen onSelect={() => setLoop((l) => !l)} />
+              <MenuItem
+                label={t('audio.autoPlay')}
+                title={t('audio.autoPlayHint')}
+                checked={autoPlay}
+                keepOpen
+                onSelect={() => {
+                  writeAutoPlay(!autoPlay)
+                  setAutoPlay(!autoPlay)
+                }}
+              />
+            </>
+          )
         }
-      }}
-    >
-      <canvas ref={canvas} className="audio-wave" onClick={seek} aria-label={t('audio.seek')} />
-      {url && <audio ref={audio} src={url} loop={loop} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => setError(audio.current?.error?.message || t('audio.unsupported'))} />}
-      {status !== 'ready' && (
-        <div className="viewer-overlay" role="status">
-          {status === 'loading' ? t('viewer.loading') : t('audio.cannotPlay', { message: error })}
-        </div>
-      )}
-      {status === 'ready' && (
-        <div className="viewer-tools" role="toolbar" aria-label={t('viewer.tools')}>
-          <button type="button" className="viewer-btn" aria-pressed={playing} onClick={toggle}>
-            {playing ? t('audio.pause') : t('audio.play')}
-          </button>
-          <button type="button" className="viewer-btn" aria-pressed={loop} onClick={() => setLoop((l) => !l)}>
-            {t('audio.loop')}
-          </button>
-          <button
-            type="button"
-            className="viewer-btn"
-            aria-pressed={autoPlay}
-            title={t('audio.autoPlayHint')}
-            onClick={() => {
-              writeAutoPlay(!autoPlay)
-              setAutoPlay(!autoPlay)
-            }}
-          >
-            {t('audio.autoPlay')}
-          </button>
-          {error && (
-            <span className="audio-error" role="alert">
-              {t('audio.cannotPlay', { message: error })}
+      >
+        {status === 'ready' && (
+          <>
+            <ViewerButton icon={playing ? <PauseIcon /> : <PlayIcon />} label={playing ? t('viewer.pause') : t('viewer.play')} pressed={playing} onClick={toggle} />
+            <span className="viewer-clock">
+              {clock(time)} / {clock(duration)}
             </span>
-          )}
-          <span className="audio-time mono">
-            {formatDuration(time)} / {formatDuration(duration)}
-          </span>
-        </div>
-      )}
-    </div>
+            {error && (
+              <span className="viewer-warn" role="alert" title={t('audio.cannotPlay', { message: error })}>
+                <WarnIcon size={12} />
+                <span>{t('audio.cannotPlay', { message: error })}</span>
+              </span>
+            )}
+          </>
+        )}
+      </ViewerBar>
+    </ViewerFrame>
   )
 }

@@ -204,8 +204,12 @@
   },
   "viewer": {
     "loading": "Đang tải model…",
+    "loadingFile": "Đang tải…",
     "error": "Không hiển thị được model: {{message}}",
     "tools": "Điều khiển góc nhìn",
+    "options": "Tùy chọn xem",
+    "play": "Phát",
+    "pause": "Tạm dừng",
     "view": {
       "reset": "Đặt lại"
     },
@@ -458,6 +462,7 @@
     "fit": "Vừa khung",
     "actual": "1:1",
     "backdrop": {
+      "label": "Nền",
       "checker": "Ô caro",
       "dark": "Tối",
       "light": "Sáng",
@@ -523,6 +528,7 @@
       "transparent": "Trong suốt"
     },
     "shape": {
+      "label": "Hình xem trước",
       "sphere": "Cầu",
       "cube": "Hộp",
       "plane": "Mặt phẳng"
@@ -546,8 +552,6 @@
     },
     "overrides": "Override theo nền tảng: {{list}}",
     "noMeta": "Không có file .meta: Unity sẽ dùng import settings mặc định (Vorbis 100%).",
-    "play": "▶ Phát",
-    "pause": "❚❚ Dừng",
     "loop": "Lặp",
     "seek": "Waveform — bấm để tua",
     "cannotPlay": "Không phát được clip này: {{message}}",
@@ -583,7 +587,6 @@
     "noRig": "Không thấy model gần đó có bone của clip này — chọn một model trong danh sách.",
     "pickRig": "Chọn model…",
     "rig": "Model để phát",
-    "on": "Trên {{name}} · khớp {{percent}}% bone",
     "compressed": "Clip nén: curve không lưu dạng key nên không xem trước được.",
     "unsupported": {
       "humanoid": "Clip Humanoid: cần retarget sang rig — chưa có preview.",
@@ -656,8 +659,7 @@
   "particles": {
     "title": "Particle",
     "timeline": "Dòng thời gian",
-    "prevFrame": "Frame trước (←)",
-    "nextFrame": "Frame sau (→)",
+    "scrubHint": "Kéo để tua · phím mũi tên chuyển từng frame",
     "frame": "frame {{frame}}",
     "emitters": "Emitter",
     "peak": "Particle cùng lúc",

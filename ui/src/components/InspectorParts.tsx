@@ -57,26 +57,6 @@ export function CopyStatus({ state }: { state: 'copied' | 'failed' | undefined }
   )
 }
 
-/** The viewing condition, stated: a grey ball, a chrome ball and a colour checker under the stage. Decoration except its label. */
-export function CalibrationStrip({ dark }: { dark?: boolean }) {
-  const { t } = useTranslation()
-  return (
-    <div className="calibration">
-      <i className="cal-ball" aria-hidden="true" />
-      <i className="cal-ball cal-chrome" aria-hidden="true" />
-      <span className="cal-patches" aria-hidden="true">
-        <i style={{ background: 'var(--act)' }} />
-        <i style={{ background: 'var(--type-fbx)' }} />
-        <i style={{ background: 'var(--type-audio)' }} />
-        <i style={{ background: 'var(--type-animation)' }} />
-        <i style={{ background: 'var(--type-texture)' }} />
-        <i style={{ background: 'var(--type-material)' }} />
-      </span>
-      <span className="num">{t(dark ? 'inspector.calibrationDark' : 'inspector.calibration')}</span>
-    </div>
-  )
-}
-
 export interface Fact {
   label: string
   value: ReactNode
@@ -199,7 +179,7 @@ export function useMenuDismiss(open: boolean, close: () => void, ...inside: Arra
 const MenuContext = createContext<() => void>(() => undefined)
 
 /** A row of a menu; `checked` makes it a tick box. A pick closes the menu unless `keepOpen`. */
-export function MenuItem({ icon, label, hint, checked, disabled, keepOpen, onSelect }: { icon?: ReactNode; label: ReactNode; hint?: ReactNode; checked?: boolean; disabled?: boolean; keepOpen?: boolean; onSelect(): void }) {
+export function MenuItem({ icon, label, hint, title, checked, disabled, keepOpen, onSelect }: { icon?: ReactNode; label: ReactNode; hint?: ReactNode; title?: string; checked?: boolean; disabled?: boolean; keepOpen?: boolean; onSelect(): void }) {
   const close = useContext(MenuContext)
   return (
     <button
@@ -207,6 +187,7 @@ export function MenuItem({ icon, label, hint, checked, disabled, keepOpen, onSel
       role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
       aria-checked={checked}
       className="menu-pop-item"
+      title={title}
       disabled={disabled}
       onClick={() => {
         onSelect()
@@ -226,12 +207,12 @@ export const MenuLabel = ({ children }: { children: ReactNode }) => <div classNa
 export const MenuSep = () => <div className="menu-sep" role="separator" />
 
 /** "…": the actions that do not need a place in the row. Arrow keys move, Escape closes and gives focus back. */
-export function MoreMenu({ label, children }: { label: string; children: ReactNode }) {
+export function MoreMenu({ label, children, align = 'end', iconSize }: { label: string; children: ReactNode; align?: 'start' | 'end'; iconSize?: number }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const close = useCallback(() => setOpen(false), [])
-  const { list, pos } = useFloatingMenu(open, box, 'end', 'below')
+  const { list, pos } = useFloatingMenu(open, box, align, 'below')
   useMenuDismiss(open, close, box, list)
   // The first row takes focus once the list is placed, so the keyboard can go on from there.
   useEffect(() => {
@@ -259,7 +240,7 @@ export function MoreMenu({ label, children }: { label: string; children: ReactNo
   return (
     <div className="menu-anchor" ref={box}>
       <button ref={trigger} type="button" className="btn icon-btn" aria-haspopup="menu" aria-expanded={open} aria-label={label} title={label} onClick={() => setOpen(!open)}>
-        <MoreIcon />
+        <MoreIcon size={iconSize} />
       </button>
       {open &&
         createPortal(
