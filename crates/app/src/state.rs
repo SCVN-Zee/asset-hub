@@ -33,7 +33,7 @@ fn lock<T>(mutex: &Mutex<T>) -> Result<MutexGuard<'_, T>, IpcError> {
 impl AppState {
     pub fn new(paths: AppPaths, settings: SettingsStore) -> Self {
         let auth = AuthService::new(paths.auth_file.clone(), paths.tools_dir.clone(), Arc::new(KeychainVault::new(paths.keychain_service.clone())));
-        let caches = Arc::new(Caches::new(CacheConfig::from_settings(&settings.get())));
+        let caches = Arc::new(Caches::new(CacheConfig::new(paths.cache_dir.clone())));
         let hub = Hub::new(&caches);
         Self { paths, settings: Mutex::new(settings), caches, hub, pending_link: Mutex::new(None), stash: Stash::default(), auth, saved_files: Mutex::default() }
     }

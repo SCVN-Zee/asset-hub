@@ -257,7 +257,7 @@ pub mod tests {
             Box::new(|_| {}),
         );
         let facts = Arc::new(MemFacts::default());
-        let deps = Deps { catalog: CatalogService::new(Arc::new(NoSource), config), facts: facts.clone(), caches: Arc::new(Caches::new(CacheConfig::new(dir.clone(), 0))) };
+        let deps = Deps { catalog: CatalogService::new(Arc::new(NoSource), config), facts: facts.clone(), caches: Arc::new(Caches::new(CacheConfig::new(dir.clone()))) };
         Machine { dir, facts, deps }
     }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { sanitizeSettings, type Settings } from './settings'
 
-const defaults: Settings = { language: 'en', cacheDir: '/cache', excludedFolders: ['_ThirdParty'] }
+const defaults: Settings = { language: 'en', excludedFolders: ['_ThirdParty'] }
 
 describe('sanitizeSettings', () => {
   it('defaults to English', () => {
@@ -9,12 +9,15 @@ describe('sanitizeSettings', () => {
   })
 
   it('keeps valid values and drops invalid ones', () => {
-    expect(sanitizeSettings({ language: 'vi', cacheDir: '/x', excludedFolders: [' Plugins ', 'Plugins', 3, ''] }, defaults)).toEqual({
+    expect(sanitizeSettings({ language: 'vi', excludedFolders: [' Plugins ', 'Plugins', 3, ''] }, defaults)).toEqual({
       language: 'vi',
-      cacheDir: '/x',
       excludedFolders: ['Plugins']
     })
-    expect(sanitizeSettings({ language: 'fr', cacheDir: '  ', excludedFolders: 'x', extra: 1 }, defaults)).toEqual(defaults)
+    expect(sanitizeSettings({ language: 'fr', excludedFolders: 'x', extra: 1 }, defaults)).toEqual(defaults)
+  })
+
+  it('ignores the cache folder and size limit that older versions saved', () => {
+    expect(sanitizeSettings({ cacheDir: '/x', cacheLimitGB: 5 }, defaults)).toEqual(defaults)
   })
 
   it('allows an empty exclusion list', () => {

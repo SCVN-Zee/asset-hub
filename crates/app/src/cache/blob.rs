@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use super::{safe, touch, write_atomic, CacheConfig, OnWrite};
 
-/// `<cacheDir>/blobs/<ab>/<hash>`: contents of downloaded files, shared across repos and branches.
+/// `<cache>/blobs/<ab>/<hash>`: contents of downloaded files, shared across repos and branches.
 pub struct FileBlobCache {
     config: Arc<CacheConfig>,
     on_write: Option<OnWrite>,
@@ -46,7 +46,7 @@ mod tests {
     #[tokio::test]
     async fn keeps_bytes_under_a_two_letter_folder() {
         let dir = tempfile::tempdir().unwrap();
-        let cache = FileBlobCache::new(CacheConfig::new(dir.path().to_owned(), 0), None);
+        let cache = FileBlobCache::new(CacheConfig::new(dir.path().to_owned()), None);
         assert_eq!(cache.get("abcdef").await, None);
         cache.set("abcdef", &[0, 1, 255]).await.unwrap();
         assert_eq!(cache.get("abcdef").await, Some(vec![0, 1, 255]));
@@ -56,7 +56,7 @@ mod tests {
     #[tokio::test]
     async fn a_key_cannot_leave_the_folder() {
         let dir = tempfile::tempdir().unwrap();
-        let cache = FileBlobCache::new(CacheConfig::new(dir.path().to_owned(), 0), None);
+        let cache = FileBlobCache::new(CacheConfig::new(dir.path().to_owned()), None);
         cache.set("../../escape", b"x").await.unwrap();
         assert!(dir.path().join("blobs/__/.._.._escape").exists());
     }

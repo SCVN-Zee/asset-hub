@@ -63,7 +63,7 @@ mod tests {
     #[tokio::test]
     async fn serves_a_thumbnail_with_its_type_and_the_cors_header() {
         let dir = tempfile::tempdir().unwrap();
-        let store = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned(), 0));
+        let store = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned()));
         store.save("sha1", PNG).await.unwrap();
         let url = store.get_many(&["sha1".into()]).await["sha1"].clone();
 
@@ -77,7 +77,7 @@ mod tests {
     #[tokio::test]
     async fn a_missing_thumbnail_is_404_and_still_carries_the_cors_header() {
         let dir = tempfile::tempdir().unwrap();
-        let store = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned(), 0));
+        let store = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned()));
         let response = serve(&store, &get("assethub-thumb://t/none?v=0")).await;
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
         assert_eq!(cors(&response), Some("*"));
@@ -87,7 +87,7 @@ mod tests {
     async fn a_name_that_leaves_the_thumbnail_folder_is_404() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("secret.img"), [0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a]).unwrap();
-        let store = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned(), 0));
+        let store = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned()));
         for uri in ["assethub-thumb://t/..%2Fsecret?v=0", "assethub-thumb://t/../secret", "assethub-thumb://t/%2e%2e%2fsecret"] {
             let response = serve(&store, &get(uri)).await;
             assert_eq!(response.status(), StatusCode::NOT_FOUND, "{uri}");

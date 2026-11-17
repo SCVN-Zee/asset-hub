@@ -1,16 +1,14 @@
-//! The cache folder: downloaded listings and files, thumbnails, measurements and the size limit.
+//! The cache folder: downloaded listings and files, thumbnails, measurements and the size budget.
 //!
-//! The folder is the `cacheDir` setting, which the user can change while the app runs, so every
-//! store reads it through a shared [`CacheConfig`] on each call.
+//! The folder is fixed (`AppPaths::cache_dir`); every store reads it through a shared
+//! [`CacheConfig`]. The app sizes the downloads itself (see [`downloads_budget`]).
 
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, RwLock};
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::constants::DEFAULT_CACHE_LIMIT_GB;
-use crate::dto::Settings;
 use crate::http_cache::EtagStore;
 
 pub mod blob;
@@ -29,44 +27,60 @@ pub use thumbs::ThumbnailStore;
 /// Told how many bytes a download just wrote, so the janitor can check the size limit.
 pub type OnWrite = Arc<dyn Fn(u64) + Send + Sync>;
 
-/// Where the cache is and how large the downloads in it may grow.
+/// Where the cache is.
 pub struct CacheConfig {
-    dir: RwLock<PathBuf>,
-    limit: AtomicU64,
+    dir: PathBuf,
 }
 
 impl CacheConfig {
-    /// `limit` in bytes; 0 for no limit.
-    pub fn new(dir: PathBuf, limit: u64) -> Arc<Self> {
-        Arc::new(Self { dir: RwLock::new(dir), limit: AtomicU64::new(limit) })
-    }
-
-    pub fn from_settings(settings: &Settings) -> Arc<Self> {
-        let config = Self::new(PathBuf::from(&settings.cache_dir), limit_bytes(settings.cache_limit_gb));
-        config.apply(settings);
-        config
+    pub fn new(dir: PathBuf) -> Arc<Self> {
+        Arc::new(Self { dir })
     }
 
     pub fn dir(&self) -> PathBuf {
-        self.dir.read().map(|d| d.clone()).unwrap_or_default()
-    }
-
-    pub fn limit(&self) -> u64 {
-        self.limit.load(Ordering::Relaxed)
-    }
-
-    /// Takes the folder and limit of changed settings.
-    pub fn apply(&self, settings: &Settings) {
-        if let Ok(mut dir) = self.dir.write() {
-            *dir = PathBuf::from(&settings.cache_dir);
-        }
-        self.limit.store(limit_bytes(settings.cache_limit_gb), Ordering::Relaxed);
+        self.dir.clone()
     }
 }
 
-/// The size limit of the settings in bytes (absent: the default; 0: no limit).
-pub fn limit_bytes(limit_gb: Option<u32>) -> u64 {
-    u64::from(limit_gb.unwrap_or(DEFAULT_CACHE_LIMIT_GB)) * 1024 * 1024 * 1024
+const GIB: u64 = 1024 * 1024 * 1024;
+/// The most the downloads may take, and what they may take on a roomy disk.
+const BUDGET_MAX: u64 = 5 * GIB;
+/// The least the downloads may be held to, however little space is left.
+const BUDGET_MIN: u64 = 512 * 1024 * 1024;
+/// A disk with this much space free (or more) does not shrink the budget.
+const ROOMY_DISK: u64 = 20 * GIB;
+
+/// How many bytes the downloads may take: 5 GiB, or a quarter of the free disk space (but not
+/// less than 512 MiB) when under 20 GiB is free. `None` (the space could not be read) gives 5 GiB.
+pub fn downloads_budget(free_bytes: Option<u64>) -> u64 {
+    match free_bytes {
+        Some(free) if free < ROOMY_DISK => (free / 4).clamp(BUDGET_MIN, BUDGET_MAX),
+        _ => BUDGET_MAX,
+    }
+}
+
+/// Free space, in bytes, on the volume that holds `path` (or the nearest folder of it that exists).
+#[cfg(unix)]
+pub fn free_space(path: &Path) -> Option<u64> {
+    use std::os::unix::ffi::OsStrExt;
+    let existing = path.ancestors().find(|p| p.exists())?;
+    let c_path = std::ffi::CString::new(existing.as_os_str().as_bytes()).ok()?;
+    let mut stat = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+    // SAFETY: `c_path` is a valid NUL-terminated string and `stat` is a writable `statvfs`.
+    if unsafe { libc::statvfs(c_path.as_ptr(), stat.as_mut_ptr()) } != 0 {
+        return None;
+    }
+    // SAFETY: `statvfs` returned 0, so it filled `stat`.
+    let stat = unsafe { stat.assume_init() };
+    // The field widths differ between platforms.
+    #[allow(clippy::unnecessary_cast)]
+    Some((stat.f_bavail as u64).saturating_mul(stat.f_frsize as u64))
+}
+
+/// Free space is not read on other platforms, so the budget stays at its largest.
+#[cfg(not(unix))]
+pub fn free_space(_path: &Path) -> Option<u64> {
+    None
 }
 
 /// A key as a file name: anything but letters, digits, `.`, `_` and `-` becomes `_`, and a name
@@ -102,7 +116,7 @@ pub async fn write_atomic(file: &Path, data: &[u8]) -> io::Result<()> {
     result
 }
 
-/// Marks a cached file as just used, so the size limit removes others first.
+/// Marks a cached file as just used, so the downloads budget removes others first.
 pub async fn touch(file: &Path) {
     let file = file.to_owned();
     let _ = tokio::task::spawn_blocking(move || {
@@ -178,10 +192,22 @@ mod tests {
     }
 
     #[test]
-    fn the_limit_defaults_to_two_gb_and_zero_means_none() {
-        assert_eq!(limit_bytes(None), 2 * 1024 * 1024 * 1024);
-        assert_eq!(limit_bytes(Some(5)), 5 * 1024 * 1024 * 1024);
-        assert_eq!(limit_bytes(Some(0)), 0);
+    fn the_downloads_budget_follows_the_free_space() {
+        assert_eq!(downloads_budget(Some(500 * GIB)), 5 * GIB);
+        assert_eq!(downloads_budget(Some(20 * GIB)), 5 * GIB);
+        assert_eq!(downloads_budget(Some(19 * GIB)), 19 * GIB / 4);
+        assert_eq!(downloads_budget(Some(8 * GIB)), 2 * GIB);
+        assert_eq!(downloads_budget(Some(GIB)), 512 * 1024 * 1024);
+        assert_eq!(downloads_budget(Some(0)), 512 * 1024 * 1024);
+        assert_eq!(downloads_budget(None), 5 * GIB);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn free_space_is_read_from_the_nearest_existing_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(free_space(dir.path()).is_some());
+        assert!(free_space(&dir.path().join("not/yet/made")).is_some());
     }
 
     #[tokio::test]

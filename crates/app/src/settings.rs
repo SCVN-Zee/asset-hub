@@ -7,19 +7,17 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
-use crate::constants::{BUDGET_KEYS, BUDGET_PRESETS, CACHE_LIMITS_GB, EXPORT_LAYOUTS, LANGUAGES};
+use crate::constants::{BUDGET_KEYS, BUDGET_PRESETS, EXPORT_LAYOUTS, LANGUAGES};
 use crate::dto::{BudgetPreset, CollectionItem, Collection, CustomBudget, Language, PackageLayout, RecentLists, Settings, WatchedBranch};
 
 /// Most items of each recent list.
 const RECENT_LIMIT: usize = 30;
 
 /// Every setting this version knows; anything else in the file was written by another version.
-pub const SETTINGS_KEYS: [&str; 13] = [
+pub const SETTINGS_KEYS: [&str; 11] = [
     "language",
-    "cacheDir",
-    "cacheLimitGB",
     "excludedFolders",
     "lastRepo",
     "lastBranch",
@@ -177,17 +175,8 @@ pub fn sanitize_settings(raw: &Value, defaults: &Settings) -> Settings {
         Some(Value::Array(_)) => Some(RecentLists { viewed: Vec::new(), exported: Vec::new() }),
         _ => None,
     };
-    let cache_limit = input
-        .get("cacheLimitGB")
-        .and_then(Value::as_f64)
-        .and_then(|v| CACHE_LIMITS_GB.iter().copied().find(|limit| f64::from(*limit) == v));
     Settings {
         language: language_of(input.get("language")).unwrap_or(defaults.language),
-        cache_dir: match input.get("cacheDir").and_then(Value::as_str) {
-            Some(dir) if !dir.trim().is_empty() => dir.to_owned(),
-            _ => defaults.cache_dir.clone(),
-        },
-        cache_limit_gb: cache_limit,
         excluded_folders: folders,
         last_repo: non_empty_string(input.get("lastRepo")),
         last_branch: non_empty_string(input.get("lastBranch")),
@@ -267,12 +256,10 @@ fn read_json(file: &Path) -> Value {
     fs::read_to_string(file).ok().and_then(|text| serde_json::from_str(&text).ok()).unwrap_or(Value::Null)
 }
 
-/// Settings of a first launch: English, the default cache folder and the default exclusions.
-pub fn default_settings(cache_dir: &Path) -> Settings {
+/// Settings of a first launch: English and the default exclusions.
+pub fn default_settings() -> Settings {
     Settings {
         language: Language::En,
-        cache_dir: cache_dir.to_string_lossy().into_owned(),
-        cache_limit_gb: None,
         excluded_folders: crate::constants::DEFAULT_EXCLUDED_FOLDERS.iter().map(|s| (*s).to_owned()).collect(),
         last_repo: None,
         last_branch: None,
@@ -286,27 +273,18 @@ pub fn default_settings(cache_dir: &Path) -> Settings {
     }
 }
 
-/// An older version cached in `<data>/cache`, which on a case-insensitive disk is Chromium's own
-/// "Cache" folder (cleaned up on launch). A setting that still points there moves to `cache_dir`.
-pub fn fix_cache_dir(store: &mut SettingsStore, user_data: &Path, cache_dir: &Path) -> io::Result<()> {
-    let old = user_data.join("cache").to_string_lossy().to_lowercase();
-    if store.get().cache_dir.to_lowercase() == old {
-        store.set(&json!({ "cacheDir": cache_dir.to_string_lossy() }))?;
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
     use std::fs;
 
     fn defaults() -> Settings {
-        Settings { cache_dir: "/cache".into(), excluded_folders: vec!["_ThirdParty".into()], ..default_settings(Path::new("/cache")) }
+        Settings { excluded_folders: vec!["_ThirdParty".into()], ..default_settings() }
     }
 
     fn store_defaults() -> Settings {
-        Settings { cache_dir: "/c".into(), excluded_folders: vec![], ..default_settings(Path::new("/c")) }
+        Settings { excluded_folders: vec![], ..default_settings() }
     }
 
     fn read(file: &Path) -> Value {
@@ -319,7 +297,7 @@ mod tests {
     fn keeps_what_another_version_of_the_app_saved_when_saving_its_own() {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("a.json");
-        fs::write(&file, json!({ "language": "vi", "cacheDir": "/c", "excludedFolders": [], "futureThing": { "on": true } }).to_string()).unwrap();
+        fs::write(&file, json!({ "language": "vi", "excludedFolders": [], "futureThing": { "on": true } }).to_string()).unwrap();
         let mut store = SettingsStore::new(&file, store_defaults());
         store.set(&json!({ "lastRepo": "o/r" })).unwrap();
         let saved = read(&file);
@@ -332,7 +310,7 @@ mod tests {
     fn also_keeps_what_the_other_copy_saved_after_this_one_started() {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("b.json");
-        fs::write(&file, json!({ "language": "en", "cacheDir": "/c", "excludedFolders": [] }).to_string()).unwrap();
+        fs::write(&file, json!({ "language": "en", "excludedFolders": [] }).to_string()).unwrap();
         let mut store = SettingsStore::new(&file, store_defaults());
         // The newer copy, running alongside, turns on something this one does not know.
         let mut later = read(&file);
@@ -348,7 +326,7 @@ mod tests {
     fn still_drops_invalid_values_of_the_settings_it_knows() {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("c.json");
-        fs::write(&file, json!({ "language": "xx", "cacheDir": "/c", "excludedFolders": [], "exportLayout": "nonsense" }).to_string()).unwrap();
+        fs::write(&file, json!({ "language": "xx", "excludedFolders": [], "exportLayout": "nonsense" }).to_string()).unwrap();
         let mut store = SettingsStore::new(&file, store_defaults());
         store.set(&json!({})).unwrap();
         let saved = read(&file);
@@ -391,20 +369,6 @@ mod tests {
     }
 
     #[test]
-    fn the_old_cache_folder_moves_to_the_new_one() {
-        let dir = tempfile::tempdir().unwrap();
-        let file = dir.path().join("s.json");
-        let user_data = Path::new("/data");
-        let mut store = SettingsStore::new(&file, store_defaults());
-        store.set(&json!({ "cacheDir": "/DATA/Cache" })).unwrap();
-        fix_cache_dir(&mut store, user_data, Path::new("/data/AssetHubCache")).unwrap();
-        assert_eq!(store.get().cache_dir, "/data/AssetHubCache");
-        store.set(&json!({ "cacheDir": "/elsewhere" })).unwrap();
-        fix_cache_dir(&mut store, user_data, Path::new("/data/AssetHubCache")).unwrap();
-        assert_eq!(store.get().cache_dir, "/elsewhere");
-    }
-
-    #[test]
     fn unknown_settings_are_the_keys_this_version_has_no_setting_for() {
         let raw = json!({ "language": "en", "x": 1 });
         assert_eq!(Value::Object(unknown_settings(&raw)), json!({ "x": 1 }));
@@ -421,9 +385,9 @@ mod tests {
 
     #[test]
     fn keeps_valid_values_and_drops_invalid_ones() {
-        let kept = sanitize_settings(&json!({ "language": "vi", "cacheDir": "/x", "excludedFolders": [" Plugins ", "Plugins", 3, ""] }), &defaults());
-        assert_eq!(kept, Settings { language: Language::Vi, cache_dir: "/x".into(), excluded_folders: vec!["Plugins".into()], ..defaults() });
-        let dropped = sanitize_settings(&json!({ "language": "fr", "cacheDir": "  ", "excludedFolders": "x", "extra": 1 }), &defaults());
+        let kept = sanitize_settings(&json!({ "language": "vi", "excludedFolders": [" Plugins ", "Plugins", 3, ""] }), &defaults());
+        assert_eq!(kept, Settings { language: Language::Vi, excluded_folders: vec!["Plugins".into()], ..defaults() });
+        let dropped = sanitize_settings(&json!({ "language": "fr", "excludedFolders": "x", "extra": 1 }), &defaults());
         assert_eq!(dropped, defaults());
     }
 
@@ -456,15 +420,6 @@ mod tests {
         let custom = sanitize_settings(&json!({ "customBudget": { "triangles": 9000, "bones": -1, "fileBytes": "x", "other": 3 } }), &defaults()).custom_budget;
         assert_eq!(custom, Some(CustomBudget { triangles: Some(9000.0), ..CustomBudget::default() }));
         assert_eq!(sanitize_settings(&json!({ "customBudget": { "bones": 0 } }), &defaults()).custom_budget, None);
-    }
-
-    #[test]
-    fn keeps_a_cache_limit_from_the_choices_only() {
-        let limit = |v: Value| sanitize_settings(&json!({ "cacheLimitGB": v }), &defaults()).cache_limit_gb;
-        assert_eq!(limit(json!(5)), Some(5));
-        assert_eq!(limit(json!(0)), Some(0));
-        assert_eq!(limit(json!(3)), None);
-        assert_eq!(limit(json!("5")), None);
     }
 
     #[test]
@@ -528,21 +483,23 @@ mod tests {
     fn a_file_from_an_older_version_loads_and_keeps_its_removed_settings_aside() {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("old.json");
-        fs::write(&file, json!({ "language": "vi", "cacheDir": "/c", "excludedFolders": [], "usageStats": false, "sharedIndexDir": "/team" }).to_string()).unwrap();
+        fs::write(&file, json!({ "language": "vi", "cacheDir": "/c", "excludedFolders": [], "cacheLimitGB": 5, "usageStats": false, "sharedIndexDir": "/team" }).to_string()).unwrap();
         let mut store = SettingsStore::new(&file, store_defaults());
         let loaded = store.get();
-        assert_eq!(serde_json::to_value(&loaded).unwrap(), json!({ "language": "vi", "cacheDir": "/c", "excludedFolders": [] }));
+        assert_eq!(serde_json::to_value(&loaded).unwrap(), json!({ "language": "vi", "excludedFolders": [] }));
         // Nothing the page can read or send: the settings are the same after a save.
         assert_eq!(store.set(&json!({ "lastRepo": "o/r" })).unwrap().last_repo.as_deref(), Some("o/r"));
         let saved = read(&file);
         assert_eq!((saved["usageStats"].clone(), saved["sharedIndexDir"].clone()), (json!(false), json!("/team")));
-        assert!(sanitize_settings(&json!({ "usageStats": false, "sharedIndexDir": "/team" }), &defaults()) == defaults());
+        // A cache folder the user picked before is left where it is: kept in the file, never read.
+        assert_eq!((saved["cacheDir"].clone(), saved["cacheLimitGB"].clone()), (json!("/c"), json!(5)));
+        assert!(sanitize_settings(&json!({ "cacheDir": "/c", "cacheLimitGB": 5, "usageStats": false, "sharedIndexDir": "/team" }), &defaults()) == defaults());
     }
 
     #[test]
     fn the_saved_json_uses_the_names_of_the_page() {
-        let s = Settings { cache_limit_gb: Some(2), ..defaults() };
+        let s = Settings { last_repo: Some("o/r".into()), ..defaults() };
         let value = serde_json::to_value(&s).unwrap();
-        assert_eq!(value, json!({ "language": "en", "cacheDir": "/cache", "cacheLimitGB": 2, "excludedFolders": ["_ThirdParty"] }));
+        assert_eq!(value, json!({ "language": "en", "excludedFolders": ["_ThirdParty"], "lastRepo": "o/r" }));
     }
 }

@@ -11,6 +11,7 @@ What changed in each release of Asset Hub. `bun run release` publishes the secti
 - **Old cache leftovers:** at start-up the app deletes the clone of the shared index repo, the shared index record and the usage reports folder it wrote before, which could take close to 1 GB. The old Backblaze thumbnail rows and the legacy `.txt` thumbnail conversion are gone from the team backend and the app.
 
 ### Changed
+- **The app looks after the cache:** it always lives in the app's own data folder, so Settings no longer has the Cache folder row or the Cache size limit. Downloads are kept to 5 GB, or to a quarter of the free disk space (but not less than 512 MB) when less than 20 GB is free, and the oldest go first. Thumbnails and the catalog are not limited. Settings files that still name a cache folder or limit load fine. A folder you picked earlier is not moved or deleted, so delete it yourself if you want the space back. The command-line tool and the MCP server use the same folder and budget.
 - **Every GitHub CLI account is used:** the repos of all accounts signed in to `gh` are listed together, and each repo is read with an account that can read it (the next account is tried when GitHub refuses the first). Settings shows every account. Signing out with the GitHub CLI option signs out every account.
 
 ## [2.1.1] — 2026-11-11

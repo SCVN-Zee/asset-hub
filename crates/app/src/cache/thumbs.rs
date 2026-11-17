@@ -57,7 +57,7 @@ struct Index {
     versions: HashMap<String, u64>,
 }
 
-/// `<cacheDir>/thumbs/<key>.img`, keyed by the asset's content hash. Pages get URLs on
+/// `<cache>/thumbs/<key>.img`, keyed by the asset's content hash. Pages get URLs on
 /// [`THUMB_SCHEME`] and load only the images on screen.
 pub struct ThumbnailStore {
     config: Arc<CacheConfig>,
@@ -162,7 +162,7 @@ pub mod tests {
     pub const PNG: &str = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
     fn store(dir: &std::path::Path) -> ThumbnailStore {
-        ThumbnailStore::new(CacheConfig::new(dir.to_owned(), 0))
+        ThumbnailStore::new(CacheConfig::new(dir.to_owned()))
     }
 
     fn data_url(mime: &str, bytes: &[u8]) -> String {
@@ -208,7 +208,7 @@ pub mod tests {
         assert!(saved.bytes.len() * 2 <= CARD_A_1X_WEBP_BYTES * 3);
         // A PNG written by an earlier version still displays, and is not rewritten by reading.
         std::fs::write(dir.path().join("thumbs/old.img"), CARD_A).unwrap();
-        let fresh = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned(), 0));
+        let fresh = ThumbnailStore::new(CacheConfig::new(dir.path().to_owned()));
         let old = fresh.read("old").await.unwrap();
         assert_eq!((old.content_type, old.bytes.as_slice()), ("image/png", CARD_A));
         assert_eq!(fresh.get_many(&["old".into(), "card".into()]).await.len(), 2);
@@ -303,19 +303,5 @@ pub mod tests {
         assert_eq!(store.read("a").await.unwrap().content_type, "image/jpeg");
         assert!(!store.import_file("b", b"nothing", true).await.unwrap());
         assert_eq!(store.names().await, ["a"]);
-    }
-
-    #[tokio::test]
-    async fn follows_a_changed_cache_folder() {
-        let (one, two) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
-        let config = CacheConfig::new(one.path().to_owned(), 0);
-        let store = ThumbnailStore::new(config.clone());
-        store.save("a", PNG).await.unwrap();
-        let mut settings = crate::settings::default_settings(two.path());
-        settings.cache_limit_gb = Some(0);
-        config.apply(&settings);
-        assert!(store.get_many(&["a".into()]).await.is_empty());
-        store.save("b", PNG).await.unwrap();
-        assert_eq!(names(&two.path().join("thumbs")), ["b.img"]);
     }
 }

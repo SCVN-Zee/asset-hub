@@ -107,11 +107,6 @@ dto! {
     /// The user's settings.
     pub struct Settings {
         pub language: Language,
-        /// Where clones, downloaded files and thumbnails are cached.
-        pub cache_dir: String,
-        /// Most the downloaded files may take, in GB (absent: the default; 0: no limit).
-        #[serde(rename = "cacheLimitGB")]
-        pub cache_limit_gb: Option<u32>,
         /// Folder names hidden from browsing at any depth.
         pub excluded_folders: Vec<String>,
         /// Repo and branch opened last, restored on the next launch.

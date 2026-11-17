@@ -5,10 +5,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use super::CacheConfig;
+use super::{downloads_budget, free_space, CacheConfig};
 use crate::dto::CacheUsage;
 
-/// Downloaded data that can always be fetched again: what the size limit removes, least recently
+/// Downloaded data that can always be fetched again: what the downloads budget removes, least recently
 /// used first. `http` holds the revalidation store of GitHub API answers.
 pub const DOWNLOADS: [&str; 4] = ["blobs", "tree", "guids", "http"];
 /// Folders older versions wrote and nothing reads any more.
@@ -18,9 +18,9 @@ const STALE: [&str; 3] = ["prefabfx", "prefabfx2", "prefabfx3"];
 const RETIRED_IN_CACHE: [&str; 2] = ["shared-index-repo", "shared-index.json"];
 /// The same for the user data folder: the usage reports, with their outbox and sessions.
 const RETIRED_IN_DATA: [&str; 1] = ["usage"];
-/// Below the limit by this much after a cleanup, so it does not run again on the next download.
+/// Below the budget by this much after a cleanup, so it does not run again on the next download.
 const PRUNE_TO: f64 = 0.9;
-/// Downloads written between two checks of the limit.
+/// Downloads written between two checks of the budget.
 const CHECK_EVERY: u64 = 200 * 1024 * 1024;
 /// Temp files this old are left over from a crash, not a write in progress.
 const STALE_TMP: Duration = Duration::from_secs(60 * 60);
@@ -68,11 +68,11 @@ pub fn remove_retired(user_data: &Path, cache_dir: &Path) {
 }
 
 /// Removes the files of `folders` (inside `root`), least recently used first, until they take no
-/// more than `limit` bytes less a tenth. Does nothing while they fit, or without a limit (0).
+/// more than `limit` bytes less a tenth. Does nothing while they fit.
 pub fn prune_folders(root: &Path, folders: &[&str], limit: u64) {
     let mut files: Vec<CachedFile> = folders.iter().flat_map(|d| files_under(&root.join(d))).collect();
     let mut total: u64 = files.iter().map(|f| f.size).sum();
-    if limit == 0 || total <= limit {
+    if total <= limit {
         return;
     }
     let goal = (limit as f64 * PRUNE_TO) as u64;
@@ -86,9 +86,8 @@ pub fn prune_folders(root: &Path, folders: &[&str], limit: u64) {
     }
 }
 
-/// Downloads beyond the size limit go, least recently used first; leftovers of older versions and
-/// crashed writes are removed at launch. Only folders the app writes are touched (the cache folder
-/// may be one the user picked).
+/// Downloads beyond the budget go, least recently used first; leftovers of older versions and
+/// crashed writes are removed at launch. Only folders the app writes are touched.
 pub struct CacheJanitor {
     config: Arc<CacheConfig>,
     written: AtomicU64,
@@ -100,7 +99,7 @@ impl CacheJanitor {
         Self { config, written: AtomicU64::new(0), running: tokio::sync::Mutex::new(()) }
     }
 
-    /// Counts a download written; checks the limit every so often.
+    /// Counts a download written; checks the budget every so often.
     pub fn note_write(self: &Arc<Self>, bytes: u64) {
         if self.written.fetch_add(bytes, Ordering::Relaxed) + bytes < CHECK_EVERY {
             return;
@@ -123,12 +122,17 @@ impl CacheJanitor {
         .unwrap_or(CacheUsage { downloads: 0.0, thumbs: 0.0, other: 0.0 })
     }
 
-    /// Removes the least recently used downloads until they fit the limit. A run that finds one
-    /// going waits for it, then finds nothing left to do.
+    /// Removes the least recently used downloads until they fit the budget, which is worked out
+    /// from the free space of the cache volume each time. A run that finds one going waits for
+    /// it, then finds nothing left to do.
     pub async fn prune(&self) {
         let _running = self.running.lock().await;
-        let (root, limit) = (self.config.dir(), self.config.limit());
-        let _ = tokio::task::spawn_blocking(move || prune_folders(&root, &DOWNLOADS, limit)).await;
+        let root = self.config.dir();
+        let _ = tokio::task::spawn_blocking(move || {
+            let budget = downloads_budget(free_space(&root));
+            prune_folders(&root, &DOWNLOADS, budget)
+        })
+        .await;
     }
 
     /// Leftovers: folders of older versions, temp files of interrupted writes.
@@ -178,19 +182,19 @@ mod tests {
     use crate::cache::test_support::{names, put};
     use crate::cache::FileBlobCache;
 
-    fn janitor(root: &Path, limit: u64) -> CacheJanitor {
-        CacheJanitor::new(CacheConfig::new(root.to_owned(), limit))
+    fn janitor(root: &Path) -> CacheJanitor {
+        CacheJanitor::new(CacheConfig::new(root.to_owned()))
     }
 
     #[tokio::test]
-    async fn removes_the_least_recently_used_downloads_until_under_the_limit_never_thumbnails() {
+    async fn removes_the_least_recently_used_downloads_until_under_the_budget_never_thumbnails() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         put(root, "blobs/aa/old", 400, 3);
         put(root, "tree/org__repo/c1.json.gz", 400, 2);
         put(root, "blobs/bb/new", 400, 0);
         put(root, "thumbs/x.img", 5000, 9);
-        janitor(root, 700).prune().await;
+        prune_folders(root, &DOWNLOADS, 700);
         assert!(names(&root.join("blobs/aa")).is_empty());
         assert!(names(&root.join("tree/org__repo")).is_empty());
         assert_eq!(names(&root.join("blobs/bb")), ["new"]);
@@ -203,16 +207,16 @@ mod tests {
         let root = dir.path();
         put(root, "http/ab/old", 400, 3);
         put(root, "blobs/aa/new", 400, 0);
-        janitor(root, 500).prune().await;
+        prune_folders(root, &DOWNLOADS, 500);
         assert!(names(&root.join("http/ab")).is_empty());
         assert_eq!(names(&root.join("blobs/aa")), ["new"]);
     }
 
     #[tokio::test]
-    async fn keeps_everything_without_a_limit() {
+    async fn keeps_downloads_that_fit_the_automatic_budget() {
         let dir = tempfile::tempdir().unwrap();
         put(dir.path(), "blobs/aa/old", 400, 3);
-        janitor(dir.path(), 0).prune().await;
+        janitor(dir.path()).prune().await;
         assert_eq!(names(&dir.path().join("blobs/aa")), ["old"]);
     }
 
@@ -223,7 +227,7 @@ mod tests {
         put(root, "prefabfx2/org__repo/x.json", 10, 0);
         put(root, "blobs/aa/f.1.2.tmp", 10, 1);
         put(root, "blobs/aa/g.1.3.tmp", 10, 0);
-        janitor(root, 0).clean_stale().await;
+        janitor(root).clean_stale().await;
         assert!(!names(root).contains(&"prefabfx2".to_owned()));
         assert_eq!(names(&root.join("blobs/aa")), ["g.1.3.tmp"]);
     }
@@ -235,7 +239,7 @@ mod tests {
         put(root, "blobs/aa/f", 100, 0);
         put(root, "thumbs/x.img", 20, 0);
         put(root, "stats.json", 3, 0);
-        let usage = janitor(root, 0).usage().await;
+        let usage = janitor(root).usage().await;
         assert_eq!((usage.downloads, usage.thumbs, usage.other), (100.0, 20.0, 3.0));
     }
 
@@ -247,7 +251,7 @@ mod tests {
         put(root, "http/ab/f", 100, 0);
         put(root, "thumbs/x.img", 20, 0);
         put(root, "stats.json", 3, 0);
-        janitor(root, 0).clear().await.unwrap();
+        janitor(root).clear().await.unwrap();
         assert_eq!(names(root), ["stats.json", "thumbs"]);
     }
 
@@ -256,10 +260,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         put(root, "blobs/ke/key1", 10, 5);
-        let blobs = FileBlobCache::new(CacheConfig::new(root.to_owned(), 0), None);
+        let blobs = FileBlobCache::new(CacheConfig::new(root.to_owned()), None);
         assert_eq!(blobs.get("key1").await.unwrap().len(), 10);
         put(root, "blobs/ot/other", 10, 1);
-        janitor(root, 15).prune().await;
+        prune_folders(root, &DOWNLOADS, 15);
         assert_eq!(names(&root.join("blobs/ke")), ["key1"]);
         assert!(names(&root.join("blobs/ot")).is_empty());
     }
@@ -277,13 +281,13 @@ mod tests {
         }
         put(&data, "AgentCache/blobs/aa/f", 5, 0);
         put(&data, "settings.json", 5, 0);
-        janitor(&cache, 0).clean_retired(data.clone()).await;
+        janitor(&cache).clean_retired(data.clone()).await;
         assert!(!cache.join("shared-index-repo").exists());
         assert!(!cache.join("shared-index.json").exists());
         assert!(!data.join("usage").exists());
         assert_eq!(names(&cache), ["blobs", "http", "stats.json", "thumbs", "tree"]);
         assert!(data.join("AgentCache/blobs/aa/f").exists() && data.join("settings.json").exists());
-        janitor(&cache, 0).clean_retired(data).await;
+        janitor(&cache).clean_retired(data).await;
     }
 
     #[cfg(unix)]
@@ -296,7 +300,7 @@ mod tests {
         std::fs::create_dir_all(&data).unwrap();
         std::os::unix::fs::symlink(&outside, cache.join("shared-index-repo")).unwrap();
         std::os::unix::fs::symlink(&outside, data.join("usage")).unwrap();
-        janitor(&cache, 0).clean_retired(data.clone()).await;
+        janitor(&cache).clean_retired(data.clone()).await;
         assert!(std::fs::symlink_metadata(cache.join("shared-index-repo")).is_err());
         assert!(std::fs::symlink_metadata(data.join("usage")).is_err());
         assert!(outside.join("keep.txt").exists());
@@ -305,7 +309,7 @@ mod tests {
     #[tokio::test]
     async fn a_missing_cache_folder_is_empty_not_an_error() {
         let dir = tempfile::tempdir().unwrap();
-        let janitor = janitor(&dir.path().join("none"), 1);
+        let janitor = janitor(&dir.path().join("none"));
         janitor.prune().await;
         janitor.clean_stale().await;
         janitor.clear().await.unwrap();

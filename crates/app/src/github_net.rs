@@ -223,7 +223,7 @@ mod tests {
     use crate::test_server::{serve, Reply};
 
     fn caches(dir: &std::path::Path) -> Arc<Caches> {
-        Arc::new(Caches::new(CacheConfig::new(dir.to_owned(), 0)))
+        Arc::new(Caches::new(CacheConfig::new(dir.to_owned())))
     }
 
     #[test]

@@ -1,4 +1,4 @@
-//! Model measurements by content SHA, in one small JSON file (`<cacheDir>/stats.json`).
+//! Model measurements by content SHA, in one small JSON file (`<cache>/stats.json`).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -171,7 +171,7 @@ mod tests {
     }
 
     fn store(dir: &std::path::Path) -> StatsStore {
-        StatsStore::new(CacheConfig::new(dir.to_owned(), 0))
+        StatsStore::new(CacheConfig::new(dir.to_owned()))
     }
 
     #[test]
@@ -220,7 +220,7 @@ mod tests {
         assert_eq!(store.get_many(&["sha1".into(), "bad".into(), "none".into()]).await.keys().collect::<Vec<_>>(), ["sha1"]);
         assert!(!dir.path().join("stats.json").exists(), "the write waits for its delay");
         store.flush().await;
-        let again = StatsStore::new(CacheConfig::new(dir.path().to_owned(), 0));
+        let again = StatsStore::new(CacheConfig::new(dir.path().to_owned()));
         assert_eq!(again.get_many(&["sha1".into()]).await["sha1"], summary("viewer", json!({})));
     }
 

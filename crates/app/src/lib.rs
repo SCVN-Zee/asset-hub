@@ -46,7 +46,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_specta::{collect_commands, collect_events, Builder};
 
 use crate::paths::AppPaths;
-use crate::settings::{default_settings, fix_cache_dir, SettingsStore};
+use crate::settings::{default_settings, SettingsStore};
 use crate::state::AppState;
 
 /// Where the generated bindings live, relative to this crate.
@@ -71,8 +71,6 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
         ])
         .constant("LANGUAGES", c::LANGUAGES)
         .constant("DEFAULT_EXCLUDED_FOLDERS", c::DEFAULT_EXCLUDED_FOLDERS)
-        .constant("CACHE_LIMITS_GB", c::CACHE_LIMITS_GB)
-        .constant("DEFAULT_CACHE_LIMIT_GB", c::DEFAULT_CACHE_LIMIT_GB)
         .constant("EXPORT_LAYOUTS", c::EXPORT_LAYOUTS)
         .constant("DEFAULT_EXPORT_LAYOUT", c::DEFAULT_EXPORT_LAYOUT)
         .constant("BUILTIN_SHADER_GUIDS", c::BUILTIN_SHADER_GUIDS)
@@ -228,11 +226,10 @@ pub fn run() {
             builder.mount_events(app);
 
             let paths = app_paths(app.handle())?;
-            let mut store = SettingsStore::new(&paths.settings_file, default_settings(&paths.cache_dir));
-            fix_cache_dir(&mut store, &paths.user_data, &paths.cache_dir)?;
+            let store = SettingsStore::new(&paths.settings_file, default_settings());
             app.manage(AppState::new(paths, store));
             app.state::<AppState>().hub.set_emitters(commands::caches::page_emitters(app.handle().clone()));
-            // Leftovers and the size limit are dealt with once the app has settled.
+            // Leftovers and the downloads budget are dealt with once the app has settled.
             let caches = app.state::<AppState>().caches.clone();
             let user_data = app.state::<AppState>().paths.user_data.clone();
             tauri::async_runtime::spawn(async move {

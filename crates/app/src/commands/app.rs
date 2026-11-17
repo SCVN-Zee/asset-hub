@@ -24,14 +24,7 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<Settings, IpcErr
 #[specta::specta]
 pub async fn set_settings(state: State<'_, AppState>, patch: JsonObject) -> Result<Settings, IpcError> {
     traced("set_settings", async {
-        let limit_changed = patch.0.contains_key("cacheLimitGB");
-        let saved = state.settings()?.set(&Value::Object(patch.0)).map_err(|e| IpcError::unknown(format!("could not save the settings: {e}")))?;
-        state.caches.config.apply(&saved);
-        if limit_changed {
-            let caches = state.caches.clone();
-            tauri::async_runtime::spawn(async move { caches.janitor.prune().await });
-        }
-        Ok(saved)
+        state.settings()?.set(&Value::Object(patch.0)).map_err(|e| IpcError::unknown(format!("could not save the settings: {e}")))
     })
     .await
 }

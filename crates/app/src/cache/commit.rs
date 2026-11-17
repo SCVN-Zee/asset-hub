@@ -12,7 +12,7 @@ use serde::Serialize;
 
 use super::{safe, touch, write_atomic, CacheConfig, OnWrite};
 
-/// `<cacheDir>/<kind>/<owner>__<repo>/<commit>.json.gz`: trees, GUID indexes and the like.
+/// `<cache>/<kind>/<owner>__<repo>/<commit>.json.gz`: trees, GUID indexes and the like.
 /// Gzipped: a tree listing shrinks about six times.
 pub struct FileCommitCache {
     config: Arc<CacheConfig>,
@@ -82,7 +82,7 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     fn cache(dir: &std::path::Path) -> FileCommitCache {
-        FileCommitCache::new(CacheConfig::new(dir.to_owned(), 0), None)
+        FileCommitCache::new(CacheConfig::new(dir.to_owned()), None)
     }
 
     #[tokio::test]
@@ -127,7 +127,7 @@ mod tests {
         let on_write: OnWrite = Arc::new(move |n| {
             seen.fetch_add(n, Ordering::Relaxed);
         });
-        FileCommitCache::new(CacheConfig::new(dir.path().to_owned(), 0), Some(on_write)).set("guids", "org/repo", "c1", &serde_json::json!({ "a": "b" })).await.unwrap();
+        FileCommitCache::new(CacheConfig::new(dir.path().to_owned()), Some(on_write)).set("guids", "org/repo", "c1", &serde_json::json!({ "a": "b" })).await.unwrap();
         assert!(written.load(Ordering::Relaxed) > 0);
     }
 }

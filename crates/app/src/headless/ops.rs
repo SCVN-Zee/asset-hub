@@ -280,7 +280,7 @@ impl Headless {
             None => None,
         };
         // Read only: the app's measurements are never written from here.
-        let stats = StatsStore::new(CacheConfig::new(self.app_cache.clone(), 0)).get_many(std::slice::from_ref(&entry.sha)).await.remove(&entry.sha);
+        let stats = StatsStore::new(CacheConfig::new(self.app_cache.clone())).get_many(std::slice::from_ref(&entry.sha)).await.remove(&entry.sha);
         let stats: Option<StatsSummary> = stats.map(|s| convert(&s)).transpose()?;
         let (stats_issues, stats_note) = match &stats {
             Some(s) => (Some(summary_issues(s, &budget_for(None, None))), None),

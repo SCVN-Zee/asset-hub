@@ -7,10 +7,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::cache::{limit_bytes, CacheConfig, Caches};
+use crate::cache::{CacheConfig, Caches};
 use crate::hub::{Hub, Session};
 use crate::paths::AppPaths;
-use crate::settings::{default_settings, SettingsStore};
 
 pub mod auth;
 pub mod cli;
@@ -69,18 +68,17 @@ pub(crate) fn resolve_path(path: &Path) -> PathBuf {
 struct Dirs {
     app_cache: PathBuf,
     agent_cache: PathBuf,
-    limit: u64,
 }
 
 impl Dirs {
-    /// Reads the app's settings (never saves them). The agent cache must not share files with the
-    /// app's: this is checked before anything is created, and again once the folder exists.
+    /// The app's cache is `AppPaths::cache_dir`; the settings file is not read. The agent cache must
+    /// not share files with the app's: this is checked before anything is created, and again once
+    /// the folder exists.
     fn plan(paths: &AppPaths) -> Result<Self, HeadlessError> {
-        let settings = SettingsStore::new(&paths.settings_file, default_settings(&paths.cache_dir)).get();
-        let app_cache = resolve_path(Path::new(&settings.cache_dir));
+        let app_cache = resolve_path(&paths.cache_dir);
         let agent_cache = resolve_path(&paths.user_data).join(AGENT_CACHE);
         check_apart(&app_cache, &agent_cache)?;
-        Ok(Self { app_cache, agent_cache, limit: limit_bytes(settings.cache_limit_gb) })
+        Ok(Self { app_cache, agent_cache })
     }
 
     /// [`Dirs::plan`], then the agent cache folder is made.
@@ -95,18 +93,17 @@ impl Dirs {
 
 fn check_apart(app_cache: &Path, agent_cache: &Path) -> Result<(), HeadlessError> {
     if agent_cache.starts_with(app_cache) || app_cache.starts_with(agent_cache) {
-        return Err(HeadlessError::new("cache_overlap", "Asset Hub's cache folder overlaps the agent cache; change the cache folder in Settings"));
+        return Err(HeadlessError::new("cache_overlap", "Asset Hub's cache folder overlaps the agent cache"));
     }
     Ok(())
 }
 
-/// The folders an export must never write into: the app's data, its cache (from the settings) and
-/// the agent cache. Nothing is created and no sign-in is needed.
+/// The folders an export must never write into: the app's data, its cache and the agent cache.
+/// Nothing is created and no sign-in is needed.
 pub fn forbidden_roots(paths: &AppPaths) -> Vec<PathBuf> {
-    let settings = SettingsStore::new(&paths.settings_file, default_settings(&paths.cache_dir)).get();
     let user_data = resolve_path(&paths.user_data);
     let agent_cache = user_data.join(AGENT_CACHE);
-    vec![user_data, resolve_path(Path::new(&settings.cache_dir)), agent_cache]
+    vec![user_data, resolve_path(&paths.cache_dir), agent_cache]
 }
 
 /// A signed-in GitHub session with its own cache.
@@ -136,7 +133,7 @@ impl Headless {
     }
 
     fn build(paths: AppPaths, api: &str, dirs: Dirs, account: auth::Account) -> Result<Self, HeadlessError> {
-        let caches = Arc::new(Caches::new(CacheConfig::new(dirs.agent_cache.clone(), dirs.limit)));
+        let caches = Arc::new(Caches::new(CacheConfig::new(dirs.agent_cache.clone())));
         let hub = Hub::with_api(&caches, api);
         // `Hub::begin` is not called: no background check runs in a command that ends soon.
         let session = hub.session(Some((account.login, account.token)), &caches)?;

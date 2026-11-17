@@ -1,7 +1,7 @@
 //! Large repos through the system `git`: the Trees API truncates very large listings, and many
 //! small files download faster as one pack than as one request each.
 //!
-//! The cache keeps one bare partial-clone repo per GitHub repo (`<cacheDir>/repos/<owner>__<repo>.git`):
+//! The cache keeps one bare partial-clone repo per GitHub repo (`<cache>/repos/<owner>__<repo>.git`):
 //! objects are fetched on demand and nothing is checked out. Git work on one repo runs one command
 //! chain at a time, because config and fetch take locks.
 
@@ -467,7 +467,7 @@ mod tests {
     }
 
     fn tree_in(root: &Path, base: String) -> Arc<GitTree> {
-        GitTree::with_remote(CacheConfig::new(root.join("cache"), 0), base)
+        GitTree::with_remote(CacheConfig::new(root.join("cache")), base)
     }
 
     fn paths(entries: &[TreeEntry]) -> Vec<String> {

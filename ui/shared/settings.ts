@@ -16,10 +16,6 @@ export const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', vi: 'Vi
 
 export interface Settings {
   language: Language
-  /** Where clones, downloaded files and thumbnails are cached. */
-  cacheDir: string
-  /** Most the downloaded files may take, in GB (absent: `DEFAULT_CACHE_LIMIT_GB`; 0: no limit). */
-  cacheLimitGB?: number
   /** Patterns hiding folders and files from browsing: gitignore syntax, one per entry, relative to the Unity project root (a bare name matches at any depth). */
   excludedFolders: string[]
   /** Repo and branch opened last, restored on the next launch. */
@@ -46,9 +42,6 @@ export const DEFAULT_EXPORT_LAYOUT: PackageLayout = 'byType'
 
 export const DEFAULT_EXCLUDED_FOLDERS = ['_ThirdParty']
 
-export const CACHE_LIMITS_GB = [1, 2, 5, 10, 0] as const
-export const DEFAULT_CACHE_LIMIT_GB = 2
-
 export function isLanguage(value: unknown): value is Language {
   return typeof value === 'string' && (LANGUAGES as readonly string[]).includes(value)
 }
@@ -56,7 +49,7 @@ export function isLanguage(value: unknown): value is Language {
 /** Merges untrusted stored/IPC data over defaults, dropping anything invalid. */
 /** Every setting this version knows; anything else in the file was written by another version. */
 export const SETTINGS_KEYS = [
-  'language', 'cacheDir', 'cacheLimitGB', 'excludedFolders', 'lastRepo', 'lastBranch', 'budgetPreset', 'customBudget',
+  'language', 'excludedFolders', 'lastRepo', 'lastBranch', 'budgetPreset', 'customBudget',
   'exportLayout', 'targetProject', 'collections', 'recent', 'watched'
 ] as const satisfies ReadonlyArray<keyof Settings>
 
@@ -78,8 +71,6 @@ export function sanitizeSettings(raw: unknown, defaults: Settings): Settings {
     : defaults.excludedFolders
   return {
     language: isLanguage(input.language) ? input.language : defaults.language,
-    cacheDir: typeof input.cacheDir === 'string' && input.cacheDir.trim() !== '' ? input.cacheDir : defaults.cacheDir,
-    ...((CACHE_LIMITS_GB as readonly unknown[]).includes(input.cacheLimitGB) ? { cacheLimitGB: input.cacheLimitGB as number } : {}),
     excludedFolders: folders,
     ...(typeof input.lastRepo === 'string' && input.lastRepo ? { lastRepo: input.lastRepo } : {}),
     ...(typeof input.lastBranch === 'string' && input.lastBranch ? { lastBranch: input.lastBranch } : {}),

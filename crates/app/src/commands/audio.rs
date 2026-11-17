@@ -25,7 +25,7 @@ mod tests {
     fn app_in(dir: &std::path::Path) -> tauri::App<tauri::test::MockRuntime> {
         let app = tauri::test::mock_app();
         let paths = AppPaths::resolve(Some(dir.to_str().unwrap()), dir);
-        let store = SettingsStore::new(&paths.settings_file, default_settings(&paths.cache_dir));
+        let store = SettingsStore::new(&paths.settings_file, default_settings());
         app.manage(AppState::new(paths, store));
         app
     }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { displayName } from '@shared/displayName'
 import type { AuthStatus, CacheUsage } from '@shared/ipc'
-import { CACHE_LIMITS_GB, DEFAULT_CACHE_LIMIT_GB, DEFAULT_EXPORT_LAYOUT, EXPORT_LAYOUTS, type Settings as AppSettings, type Language } from '@shared/settings'
+import { DEFAULT_EXPORT_LAYOUT, EXPORT_LAYOUTS, type Settings as AppSettings, type Language } from '@shared/settings'
 import type { BudgetPreset, PlayableBudget } from '@shared/types'
 import { formatBytes } from '../format'
 import { BUDGET_KEYS, BUDGET_PRESETS, DEFAULT_BUDGET_PRESET, budgetFor } from '../playable'
@@ -132,11 +132,6 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
   // Kept between launches, like the other ticks.
   const [signOutGh, setSignOutGh] = useStoredFlag('assethub.signOut.gh', true)
 
-  const chooseCache = async () => {
-    const folder = await window.api.chooseFolder()
-    if (folder) onChange({ cacheDir: folder })
-  }
-
   // A panel over the hub: focus moves into it, Escape closes it, and focus goes back to where it came from.
   const sheet = useRef<HTMLDivElement>(null)
   const back = useRef(onBack)
@@ -248,19 +243,7 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
 
           <TargetProjectSetting settings={settings} onChange={onChange} />
 
-          <section className="setting">
-            <h2>
-              <label htmlFor="cache">{t('settings.cacheDir')}</label>
-            </h2>
-            <div className="field-row">
-              <input id="cache" className="input mono" value={settings.cacheDir} readOnly />
-              <button type="button" className="btn" onClick={chooseCache}>
-                {t('settings.choose')}
-              </button>
-            </div>
-          </section>
-
-          <CacheSetting settings={settings} onChange={onChange} />
+          <CacheSetting />
 
           <CliSetting />
         </div>
@@ -313,14 +296,13 @@ function CliSetting() {
   )
 }
 
-/** How much the cache holds, its size limit, and a way to empty it. */
-function CacheSetting({ settings, onChange }: Pick<Props, 'settings' | 'onChange'>) {
+/** How much the cache holds, and a way to empty the downloads. The app keeps the folder and the size itself. */
+function CacheSetting() {
   const { t } = useTranslation()
   const [usage, setUsage] = useState<CacheUsage>()
   const [clearing, setClearing] = useState(false)
   const measure = () => void window.api.cache.usage().then((r) => r.ok && setUsage(r.data))
-  useEffect(measure, [settings.cacheDir, settings.cacheLimitGB])
-  const limit = settings.cacheLimitGB ?? DEFAULT_CACHE_LIMIT_GB
+  useEffect(measure, [])
   const clear = async () => {
     setClearing(true)
     await window.api.cache.clear()
@@ -329,17 +311,8 @@ function CacheSetting({ settings, onChange }: Pick<Props, 'settings' | 'onChange
   }
   return (
     <section className="setting">
-      <h2>
-        <label htmlFor="cache-limit">{t('settings.cacheLimit')}</label>
-      </h2>
+      <h2>{t('settings.cache')}</h2>
       <div className="field-row">
-        <Dropdown
-          id="cache-limit"
-          value={String(limit)}
-          options={CACHE_LIMITS_GB.map((gb) => ({ value: String(gb), label: gb ? `${gb} GB` : t('settings.cacheNoLimit') }))}
-          onChange={(v: string) => onChange({ cacheLimitGB: Number(v) })}
-          label={t('settings.cacheLimit')}
-        />
         <button type="button" className="btn" onClick={() => void clear()} disabled={clearing}>
           {t('settings.cacheClear')}
         </button>

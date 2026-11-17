@@ -210,11 +210,7 @@ export const BUDGET_PRESETS = ["off","standard","tight","custom"] as const;
 
 export const BUILTIN_SHADER_GUIDS = ["0000000000000000f000000000000000","0000000000000000e000000000000000"] as const;
 
-export const CACHE_LIMITS_GB = [1,2,5,10,0] as const;
-
 export const DEFAULT_BUDGET_PRESET = "off" as const;
-
-export const DEFAULT_CACHE_LIMIT_GB = 2 as const;
 
 export const DEFAULT_EXCLUDED_FOLDERS = ["_ThirdParty"] as const;
 
@@ -1347,10 +1343,6 @@ export type Settings = Settings_Serialize | Settings_Deserialize;
 /**  The user's settings. */
 export type Settings_Deserialize = {
 	language: Language,
-	/**  Where clones, downloaded files and thumbnails are cached. */
-	cacheDir: string,
-	/**  Most the downloaded files may take, in GB (absent: the default; 0: no limit). */
-	cacheLimitGB?: number | null,
 	/**  Folder names hidden from browsing at any depth. */
 	excludedFolders: string[],
 	/**  Repo and branch opened last, restored on the next launch. */
@@ -1371,10 +1363,6 @@ export type Settings_Deserialize = {
 /**  The user's settings. */
 export type Settings_Serialize = {
 	language: Language,
-	/**  Where clones, downloaded files and thumbnails are cached. */
-	cacheDir: string,
-	/**  Most the downloaded files may take, in GB (absent: the default; 0: no limit). */
-	cacheLimitGB?: number,
 	/**  Folder names hidden from browsing at any depth. */
 	excludedFolders: string[],
 	/**  Repo and branch opened last, restored on the next launch. */

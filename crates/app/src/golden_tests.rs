@@ -161,21 +161,30 @@ fn the_gh_login_prompt_is_found_by_the_shape_of_the_code() {
 fn settings_are_checked_against_the_defaults() {
     for case in cases("shared/settings", "sanitizeSettings") {
         let a = &case["args"];
-        let mut defaults = crate::settings::default_settings(Path::new(a[1]["cacheDir"].as_str().unwrap()));
+        let mut defaults = crate::settings::default_settings();
         defaults.excluded_folders = serde_json::from_value(a[1]["excludedFolders"].clone()).unwrap();
         defaults.language = serde_json::from_value(a[1]["language"].clone()).unwrap();
         let got = serde_json::to_value(crate::settings::sanitize_settings(&plain(&a[0]), &defaults)).unwrap();
         // The golden keeps only the keys that are set; the app also states the ones it has no value for.
         let got: Value = got.as_object().unwrap().iter().filter(|(_, v)| !v.is_null()).map(|(k, v)| (k.clone(), v.clone())).collect();
-        assert_eq!(norm(&got), norm(&plain(&case["result"])), "{}", case["case"]);
+        // The cache folder and size limit were settings when the golden ran; the app now decides both.
+        let mut want = plain(&case["result"]);
+        if let Some(settings) = want.as_object_mut() {
+            settings.remove("cacheDir");
+            settings.remove("cacheLimitGB");
+        }
+        assert_eq!(norm(&got), norm(&want), "{}", case["case"]);
     }
 }
 
 #[test]
 fn settings_this_version_does_not_know_are_kept_aside() {
     for case in cases("shared/settings", "unknownSettings") {
-        let got = Value::Object(crate::settings::unknown_settings(&plain(&case["args"][0])));
-        assert_eq!(got, case["result"]);
+        let mut got = crate::settings::unknown_settings(&plain(&case["args"][0]));
+        // Settings that were known when the golden ran are kept aside now too, and stay in the file.
+        got.remove("cacheDir");
+        got.remove("cacheLimitGB");
+        assert_eq!(Value::Object(got), case["result"]);
     }
 }
 
@@ -199,7 +208,7 @@ fn copy_dir(from: &Path, to: &Path) {
 fn cache_copy(name: &str) -> (tempfile::TempDir, std::sync::Arc<crate::cache::CacheConfig>) {
     let dir = tempfile::tempdir().unwrap();
     copy_dir(&golden().join("expected/cache-formats").join(name), dir.path());
-    let config = crate::cache::CacheConfig::new(dir.path().to_owned(), 0);
+    let config = crate::cache::CacheConfig::new(dir.path().to_owned());
     (dir, config)
 }
 

@@ -2,7 +2,7 @@
 //!
 //! The 1.x app revalidated API answers through Chromium's HTTP cache, and a `304` does not
 //! count against the rate limit. reqwest has no cache, so this store keeps the answers of GET
-//! requests that came with an `ETag`, under `<cacheDir>/http/`, and asks again with the ETag.
+//! requests that came with an `ETag`, under `<cache>/http/`, and asks again with the ETag.
 //! The folder counts as a download for the janitor and is capped at [`MAX_BYTES`] on its own.
 
 use std::path::{Path, PathBuf};
@@ -186,7 +186,7 @@ mod tests {
     use std::sync::Mutex;
 
     fn store(dir: &std::path::Path) -> Arc<EtagStore> {
-        EtagStore::new(CacheConfig::new(dir.to_owned(), 0), None)
+        EtagStore::new(CacheConfig::new(dir.to_owned()), None)
     }
 
     fn get(url: &str) -> RequestBuilder {
@@ -326,7 +326,7 @@ mod tests {
         let on_write: OnWrite = Arc::new(move |n| {
             seen.fetch_add(n, Ordering::Relaxed);
         });
-        let store = EtagStore::with_cap(CacheConfig::new(dir.path().to_owned(), 0), Some(on_write), 500);
+        let store = EtagStore::with_cap(CacheConfig::new(dir.path().to_owned()), Some(on_write), 500);
         let (base, _) = server(Arc::new(Mutex::new(("\"v1\"", "body")))).await;
         store.send(get(&format!("{base}/x"))).await.unwrap();
         assert!(written.load(Ordering::Relaxed) > 0);

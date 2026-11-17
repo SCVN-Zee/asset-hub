@@ -300,7 +300,7 @@ mod tests {
     #[tokio::test]
     async fn a_session_lists_repos_trees_and_files_and_revalidates_with_etags() {
         let dir = tempfile::tempdir().unwrap();
-        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned())));
         let seen: Seen = Arc::default();
         let base = fake_github(seen.clone()).await;
         let hub = Hub::with_api(&caches, &base);
@@ -325,7 +325,7 @@ mod tests {
     #[tokio::test]
     async fn with_two_accounts_repos_are_merged_and_a_refused_repo_is_read_with_the_other_account() {
         let dir = tempfile::tempdir().unwrap();
-        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned())));
         let seen: Arc<Mutex<Vec<(String, String)>>> = Arc::default();
         let log = seen.clone();
         let base = serve(move |(path, headers)| {
@@ -361,7 +361,7 @@ mod tests {
     #[tokio::test]
     async fn a_new_token_makes_a_new_session_and_no_account_is_unauthorized() {
         let dir = tempfile::tempdir().unwrap();
-        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned())));
         let hub = Hub::with_api(&caches, "http://127.0.0.1:1");
         let first = hub.session(Some(("a".into(), "t1".into())), &caches).unwrap();
         assert!(Arc::ptr_eq(&first, &hub.session(Some(("a".into(), "t1".into())), &caches).unwrap()));
@@ -372,7 +372,7 @@ mod tests {
     #[tokio::test]
     async fn account_change_ends_team_work() {
         let dir = tempfile::tempdir().unwrap();
-        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned())));
         let tokens_seen: Arc<Mutex<Vec<String>>> = Arc::default();
         let log = tokens_seen.clone();
         let team = serve(move |(_, headers)| {
@@ -406,7 +406,7 @@ mod tests {
     #[tokio::test]
     async fn a_hub_without_a_team_url_makes_a_session_with_the_client_off() {
         let dir = tempfile::tempdir().unwrap();
-        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned())));
         let hub = Hub::with_api(&caches, "http://127.0.0.1:1");
         let session = hub.session(Some(("a".into(), "t1".into())), &caches).unwrap();
         assert_eq!(session.team.client.status(), TeamStatus::Disabled);

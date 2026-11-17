@@ -10,7 +10,7 @@ use asset_hub_core::types::{EntryType, TreeEntry};
 use super::auth::{account_with, Account};
 use super::error::HeadlessError;
 use super::ops::{parse_ref, SearchScope};
-use super::{app_paths_in, Headless};
+use super::{app_paths_in, forbidden_roots, resolve_path, Dirs, Headless, AGENT_CACHE};
 use crate::catalog_service::catalog_json;
 use crate::ipc::{AppErrorCode, IpcError};
 use crate::paths::AppPaths;
@@ -153,16 +153,20 @@ fn a_token_from_the_environment_names_the_account() {
 }
 
 #[test]
-fn overlapping_cache_is_refused() {
+fn the_cache_folder_in_settings_is_ignored() {
     let dir = tempfile::tempdir().unwrap();
-    let inside = dir.path().join("AgentCache/x");
-    std::fs::write(dir.path().join("settings.json"), format!(r#"{{"cacheDir":{}}}"#, serde_json::to_string(&inside.to_string_lossy()).unwrap())).unwrap();
-    // The settings are checked before any sign-in is looked for.
-    let error = run(Headless::open(paths_in(dir.path()), "http://127.0.0.1:1")).err().expect("an error");
-    assert_eq!(error.code, "cache_overlap");
-    // The other way round: the app cache holds the agent cache.
-    std::fs::write(dir.path().join("settings.json"), format!(r#"{{"cacheDir":{}}}"#, serde_json::to_string(&dir.path().to_string_lossy()).unwrap())).unwrap();
-    assert_eq!(code(run(Headless::open(paths_in(dir.path()), "http://127.0.0.1:1")).map(|_| ())), "cache_overlap");
+    let paths = paths_in(dir.path());
+    let picked = [dir.path().join("AgentCache/x"), dir.path().to_path_buf(), dir.path().join("elsewhere")];
+    for folder in picked {
+        std::fs::write(dir.path().join("settings.json"), format!(r#"{{"cacheDir":{},"cacheLimitGB":1}}"#, serde_json::to_string(&folder.to_string_lossy()).unwrap())).unwrap();
+        let dirs = Dirs::plan(&paths).unwrap();
+        assert_eq!(dirs.app_cache, resolve_path(&paths.cache_dir));
+        assert_eq!(dirs.agent_cache, resolve_path(&paths.user_data).join(AGENT_CACHE));
+        assert_eq!(forbidden_roots(&paths), [resolve_path(&paths.user_data), resolve_path(&paths.cache_dir), resolve_path(&paths.user_data).join(AGENT_CACHE)]);
+        // No overlap is reported, so the run goes on to look for an account.
+        let opened = run(Headless::open(paths.clone(), "http://127.0.0.1:1")).err().expect("an error: no account");
+        assert_ne!(opened.code, "cache_overlap");
+    }
 }
 
 #[test]
@@ -320,17 +324,6 @@ fn export_refuses_existing_without_force() {
             assert_eq!(std::fs::read(&target).unwrap(), b"mine");
         }
     });
-}
-
-#[test]
-fn overlap_refusal_leaves_folders_unchanged() {
-    let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("settings.json"), format!(r#"{{"cacheDir":{}}}"#, serde_json::to_string(&dir.path().to_string_lossy()).unwrap())).unwrap();
-    let before = listing(dir.path());
-    let error = run(Headless::open(paths_in(dir.path()), "http://127.0.0.1:1")).err().expect("an error");
-    assert_eq!(error.code, "cache_overlap");
-    assert!(!dir.path().join("AgentCache").exists());
-    assert_eq!(listing(dir.path()), before);
 }
 
 #[test]

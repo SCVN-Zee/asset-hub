@@ -6,9 +6,6 @@ use specta::Type;
 
 pub const LANGUAGES: [&str; 3] = ["en", "ko", "vi"];
 pub const DEFAULT_EXCLUDED_FOLDERS: [&str; 1] = ["_ThirdParty"];
-/// Choices of the cache size limit, in GB (0: no limit).
-pub const CACHE_LIMITS_GB: [u32; 5] = [1, 2, 5, 10, 0];
-pub const DEFAULT_CACHE_LIMIT_GB: u32 = 2;
 pub const EXPORT_LAYOUTS: [&str; 3] = ["byType", "grouped", "source"];
 pub const DEFAULT_EXPORT_LAYOUT: &str = "byType";
 /// Shaders shipped with Unity itself (built-in extra and default resources).

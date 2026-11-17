@@ -68,7 +68,7 @@ fn the_main_window_may_call_exactly_the_commands_of_the_app() {
 
 fn state_in(dir: &Path) -> AppState {
     let paths = AppPaths::resolve(Some(dir.to_str().unwrap()), dir);
-    let store = SettingsStore::new(&paths.settings_file, default_settings(&paths.cache_dir));
+    let store = SettingsStore::new(&paths.settings_file, default_settings());
     AppState::new(paths, store)
 }
 
