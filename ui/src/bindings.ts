@@ -179,9 +179,19 @@ export const commands = {
 	/**  Downloads, verifies and installs `version`, then restarts the app (answers only on failure). */
 	updateInstall: (version: string) => typedError<OkMessage_Serialize, IpcError_Serialize>(__TAURI_INVOKE("update_install", { version })),
 	/**  Counted in this session's usage notes (fire and forget). */
-	usageTrack: (event: UsageEvent) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("usage_track", { event })),
+	usageTrack: (event: UsageEvent_Deserialize) => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("usage_track", { event })),
 	/**  Opens an issue in the feedback repo; offline or without access it is kept and sent later. */
 	feedbackSend: (report: FeedbackReport_Deserialize) => typedError<FeedbackResult_Serialize, IpcError_Serialize>(__TAURI_INVOKE("feedback_send", { report })),
+	/**
+	 *  `disabled` when nobody is signed in or the client is off, `offline` while a breaker is open,
+	 *  and `online` otherwise. The page also hears every change as an event.
+	 */
+	teamStatus: () => typedError<TeamStatus, IpcError_Serialize>(__TAURI_INVOKE("team_status")),
+	/**
+	 *  The team's score of each blob SHA of `repo` that has one. Empty when nobody is signed in, the
+	 *  team backend is off or out of reach, or it has nothing: the page then sorts as it did before.
+	 */
+	teamPopular: (repo: string) => typedError<{ [key in string]: number | null }, IpcError_Serialize>(__TAURI_INVOKE("team_popular", { repo })),
 };
 
 /** Events */
@@ -194,6 +204,7 @@ export const events = {
 	knownProgress: makeEvent<KnownProgress_Serialize, KnownProgress_Deserialize>("known-progress"),
 	prefabProgress: makeEvent<PrefabProgress, PrefabProgress>("prefab-progress"),
 	sharedIndexProgress: makeEvent<SharedIndexProgress_Serialize, SharedIndexProgress_Deserialize>("shared-index-progress"),
+	teamStatusChanged: makeEvent<TeamStatusChanged, TeamStatusChanged>("team-status-changed"),
 	toolsInstallProgress: makeEvent<ToolsInstallProgress, ToolsInstallProgress>("tools-install-progress"),
 	updateProgress: makeEvent<UpdateProgress, UpdateProgress>("update-progress"),
 };
@@ -1763,6 +1774,15 @@ export type TargetReport_Serialize = {
 	urp?: UrpInfo_Serialize,
 };
 
+/**
+ *  Whether the team backend answers: `disabled` (no URL, or signed out), `online`, or `offline`
+ *  (a breaker is open, so browsing and previews run on local data alone).
+ */
+export type TeamStatus = "disabled" | "online" | "offline";
+
+/**  The team backend went online or offline. */
+export type TeamStatusChanged = TeamStatus;
+
 export type TextureRef = TextureRef_Serialize | TextureRef_Deserialize;
 
 export type TextureRef_Deserialize = {
@@ -1876,7 +1896,21 @@ export type UrpInfo_Serialize = {
 };
 
 /**  What the page reports itself; the rest is seen in the backend. */
-export type UsageEvent = { kind: "view"; type: string } | { kind: "search" } | { kind: "feedback" };
+export type UsageEvent = UsageEvent_Serialize | UsageEvent_Deserialize;
+
+/**  What the page reports itself; the rest is seen in the backend. */
+export type UsageEvent_Deserialize = { kind: "view"; type: string; 
+/**  The repo and blob SHA of the asset, so the team can count the view. */
+repo?: string | null; sha?: string | null } | 
+/**  How long the preview of an asset took to show, in milliseconds. */
+{ kind: "preview"; ms: number | null; repo?: string | null; sha?: string | null } | { kind: "search" } | { kind: "feedback" };
+
+/**  What the page reports itself; the rest is seen in the backend. */
+export type UsageEvent_Serialize = { kind: "view"; type: string; 
+/**  The repo and blob SHA of the asset, so the team can count the view. */
+repo?: string; sha?: string } | 
+/**  How long the preview of an asset took to show, in milliseconds. */
+{ kind: "preview"; ms: number | null; repo?: string; sha?: string } | { kind: "search" } | { kind: "feedback" };
 
 export type VelocityLimit = VelocityLimit_Serialize | VelocityLimit_Deserialize;
 

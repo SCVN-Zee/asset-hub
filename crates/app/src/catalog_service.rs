@@ -586,6 +586,34 @@ impl CatalogService {
         out
     }
 
+    /// Every repo with a saved catalog or one in memory.
+    pub async fn repos(&self) -> Vec<String> {
+        self.saved_repos().await
+    }
+
+    /// Whether `repo` has a catalog in memory or on disk. It reads no catalog.
+    pub async fn has_repo(&self, repo: &str) -> bool {
+        lock(&self.catalogs).contains_key(repo) || tokio::fs::try_exists(self.dir().join(file_name(repo))).await.unwrap_or(false)
+    }
+
+    /// This machine's catalog of `repo` as stored, or none when the repo is not listed here.
+    pub async fn repo_data(&self, repo: &str) -> Option<RepoCatalogData> {
+        if !self.has_repo(repo).await {
+            return None;
+        }
+        Some(self.load(repo).await.lock().await.data().clone())
+    }
+
+    /// The blob SHAs this machine's own catalog lists for `repo` (none when it has none). A shared
+    /// object is trusted for these blobs only.
+    pub async fn blob_shas(&self, repo: &str) -> HashSet<String> {
+        // A repo not listed is not loaded, or it would be listed from now on.
+        if !self.has_repo(repo).await {
+            return HashSet::new();
+        }
+        self.load(repo).await.lock().await.data().blobs.iter().map(|(sha, _)| sha.clone()).collect()
+    }
+
     /// Takes in a catalog from a shared index (see [`RepoCatalog::merge`]); returns how many commits it added.
     pub async fn merge(self: &Arc<Self>, raw: &Value) -> usize {
         let Some(repo) = raw.get("repo").and_then(Value::as_str).filter(|r| r.contains('/')) else { return 0 };

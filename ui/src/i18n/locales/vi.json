@@ -433,6 +433,7 @@
   "ranking": {
     "sort": "Sắp xếp",
     "sorts": {
+      "popular": "Phổ biến trong nhóm",
       "relevance": "Khớp nhất",
       "playable": "Hợp playable nhất",
       "smallest": "Nhẹ nhất",
@@ -766,6 +767,10 @@
   "link": {
     "copy": "Copy link",
     "hint": "Link assethub://: đồng đội mở link (hoặc dán vào ô tìm kiếm) sẽ tới đúng asset này."
+  },
+  "team": {
+    "offline": "Nhóm ngoại tuyến",
+    "offlineHint": "Các tính năng nhóm đang ngoại tuyến. Duyệt và xem trước vẫn hoạt động."
   },
   "update": {
     "install": "Cập nhật v{{version}}",

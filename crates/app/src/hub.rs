@@ -15,7 +15,7 @@ use asset_hub_core::registry::HandlerRegistry;
 
 use crate::cache::Caches;
 use crate::catalog_service::{CatalogConfig, CatalogService};
-use crate::dto::{CatalogStatus, SharedIndexStatus};
+use crate::dto::{CatalogStatus, SharedIndexStatus, TeamStatus};
 use crate::git_tree::GitTree;
 use crate::github_net::{CacheBridge, EtagFetch, GitHooks};
 use crate::http::API;
@@ -23,6 +23,9 @@ use crate::index_repo::{IndexRepo, INDEX_REPO};
 use crate::ipc::{AppErrorCode, IpcError};
 use crate::shared_index::{Deps, CHECK_EVERY};
 use crate::shared_index_service::{SharedIndexConfig, SharedIndexService};
+use crate::team::remote_cache::RemoteCache;
+use crate::team::prefetch::Prefetch;
+use crate::team::Team;
 
 pub type Source = GitHubAssetSource<EtagFetch>;
 
@@ -34,6 +37,7 @@ const REPOS_KEPT: Duration = Duration::from_secs(10 * 60);
 pub struct Emitters {
     pub catalog: Arc<dyn Fn(CatalogStatus) + Send + Sync>,
     pub shared_index: Arc<dyn Fn(SharedIndexStatus) + Send + Sync>,
+    pub team: Arc<dyn Fn(TeamStatus) + Send + Sync>,
 }
 
 pub struct Session {
@@ -43,6 +47,12 @@ pub struct Session {
     pub catalog: Arc<CatalogService>,
     /// The team's shared index.
     pub shared_index: Arc<SharedIndexService>,
+    /// The client of the team backend, and the events it sends.
+    pub team: Arc<Team>,
+    /// The team's shared cache, taken in and given to in the background.
+    pub remote_cache: Arc<RemoteCache>,
+    /// Resolves the dependencies of the team's top assets in the background.
+    pub prefetch: Arc<Prefetch>,
     /// The active account.
     pub login: String,
     /// Login and token of every signed-in account, the active one first.
@@ -60,6 +70,9 @@ impl Session {
     fn end(&self) {
         self.catalog.stop();
         self.shared_index.stop();
+        self.remote_cache.stop();
+        self.prefetch.end();
+        self.team.end();
     }
 
     /// The repos the account reads, from the last answer when it is recent.
@@ -118,11 +131,14 @@ pub struct Hub {
     index_remote: Option<String>,
     /// Whether the shared index may be written to its GitHub repo without being asked.
     auto_contribute: bool,
+    /// The team backend's URL; none for a hub without a team client (the CLI, the MCP server, most tests).
+    team_url: Option<String>,
 }
 
 impl Hub {
+    /// The hub of the app: it also talks to the team backend.
     pub fn new(caches: &Caches) -> Self {
-        Self::with_api(caches, API)
+        Self { team_url: crate::team::api_url(), ..Self::with_api(caches, API) }
     }
 
     pub fn with_api(caches: &Caches, api: &str) -> Self {
@@ -135,6 +151,7 @@ impl Hub {
             emitters: OnceLock::new(),
             index_remote: None,
             auto_contribute: crate::usage_env::auto_contribute(),
+            team_url: None,
         }
     }
 
@@ -144,6 +161,18 @@ impl Hub {
         self.index_remote = Some(url);
         self.auto_contribute = true;
         self
+    }
+
+    /// Tests: the team backend is at `url`.
+    #[cfg(test)]
+    pub fn with_team_api(mut self, url: String) -> Self {
+        self.team_url = Some(url);
+        self
+    }
+
+    /// The session in use now, if one was made.
+    pub fn current(&self) -> Option<Arc<Session>> {
+        self.current.lock().ok().and_then(|current| current.clone())
     }
 
     /// Where the progress of the catalog and the shared index goes (the page, once the app has a window).
@@ -174,14 +203,45 @@ impl Hub {
         let hooks = GitHooks { git: self.git.clone(), registry: self.registry.clone(), tokens: tokens.clone() };
         let bridge = Arc::new(CacheBridge(caches.clone()));
         let options = GitHubSourceOptions { hooks: Arc::new(hooks), cache: Some(bridge.clone()), blob_cache: Some(bridge), registry: Some(self.registry.clone()) };
-        let client = GitHubClient::with_tokens(tokens, EtagFetch::new(caches.clone(), self.api.clone())).with_api_base(self.api.clone());
+        let client = GitHubClient::with_tokens(tokens.clone(), EtagFetch::new(caches.clone(), self.api.clone())).with_api_base(self.api.clone());
         let source = Arc::new(GitHubAssetSource::new(client, options));
         let (catalog, shared_index) = self.services(&source, &accounts, caches);
-        let session = Arc::new(Session { source, registry: self.registry.clone(), catalog, shared_index, login, accounts, repos: Mutex::new(None) });
+        let team = self.team(&login, tokens, caches);
+        let remote_cache = Arc::new(RemoteCache::new(
+            team.client.clone(),
+            Deps { catalog: catalog.clone(), facts: source.clone(), caches: caches.clone() },
+            self.foreground.clone(),
+            accounts.iter().map(|(login, _)| login.clone()).collect(),
+            Box::new({
+                let config = caches.config.clone();
+                move || config.dir()
+            }),
+        ));
+        let prefetch = Arc::new(Prefetch::new(source.clone(), team.popular.clone(), self.foreground.clone()));
+        let session = Arc::new(Session { source, registry: self.registry.clone(), catalog, shared_index, team, remote_cache, prefetch, login, accounts, repos: Mutex::new(None) });
         if let Some(old) = current.replace(session.clone()) {
             old.end();
         }
+        // The events go out every minute from the first moment of a session, whichever command made it.
+        session.team.start();
         Ok(session)
+    }
+
+    /// The team backend client of one session, over the same accounts as the source.
+    fn team(&self, login: &str, tokens: Arc<AccountTokens>, caches: &Arc<Caches>) -> Arc<Team> {
+        let sink = self.emitters.get().map(|emitters| emitters.team.clone());
+        let config = caches.config.clone();
+        Arc::new(Team::new(
+            self.team_url.clone(),
+            login,
+            tokens,
+            Box::new(move || config.dir().join("team-events.json")),
+            Arc::new(move |status| {
+                if let Some(sink) = &sink {
+                    sink(status);
+                }
+            }),
+        ))
     }
 
     /// The catalog and the shared index of one session.
@@ -237,10 +297,11 @@ impl Hub {
         (catalog, shared_index)
     }
 
-    /// Starts the work that follows a sign-in: the shared index is looked at now and every 30 minutes
+    /// Starts the work that follows a sign-in: the shared index and the team cache are looked at now and every 30 minutes
     /// (a newer one is taken in). Safe to call again; it starts once per session.
     pub fn begin(&self, session: &Session) {
         session.shared_index.start_checks(CHECK_EVERY);
+        session.remote_cache.start(CHECK_EVERY);
     }
 
     /// Signed out: the session goes.
@@ -348,6 +409,49 @@ mod tests {
         assert!(Arc::ptr_eq(&first, &hub.session(Some(("a".into(), "t1".into())), &caches).unwrap()));
         assert!(!Arc::ptr_eq(&first, &hub.session(Some(("a".into(), "t2".into())), &caches).unwrap()));
         assert_eq!(hub.session(None, &caches).err().unwrap().code, AppErrorCode::Unauthorized);
+    }
+
+    #[tokio::test]
+    async fn account_change_ends_team_work() {
+        let dir = tempfile::tempdir().unwrap();
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let tokens_seen: Arc<Mutex<Vec<String>>> = Arc::default();
+        let log = tokens_seen.clone();
+        let team = serve(move |(_, headers)| {
+            log.lock().unwrap().push(headers.get("authorization").cloned().unwrap_or_default());
+            Reply::json(200, "{}")
+        })
+        .await;
+        let hub = Hub::with_api(&caches, "http://127.0.0.1:1").with_team_api(team);
+        let statuses: Arc<Mutex<Vec<TeamStatus>>> = Arc::default();
+        let recorded = statuses.clone();
+        hub.set_emitters(Emitters { catalog: Arc::new(|_| {}), shared_index: Arc::new(|_| {}), team: Arc::new(move |status| recorded.lock().unwrap().push(status)) });
+        let budget = Duration::from_secs(2);
+        let first = hub.session(Some(("a".into(), "t1".into())), &caches).unwrap();
+        assert_eq!(first.team.client.status(), TeamStatus::Online);
+        assert!(first.team.client.get("o/r", "/popular", crate::team::Area::Popular, budget, None).await.is_ok());
+
+        // Another account's token replaces the session: the old one sends nothing more.
+        let second = hub.session(Some(("b".into(), "t2".into())), &caches).unwrap();
+        assert_eq!(first.team.client.status(), TeamStatus::Disabled);
+        assert_eq!(first.team.client.get("o/r", "/popular", crate::team::Area::Popular, budget, None).await.unwrap_err(), crate::team::TeamError::Disabled);
+        assert!(second.team.client.get("o/r", "/popular", crate::team::Area::Popular, budget, None).await.is_ok());
+        assert_eq!(*tokens_seen.lock().unwrap(), ["Bearer t1", "Bearer t2"]);
+        assert_eq!(*statuses.lock().unwrap(), [TeamStatus::Disabled]);
+
+        // Signing out ends the work of the current one.
+        hub.clear();
+        assert_eq!(second.team.client.status(), TeamStatus::Disabled);
+        assert!(hub.current().is_none());
+    }
+
+    #[tokio::test]
+    async fn a_hub_without_a_team_url_makes_a_session_with_the_client_off() {
+        let dir = tempfile::tempdir().unwrap();
+        let caches = Arc::new(Caches::new(CacheConfig::new(dir.path().to_owned(), 0)));
+        let hub = Hub::with_api(&caches, "http://127.0.0.1:1");
+        let session = hub.session(Some(("a".into(), "t1".into())), &caches).unwrap();
+        assert_eq!(session.team.client.status(), TeamStatus::Disabled);
     }
 
     #[tokio::test]

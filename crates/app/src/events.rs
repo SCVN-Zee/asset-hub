@@ -1,4 +1,4 @@
-//! The 10 push channels of `IPC` as typed events. The page listens through the generated
+//! The 11 push channels of `IPC` as typed events. The page listens through the generated
 //! `events` object; the payload types are in [`crate::dto`].
 
 use serde::{Deserialize, Serialize};
@@ -6,7 +6,7 @@ use serde_with::skip_serializing_none;
 use specta::Type;
 use tauri_specta::Event;
 
-use crate::dto::{CatalogStatus, DoneTotal, ExportStage, FactKind, InstallProgress, SharedIndexStatus};
+use crate::dto::{CatalogStatus, DoneTotal, ExportStage, FactKind, InstallProgress, SharedIndexStatus, TeamStatus};
 
 /// An `assethub://` link arrived while the app runs: take it with `take_deep_link`.
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
@@ -50,6 +50,11 @@ pub struct KnownProgress {
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
 #[serde(transparent)]
 pub struct SharedIndexProgress(pub SharedIndexStatus);
+
+/// The team backend went online or offline.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
+#[serde(transparent)]
+pub struct TeamStatusChanged(pub TeamStatus);
 
 /// A stage of an export.
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]

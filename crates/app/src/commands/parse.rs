@@ -426,7 +426,10 @@ pub async fn handler_descriptors() -> Result<Json, IpcError> {
 pub async fn browse_assets(state: State<'_, AppState>, repo: String, branch: String, root: Option<String>, excluded_folders: Vec<String>) -> Result<Json, IpcError> {
     traced("browse_assets", async {
         let _foreground = state.hub.foreground.enter();
-        let entries = state.session()?.source.list_tree(&repo, &branch).await.map_err(ipc_error)?;
+        let session = state.session()?;
+        let entries = session.source.list_tree(&repo, &branch).await.map_err(ipc_error)?;
+        // The team's cache of this repo is taken in once the user has what they asked for.
+        session.remote_cache.schedule_pull(&repo);
         let roots = find_unity_project_roots(&entries);
         let chosen = root.filter(|r| roots.contains(r)).or_else(|| roots.first().cloned());
         let listed = match &chosen {
@@ -437,7 +440,12 @@ pub async fn browse_assets(state: State<'_, AppState>, repo: String, branch: Str
         let total = everything.len();
         let excluded = ExcludeMatcher::new(&excluded_folders);
         let assets: Vec<Asset> = everything.into_iter().filter(|a| !excluded.is_excluded(&a.path)).collect();
-        json(&json!({ "roots": roots, "root": chosen, "assets": assets, "hidden": total - assets.len() }))
+        let reply = json(&json!({ "roots": roots, "root": chosen, "assets": assets, "hidden": total - assets.len() }));
+        // The team's most used assets of this branch get their dependencies resolved while the user looks around.
+        if let Some(root) = chosen {
+            session.prefetch.start(repo, branch, root);
+        }
+        reply
     })
     .await
 }

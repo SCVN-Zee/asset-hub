@@ -83,6 +83,8 @@
     "allow-update-install",
     "allow-usage-track",
     "allow-feedback-send",
+    "allow-team-status",
+    "allow-team-popular",
     "allow-stash-bytes"
   ]
 }

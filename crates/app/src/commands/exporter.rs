@@ -1,6 +1,8 @@
 //! The .unitypackage export and Unity editors.
 
+use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
@@ -12,8 +14,10 @@ use crate::dto::{ExportRequest, ExportResult, ExportStage, RunningUnity};
 use crate::events::ExportProgress;
 use crate::exporter::{export_package, ExportInput, Exported};
 use crate::github_net::convert;
+use crate::hub::Session;
 use crate::ipc::IpcError;
 use crate::state::AppState;
+use crate::team::TeamEventKind;
 use crate::target_project::is_unity_project;
 use crate::unity_editors::{list_running_unity, open_in_process};
 use crate::usage::Outcome;
@@ -55,6 +59,22 @@ fn export_input(state: &AppState, request: ExportRequest) -> Result<ExportInput,
         reuse_existing: request.reuse_existing != Some(false),
         strip_scripts: request.strip_scripts == Some(true),
     })
+}
+
+/// Tells the team that these assets were sent to Unity or exported, one send for each blob. It does
+/// not wait: the lookup reads the branch's list that the export has just used, and a failure is only traced.
+fn note_sends(session: Arc<Session>, repo: String, branch: String, paths: Vec<String>) {
+    tauri::async_runtime::spawn(async move {
+        match session.source.blob_shas(&repo, &branch, &paths).await {
+            Ok(shas) => {
+                let unique: HashSet<&String> = shas.values().collect();
+                for sha in unique {
+                    session.team.events.add(&repo, TeamEventKind::Send, sha);
+                }
+            }
+            Err(error) => crate::commands::trace(|| format!("[team] sends not counted: {}", error.message)),
+        }
+    });
 }
 
 /// The name a file gets from the page's suggestion: no path separators or characters a file name cannot hold.
@@ -99,8 +119,9 @@ fn outcome(result: &ExportResult) -> Outcome {
 pub async fn exporter_unity_package(app: AppHandle, window: WebviewWindow, state: State<'_, AppState>, request: ExportRequest) -> Result<ExportResult, IpcError> {
     traced_with("exporter_unity_package", None, outcome, async {
         let _foreground = state.hub.foreground.enter();
-        state.session()?;
+        let session = state.session()?;
         let suggested = safe_name(&request.suggested_name);
+        let sent = (request.repo.clone(), request.branch.clone(), request.paths.clone());
         let input = export_input(&state, request)?;
         if input.paths.is_empty() {
             return Ok(canceled(None));
@@ -110,6 +131,9 @@ pub async fn exporter_unity_package(app: AppHandle, window: WebviewWindow, state
         };
         let exported = run_export(&app, &state, &input, &target).await?;
         state.remember_saved_file(target.to_string_lossy().into_owned());
+        if exported.assets > 0 {
+            note_sends(session, sent.0, sent.1, sent.2);
+        }
         Ok(result_of(target, exported, None))
     })
     .await
@@ -128,9 +152,10 @@ pub async fn exporter_unity_editors() -> Result<Vec<RunningUnity>, IpcError> {
 pub async fn exporter_import_to_unity(app: AppHandle, state: State<'_, AppState>, request: ExportRequest, pid: u32) -> Result<ExportResult, IpcError> {
     traced_with("exporter_import_to_unity", None, outcome, async {
         let _foreground = state.hub.foreground.enter();
-        state.session()?;
+        let session = state.session()?;
         let editor = list_running_unity().await.into_iter().find(|e| e.pid == pid).ok_or_else(|| IpcError::unknown("That Unity editor is no longer open"))?;
         let suggested = safe_name(&request.suggested_name);
+        let sent = (request.repo.clone(), request.branch.clone(), request.paths.clone());
         let mut input = export_input(&state, request)?;
         input.target_project = Some(PathBuf::from(&editor.project_path));
         if input.paths.is_empty() {
@@ -143,6 +168,10 @@ pub async fn exporter_import_to_unity(app: AppHandle, state: State<'_, AppState>
         // The project has all of it already: an empty package would only make Unity show nothing.
         if exported.assets > 0 {
             open_in_process(editor.pid, &file.to_string_lossy()).await.map_err(IpcError::unknown)?;
+        }
+        let imported = exported.assets > 0;
+        if imported {
+            note_sends(session, sent.0, sent.1, sent.2);
         }
         Ok(result_of(file, exported, Some(editor.project)))
     })

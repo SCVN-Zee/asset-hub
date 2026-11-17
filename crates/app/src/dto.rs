@@ -1044,7 +1044,12 @@ dto! {
         View {
             #[serde(rename = "type")]
             asset_type: String,
+            /// The repo and blob SHA of the asset, so the team can count the view.
+            repo: Option<String>,
+            sha: Option<String>,
         },
+        /// How long the preview of an asset took to show, in milliseconds.
+        Preview { ms: f64, repo: Option<String>, sha: Option<String> },
         Search,
         Feedback,
     }
@@ -1074,6 +1079,21 @@ dto! {
     pub struct FeedbackResult {
         pub sent: bool,
         pub url: Option<String>,
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Team backend
+// ---------------------------------------------------------------------------------------------
+
+dto! {
+    /// Whether the team backend answers: `disabled` (no URL, or signed out), `online`, or `offline`
+    /// (a breaker is open, so browsing and previews run on local data alone).
+    #[derive(Copy, Eq)]
+    pub enum TeamStatus {
+        Disabled,
+        Online,
+        Offline,
     }
 }
 

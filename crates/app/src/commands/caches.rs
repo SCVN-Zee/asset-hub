@@ -94,12 +94,16 @@ pub async fn shared_index_export(state: State<'_, AppState>) -> Result<SharedInd
 pub fn page_emitters(app: tauri::AppHandle) -> crate::hub::Emitters {
     use tauri_specta::Event;
     let for_catalog = app.clone();
+    let for_shared_index = app.clone();
     crate::hub::Emitters {
         catalog: std::sync::Arc::new(move |status| {
             let _ = crate::events::CatalogProgress(status).emit(&for_catalog);
         }),
         shared_index: std::sync::Arc::new(move |status| {
-            let _ = crate::events::SharedIndexProgress(status).emit(&app);
+            let _ = crate::events::SharedIndexProgress(status).emit(&for_shared_index);
+        }),
+        team: std::sync::Arc::new(move |status| {
+            let _ = crate::events::TeamStatusChanged(status).emit(&app);
         }),
     }
 }

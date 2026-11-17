@@ -42,6 +42,36 @@ describe('playable ranking', () => {
   })
 })
 
+describe('popular order', () => {
+  type Row = { id: string; team: number; used: number; personal: number }
+  const rows: Row[] = [
+    { id: 'plain', team: 0, used: 0, personal: 0 },
+    { id: 'branches', team: 0, used: 3, personal: 0 },
+    { id: 'favorite', team: 0, used: 0, personal: 2 },
+    { id: 'team', team: 5, used: 0, personal: 0 }
+  ]
+  const order = (list: Row[], match?: (r: Row) => number, team = true) =>
+    rankForPlayable(list, 'popular', () => undefined, (r) => r.used, match, undefined, (r) => ({ team: team ? r.team : 0, personal: r.personal })).map((r) => r.id)
+
+  it('team score first', () => {
+    expect(order(rows)[0]).toBe('team')
+  })
+
+  it('branch count when no team data', () => {
+    expect(order(rows, undefined, false)).toEqual(['branches', 'favorite', 'plain', 'team'])
+  })
+
+  it('personal history breaks ties', () => {
+    const tied = [rows[0], { id: 'viewed', team: 0, used: 0, personal: 1 }, rows[2]]
+    expect(order(tied)).toEqual(['favorite', 'viewed', 'plain'])
+  })
+
+  it('search keeps relevance first', () => {
+    const match = (r: Row) => (r.id === 'plain' ? 100 : 10)
+    expect(order(rows, match)).toEqual(['plain', 'team', 'branches', 'favorite'])
+  })
+})
+
 describe('budget presets', () => {
   it('judges the same asset by the chosen budget', () => {
     const s = stat({ triangles: 10_000, vertices: 0, fileBytes: 2 * 1024 * 1024, textureBytes: 0, maxTextureSize: 800, source: 'viewer' })

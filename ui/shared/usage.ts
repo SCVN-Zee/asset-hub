@@ -20,7 +20,13 @@ export interface FeedbackReport {
 export type FeedbackResult = { sent: true; url: string } | { sent: false }
 
 /** What the renderer reports itself; the rest is seen in the main process. */
-export type UsageEvent = { kind: 'view'; type: string } | { kind: 'search' } | { kind: 'feedback' }
+export type UsageEvent =
+  /** `repo` and `sha` name the asset, so the team can count the view. */
+  | { kind: 'view'; type: string; repo?: string; sha?: string }
+  /** How long the preview of an asset took to show, in milliseconds. */
+  | { kind: 'preview'; ms: number; repo?: string; sha?: string }
+  | { kind: 'search' }
+  | { kind: 'feedback' }
 
 export interface UsageSession {
   v: 1
@@ -52,7 +58,13 @@ export function bump(session: UsageSession, key: string, by = 1): void {
 
 export function noteEvent(session: UsageSession, event: UsageEvent): void {
   if (event.kind === 'view') bump(session, `view.${String(event.type).replace(/[^\w-]/g, '').slice(0, 20) || 'other'}`)
-  else if (event.kind === 'search' || event.kind === 'feedback') bump(session, event.kind)
+  else if (event.kind === 'preview') {
+    // A negative or non-finite time is no measurement.
+    if (Number.isFinite(event.ms) && event.ms >= 0) {
+      const ms = event.ms
+      bump(session, `preview.ms.${ms < 2000 ? 'lt2s' : ms < 5000 ? '2to5' : ms < 10000 ? '5to10' : ms < 20000 ? '10to20' : 'gt20'}`)
+    }
+  } else if (event.kind === 'search' || event.kind === 'feedback') bump(session, event.kind)
 }
 
 /** Counts what an IPC request did, from its channel, arguments and result. */

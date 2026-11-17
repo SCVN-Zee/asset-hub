@@ -33,6 +33,7 @@ pub mod shared_index;
 pub mod shared_index_service;
 pub mod state;
 pub mod target_project;
+pub mod team;
 #[cfg(test)]
 mod test_server;
 pub mod thumb_protocol;
@@ -72,6 +73,7 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
             e::ExportProgress,
             e::CatalogProgress,
             e::UpdateProgress,
+            e::TeamStatusChanged,
         ])
         .constant("LANGUAGES", c::LANGUAGES)
         .constant("DEFAULT_EXCLUDED_FOLDERS", c::DEFAULT_EXCLUDED_FOLDERS)
@@ -90,7 +92,7 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
 
 /// The contract: every command, every event and the constants Rust owns.
 pub fn contract() -> Builder<tauri::Wry> {
-    use crate::commands::{agent_cli, app, assets, audio, auth, caches, catalog, exporter, parse, services, source};
+    use crate::commands::{agent_cli, app, assets, audio, auth, caches, catalog, exporter, parse, services, source, team};
 
     event_contract::<tauri::Wry>()
         .commands(collect_commands![
@@ -170,6 +172,8 @@ pub fn contract() -> Builder<tauri::Wry> {
             services::update_install,
             services::usage_track,
             services::feedback_send,
+            team::team_status,
+            team::team_popular,
         ])
 }
 
@@ -306,6 +310,10 @@ pub fn run() {
         RunEvent::Exit => {
             if let Some(state) = handle.try_state::<AppState>() {
                 tauri::async_runtime::block_on(async {
+                    // Events still waiting go out now, for a second at most.
+                    if let Some(session) = state.hub.current() {
+                        let _ = tokio::time::timeout(std::time::Duration::from_secs(1), session.team.events.flush()).await;
+                    }
                     state.auth.shutdown().await;
                     state.caches.stats.flush().await;
                 });

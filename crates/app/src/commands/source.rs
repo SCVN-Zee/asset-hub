@@ -39,8 +39,10 @@ pub async fn source_list_branches(state: State<'_, AppState>, repo: String) -> R
 pub async fn source_list_tree(state: State<'_, AppState>, repo: String, branch: String) -> Result<Vec<TreeEntry>, IpcError> {
     traced_with("source_list_tree", Some(&repo), |_| Outcome::OK, async {
         let _foreground = state.hub.foreground.enter();
-        let source = state.session()?.source.clone();
+        let session = state.session()?;
+        let source = session.source.clone();
         let entries = source.list_tree(&repo, &branch).await.map_err(ipc_error)?;
+        session.remote_cache.schedule_pull(&repo);
         let (warm, name) = (source.clone(), (repo.clone(), branch.clone()));
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(WARM_AFTER).await;

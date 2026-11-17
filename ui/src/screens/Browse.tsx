@@ -19,6 +19,7 @@ import { useContextMenu, type MenuItem } from '../components/ContextMenu'
 import { preferredEditor, rememberEditor, useUnityEditors } from '../components/UnityButton'
 import { assetLink } from '@shared/deeplink'
 import { FeedbackDialog } from '../components/FeedbackDialog'
+import { TeamStatus } from '../components/TeamStatus'
 import { VersionBadge } from '../components/VersionBadge'
 import { SearchBox } from '../components/SearchBox'
 import { DRAWABLE } from '../viewer/formats'
@@ -26,6 +27,7 @@ import { CatalogDetails, CatalogStatusLine, githubUrl, locationNote } from '../c
 import { useCatalog, type SearchScope } from '../useCatalog'
 import type { BudgetPreset } from '@shared/types'
 import { BUDGET_PRESETS, rankForPlayable, summaryIssues, type SortMode } from '../playable'
+import { usePopularity } from '../usePopularity'
 import { useBudget } from '../budget'
 import { parseAssetLink } from '@shared/deeplink'
 import type { ExportRequest, RunningUnity } from '@shared/ipc'
@@ -255,7 +257,7 @@ export function Browse({
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
   /** Model measurements by blob SHA, for ranking. */
   const [modelStats, setModelStats] = useState<Record<string, StatsSummary>>({})
-  const [sortMode, setSortMode] = useState<SortMode>('relevance')
+  const [sortMode, setSortMode] = useState<SortMode>('popular')
   // Ticks kept between launches (Filters and export-list options).
   const [onlyFits, setOnlyFits] = useStoredFlag('assethub.filter.onlyFits', false)
   /** Saved thumbnails are known; only then is it worth rendering missing ones. */
@@ -521,6 +523,28 @@ export function Browse({
     },
     [chips, modelStats, newOnly, newHere, root]
   )
+  const teamScores = usePopularity(repo || undefined, branch)
+  /** The user's own history: a favorite counts 2, a recently viewed or exported asset 1. */
+  const personalNow = useMemo(() => {
+    const scores = new Map<string, number>()
+    for (const item of recent?.viewed ?? []) scores.set(`${item.repo}\n${item.path}`, 1)
+    for (const item of recent?.exported ?? []) scores.set(`${item.repo}\n${item.path}`, 1)
+    for (const item of withFavorites(storedCollections)[0].items) {
+      const key = `${item.repo}\n${item.path}`
+      scores.set(key, (scores.get(key) ?? 0) + 2)
+    }
+    return scores
+  }, [recent, storedCollections])
+  // Back to the first page only when the user asks for a different list, not when
+  // measurements arrive and re-rank it (that used to jump the grid back to the top).
+  const listKey = [scope, repo, branch, root, folder, typeFilter, query, sortMode, onlyFits, mergeCopies, catalogRepo, catalogBranch].join('\n')
+  // The scores are taken once for each list and kept while it is shown: a view or a favorite
+  // counts for the next list, and never moves a card under the pointer. The history that
+  // arrives after the settings load belongs to the list the user is already looking at.
+  const personalFrozen = useRef<{ key: string; scores: Map<string, number> }>()
+  const personalKey = `${listKey}\n${recent ? 1 : 0}${storedCollections ? 1 : 0}`
+  if (personalFrozen.current?.key !== personalKey) personalFrozen.current = { key: personalKey, scores: personalNow }
+  const personalScores = personalFrozen.current.scores
   const rankedShown = useMemo(
     () => rankForPlayable(
         (onlyFits && budget ? shown.filter((a) => modelStats[a.sha] && !summaryIssues(modelStats[a.sha], budget).length) : shown).filter(passesChips),
@@ -528,9 +552,10 @@ export function Browse({
         (a) => modelStats[a.sha],
         undefined,
         (a) => found.scores.get(a.id) ?? 0,
-        budget
+        budget,
+        (a) => ({ team: teamScores[a.sha] ?? 0, personal: personalScores.get(`${repo}\n${root + a.path}`) ?? 0 })
       ),
-    [shown, sortMode, onlyFits, modelStats, found, budget, passesChips]
+    [shown, sortMode, onlyFits, modelStats, found, budget, passesChips, teamScores, personalScores, repo, root]
   )
   const rankedCatalog = useMemo(
     () =>
@@ -540,9 +565,14 @@ export function Browse({
         (a) => modelStats[a.sha],
         (a) => a.branchCount,
         (a) => catalogFound.scores.get(a.id) ?? 0,
-        budget
+        budget,
+        // The team's counts are of the current repo; assets of other repos keep the plain order.
+        (a) => ({
+          team: a.locations.some((l) => l.repo === repo) ? (teamScores[a.sha] ?? 0) : 0,
+          personal: personalScores.get(`${a.locations[0].repo}\n${a.locations[0].path}`) ?? 0
+        })
       ),
-    [catalogShown, sortMode, onlyFits, modelStats, catalogFound, budget, passesChips]
+    [catalogShown, sortMode, onlyFits, modelStats, catalogFound, budget, passesChips, teamScores, personalScores, repo]
   )
   const gridItems: readonly Asset[] = inCatalog ? rankedCatalog : rankedShown
   /** The inspector column only exists while an asset is selected; otherwise the grid takes the width. */
@@ -708,7 +738,6 @@ export function Browse({
 
   // Back to the first page only when the user asks for a different list, not when
   // measurements arrive and re-rank it (that used to jump the grid back to the top).
-  const listKey = [scope, repo, branch, root, folder, typeFilter, query, sortMode, onlyFits, mergeCopies, catalogRepo, catalogBranch].join('\n')
   useEffect(() => setLimit(PAGE), [listKey])
   // Render more cards as the end of the grid scrolls into view.
   useEffect(() => {
@@ -1042,7 +1071,7 @@ export function Browse({
       const item = inCatalog && catalogSelected ? catalogItem(catalogSelected) : !inCatalog && selected ? itemOf(selected) : undefined
       if (!item) return
       remember('viewed', [item])
-      window.api.usage.track({ kind: 'view', type: item.type })
+      window.api.usage.track({ kind: 'view', type: item.type, repo: item.repo, sha: item.sha })
     }, 1500)
     return () => window.clearTimeout(timer)
   }, [viewedKey])
@@ -1128,7 +1157,33 @@ export function Browse({
     if (summary) saveStats(key, summary)
   }
   /** The opened model is loading: thumbnails wait so it gets the bandwidth. */
-  const [viewerLoading, setViewerLoading] = useState(false)
+  const [loadingSha, setLoadingSha] = useState<string>()
+  const viewerLoading = loadingSha !== undefined
+  // A viewer that stops loading clears only its own asset, so a late stop of the previous viewer
+  // cannot hide the load of the new one.
+  const onViewerLoading = useCallback((loading: boolean, sha: string) => setLoadingSha((prev) => (loading ? sha : prev === sha ? undefined : prev)), [])
+  const viewedSha = inCatalog ? catalogSelected?.sha : selected?.sha
+  // How long a preview takes: from the selection of an asset until its viewer has loaded. A selection
+  // that changes first sends nothing. Only a load of the selected asset counts.
+  const previewClock = useRef<{ key?: string; at: number; seen: boolean; sent: boolean }>({ at: 0, seen: false, sent: false })
+  useEffect(() => {
+    const p = previewClock.current
+    const loadingNow = !!viewedSha && loadingSha === viewedSha
+    if (p.key !== (viewedKey || undefined)) {
+      previewClock.current = { key: viewedKey || undefined, at: performance.now(), seen: loadingNow, sent: false }
+      return
+    }
+    if (!p.key || p.sent) return
+    if (loadingNow) {
+      p.seen = true
+      return
+    }
+    if (!p.seen) return
+    p.sent = true
+    const item = inCatalog && catalogSelected ? catalogItem(catalogSelected) : !inCatalog && selected ? itemOf(selected) : undefined
+    window.api.usage.track({ kind: 'preview', ms: performance.now() - p.at, repo: item?.repo, sha: item?.sha })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewedKey, loadingSha])
   const thumbQueue = useThumbnailQueue(live, saveThumb, viewerLoading)
 
   // Cards on screen go first; once the queue is empty the rest of the list follows, top first,
@@ -1171,6 +1226,7 @@ export function Browse({
           <span className="brand-mark" aria-hidden="true" />
           <span className="brand-name">Asset Hub</span>
           <VersionBadge />
+          <TeamStatus />
         </div>
         <div className="crumb">
           <Picker
@@ -1329,7 +1385,7 @@ export function Browse({
                 <Dropdown<SortMode>
                   size="sm"
                   value={sortMode}
-                  options={(['relevance', ...(budget ? (['playable'] as const) : []), 'smallest', 'triangles', ...(inCatalog ? (['used'] as const) : [])] as const).map((m) => ({ value: m, label: t(`ranking.sorts.${m}`) }))}
+                  options={(['popular', 'relevance', ...(budget ? (['playable'] as const) : []), 'smallest', 'triangles', ...(inCatalog ? (['used'] as const) : [])] as const).map((m) => ({ value: m, label: t(`ranking.sorts.${m}`) }))}
                   onChange={setSortMode}
                   label={t('ranking.sort')}
                 />
@@ -1395,7 +1451,7 @@ export function Browse({
                   </button>
                 )}
                 {chips.length > 0 && !gridItems.length && <span className="muted small">{t('chips.none')}</span>}
-                {(sortMode !== 'relevance' || (onlyFits && budget) || chips.some((c) => c !== 'small')) && (
+                {((sortMode !== 'relevance' && sortMode !== 'popular') || (onlyFits && budget) || chips.some((c) => c !== 'small')) && (
                   <>
                     <span className="num" title={t('ranking.measured', { done: measuredCount, total: inCatalog ? catalogShown.length : shown.length })}>
                       {t('ranking.measured', { done: measuredCount, total: inCatalog ? catalogShown.length : shown.length })}
@@ -1625,7 +1681,7 @@ export function Browse({
         ) : (
         <AssetDetails
           onOpenLocation={openLocation}
-          onViewerLoading={setViewerLoading}
+          onViewerLoading={onViewerLoading}
           onModelStats={saveStats}
           asset={selected}
           handler={selected && registry.get(selected.type)}

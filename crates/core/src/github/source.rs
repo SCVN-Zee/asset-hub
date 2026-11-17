@@ -293,6 +293,43 @@ impl<F: HttpFetch + 'static> GitHubAssetSource<F> {
         self.inner.read_entry(repo, entry, keep).await
     }
 
+    /// The blob SHA of each of `paths` that is a file on the branch. Paths that are not are left out.
+    pub async fn blob_shas(&self, repo: &str, branch: &str, paths: &[String]) -> Result<HashMap<String, String>, SourceError> {
+        let snap = self.inner.snapshot(repo, branch).await?;
+        Ok(paths.iter().filter_map(|path| snap.by_path.get(path).filter(|e| is_blob(e)).map(|e| (path.clone(), e.sha.clone()))).collect())
+    }
+
+    /// The file path on the branch of each of `shas`, as `(sha, path)` in the order of `shas`. A copy
+    /// under `root` is preferred, then the first one anywhere. A SHA that no file has is left out, and
+    /// a SHA asked twice appears once.
+    pub async fn paths_of_shas(&self, repo: &str, branch: &str, shas: &[String], root: &str) -> Result<Vec<(String, String)>, SourceError> {
+        let snap = self.inner.snapshot(repo, branch).await?;
+        let mut seen = std::collections::HashSet::new();
+        let wanted: Vec<&String> = shas.iter().filter(|sha| seen.insert(sha.as_str())).collect();
+        // The path found for each wanted SHA, and whether it is under `root`.
+        let mut found: HashMap<&str, (&str, bool)> = HashMap::new();
+        let mut settled = 0;
+        let wanted_set: std::collections::HashSet<&str> = wanted.iter().map(|sha| sha.as_str()).collect();
+        for entry in snap.entries.iter().filter(|e| is_blob(e)) {
+            let Some(sha) = wanted_set.get(entry.sha.as_str()) else { continue };
+            let under = entry.path.starts_with(root);
+            match found.get(sha) {
+                Some((_, true)) => continue,
+                Some((_, false)) if !under => continue,
+                _ => {}
+            }
+            found.insert(sha, (entry.path.as_str(), under));
+            if under {
+                settled += 1;
+                // Every wanted SHA has a copy under `root`: the rest of the tree cannot improve it.
+                if settled == wanted.len() {
+                    break;
+                }
+            }
+        }
+        Ok(wanted.into_iter().filter_map(|sha| found.get(sha.as_str()).map(|(path, _)| (sha.clone(), (*path).to_owned()))).collect())
+    }
+
     /// Best file for each name, nearest to `near_path`, within the Unity project's Assets. A name asked
     /// twice appears once, at its first position.
     pub async fn find_by_names(&self, repo: &str, branch: &str, names: &[String], near_path: &str, root: &str) -> Result<Vec<(String, Option<String>)>, SourceError> {

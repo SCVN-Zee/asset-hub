@@ -22,6 +22,7 @@ pub mod exporter;
 pub mod parse;
 pub mod services;
 pub mod source;
+pub mod team;
 
 /// The legacy channel (`IPC` in `src/shared/ipc.ts`) a command replaces: the key the usage notes
 /// and `scripts/usage-report.mjs` count under.

@@ -427,6 +427,7 @@
   "ranking": {
     "sort": "정렬",
     "sorts": {
+      "popular": "팀에서 인기",
       "relevance": "관련도순",
       "playable": "플레이어블에 최적",
       "smallest": "작은 크기순",
@@ -757,6 +758,10 @@
   "link": {
     "copy": "링크 복사",
     "hint": "assethub:// 링크: 팀원이 열거나 검색창에 붙여넣으면 이 에셋으로 이동합니다."
+  },
+  "team": {
+    "offline": "팀 오프라인",
+    "offlineHint": "팀 기능이 오프라인입니다. 탐색과 미리보기는 계속 작동합니다."
   },
   "update": {
     "install": "업데이트 v{{version}}",

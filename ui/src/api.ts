@@ -163,6 +163,11 @@ export const api: AssetHubApi = {
     export: () => result(commands.sharedIndexExport()),
     onStatus: (listener) => on(events.sharedIndexProgress, listener)
   },
+  team: {
+    status: () => value(commands.teamStatus()),
+    popular: (repo) => value<Record<string, number>>(commands.teamPopular(repo)).catch(() => ({})),
+    onStatus: (listener) => on(events.teamStatusChanged, listener)
+  },
   cache: {
     usage: () => result(commands.cacheUsage()),
     clear: () => result(commands.cacheClear().then((o) => (o.status === 'ok' ? { status: 'ok' as const, data: undefined } : o)))

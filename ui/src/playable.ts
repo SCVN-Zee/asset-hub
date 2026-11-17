@@ -61,11 +61,13 @@ export function summaryIssues(s: StatsSummary, budget = PLAYABLE_BUDGET): Budget
 }
 
 /** How a result list is ordered. `relevance` keeps the search order. */
-export type SortMode = 'relevance' | 'playable' | 'smallest' | 'triangles' | 'used'
+export type SortMode = 'popular' | 'relevance' | 'playable' | 'smallest' | 'triangles' | 'used'
 
 /**
  * Orders results for reuse in playables. Models not measured yet keep their
- * relative order after the measured ones (`used` needs no measurements).
+ * relative order after the measured ones (`used` and `popular` need no measurements).
+ * `popular` goes by the team's score, then by how many branches hold the asset (`usedOf`), then by
+ * the user's own history.
  */
 export function rankForPlayable<T>(
   items: readonly T[],
@@ -74,7 +76,8 @@ export function rankForPlayable<T>(
   usedOf: (item: T) => number = () => 0,
   /** Search match strength: a closer match always ranks above a lighter but looser one. */
   matchOf: (item: T) => number = () => 0,
-  budget: PlayableBudget = PLAYABLE_BUDGET
+  budget: PlayableBudget = PLAYABLE_BUDGET,
+  popularOf: (item: T) => { team: number; personal: number } = () => ({ team: 0, personal: 0 })
 ): T[] {
   if (mode === 'relevance') return [...items]
   const keyed = items.map((item, index) => {
@@ -83,13 +86,15 @@ export function rankForPlayable<T>(
     const keys: number[] =
       mode === 'used'
         ? [-usedOf(item)]
-        : !s
-          ? [Infinity]
-          : mode === 'playable'
-            ? [summaryIssues(s, budget).length, size, -usedOf(item)]
-            : mode === 'smallest'
-              ? [size, s.triangles]
-              : [s.width || s.textureCount !== undefined || s.duration !== undefined || s.clipLength !== undefined ? 1 : 0, s.triangles, size] // textures, materials, audio and clips (no triangles) after models
+        : mode === 'popular'
+          ? [-popularOf(item).team, -usedOf(item), -popularOf(item).personal]
+          : !s
+            ? [Infinity]
+            : mode === 'playable'
+              ? [summaryIssues(s, budget).length, size, -usedOf(item)]
+              : mode === 'smallest'
+                ? [size, s.triangles]
+                : [s.width || s.textureCount !== undefined || s.duration !== undefined || s.clipLength !== undefined ? 1 : 0, s.triangles, size] // textures, materials, audio and clips (no triangles) after models
     return { item, index, keys: [-matchOf(item), ...keys] }
   })
   keyed.sort((a, b) => {

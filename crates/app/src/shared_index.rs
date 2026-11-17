@@ -100,15 +100,18 @@ async fn read_json_gz(file: PathBuf) -> Option<Value> {
     tauri::async_runtime::spawn_blocking(move || read_gz_json_sync(&file)).await.ok().flatten()
 }
 
+/// `value` as gzipped JSON, the bytes an index file and a team object both hold.
+pub(crate) fn gzip_json<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
+    let mut gz = GzEncoder::new(Vec::new(), Compression::default());
+    gz.write_all(&serde_json::to_vec(value).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    gz.finish().map_err(|e| e.to_string())
+}
+
 async fn write_json_gz<T: Serialize + Send + 'static>(file: &Path, value: T) -> Result<(), String> {
-    let bytes = tauri::async_runtime::spawn_blocking(move || -> std::io::Result<Vec<u8>> {
-        let mut gz = GzEncoder::new(Vec::new(), Compression::default());
-        gz.write_all(&serde_json::to_vec(&value).map_err(std::io::Error::other)?)?;
-        gz.finish()
-    })
-    .await
-    .map_err(|e| e.to_string())?
-    .map_err(|e| format!("could not pack {}: {e}", file.display()))?;
+    let bytes = tauri::async_runtime::spawn_blocking(move || gzip_json(&value))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| format!("could not pack {}: {e}", file.display()))?;
     write_atomic(file, &bytes).await.map_err(|e| format!("could not write {}: {e}", file.display()))
 }
 
@@ -126,7 +129,7 @@ async fn list(dir: &Path) -> Vec<String> {
 
 /// `value` with numbers as numbers and object keys in order, so the same data compares equal
 /// however it was written (`500` and `500.0`, keys in any order).
-fn canonical(value: &Value) -> String {
+pub(crate) fn canonical(value: &Value) -> String {
     match value {
         Value::Object(map) => {
             let sorted: BTreeMap<&String, String> = map.iter().map(|(k, v)| (k, canonical(v))).collect();
@@ -144,7 +147,7 @@ fn covers<'a>(have: Option<&Map<String, Value>>, want: impl IntoIterator<Item = 
 }
 
 /// `<sha>` or `<sha>.fx` (the moving effect card) is the asset's key.
-fn key_of(name: &str) -> &str {
+pub(crate) fn key_of(name: &str) -> &str {
     name.strip_suffix(".fx").unwrap_or(name)
 }
 
@@ -176,13 +179,66 @@ pub async fn read_manifest(root: &Path) -> Option<SharedIndexManifest> {
 }
 
 /// Measurements by key, the entries that parse (the store checks them again when it takes them in).
-fn parse_stats(raw: Option<&Value>) -> HashMap<String, CoreStats> {
-    raw.and_then(Value::as_object).map(|o| o.iter().filter_map(|(k, v)| serde_json::from_value(v.clone()).ok().map(|s| (k.clone(), s))).collect()).unwrap_or_default()
+pub(crate) fn parse_stats(raw: Option<&Value>) -> HashMap<String, CoreStats> {
+    raw.and_then(Value::as_object).map(parse_stats_map).unwrap_or_default()
+}
+
+/// [`parse_stats`] of a map.
+pub(crate) fn parse_stats_map(map: &Map<String, Value>) -> HashMap<String, CoreStats> {
+    map.iter().filter_map(|(k, v)| serde_json::from_value(v.clone()).ok().map(|s| (k.clone(), s))).collect()
 }
 
 /// The measurements as the core crate reads them (to compare cards).
-fn core_stats<'a>(stats: impl IntoIterator<Item = (&'a String, &'a StatsSummary)>) -> HashMap<String, CoreStats> {
+pub(crate) fn core_stats<'a>(stats: impl IntoIterator<Item = (&'a String, &'a StatsSummary)>) -> HashMap<String, CoreStats> {
     stats.into_iter().filter_map(|(k, v)| convert::<_, CoreStats>(v).ok().map(|s| (k.clone(), s))).collect()
+}
+
+/// This app's catalog holds a commit, or other branch data, that `theirs` (a catalog object read
+/// from elsewhere) lacks.
+pub(crate) fn catalog_adds(theirs: Option<&Value>, mine: &RepoCatalogData) -> bool {
+    let same = theirs.is_some_and(|t| {
+        t.get("commits").and_then(Value::as_object).is_some_and(|have| mine.commits.keys().all(|k| have.contains_key(k)))
+            && t.get("defaultBranch").and_then(Value::as_str) == mine.default_branch.as_deref()
+            && serde_json::to_value(&mine.branches).is_ok_and(|b| t.get("branches").is_some_and(|theirs| canonical(theirs) == canonical(&b)))
+    });
+    !same
+}
+
+/// The facts this app knows of `kind` for `repo`, in key order. `None` when there are none.
+pub(crate) async fn repo_facts(deps: &Deps, kind: &str, repo: &str) -> Result<Option<FactsFile>, String> {
+    let known = deps.facts.shared_facts(kind, repo).await.map_err(|e| e.message)?;
+    if known.is_empty() {
+        return Ok(None);
+    }
+    let sorted: BTreeMap<&String, &Value> = known.iter().collect();
+    let facts = sorted.into_iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    Ok(Some(FactsFile { repo: repo.to_owned(), facts }))
+}
+
+/// `known` has a key that `theirs` lacks.
+pub(crate) fn facts_add(theirs: Option<&Map<String, Value>>, known: &Map<String, Value>) -> bool {
+    !covers(theirs, known.keys())
+}
+
+/// The measurements of `all` that belong to the blobs in `shas`, in key order.
+pub(crate) fn repo_stats(all: &HashMap<String, StatsSummary>, shas: &HashSet<String>) -> BTreeMap<String, StatsSummary> {
+    all.iter().filter(|(k, _)| shas.contains(k.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect()
+}
+
+/// Cards replaced by a newer shared one: the measurement says so, or they would be drawn again.
+pub(crate) async fn save_newer_cards(deps: &Deps, shared: &HashMap<String, CoreStats>, local: &HashMap<String, StatsSummary>) {
+    let local_core = core_stats(local);
+    for (key, theirs) in shared {
+        let Some(mine) = local.get(key) else { continue };
+        if !newer_card(Some(theirs), local_core.get(key)) {
+            continue;
+        }
+        let mut merged = mine.clone();
+        merged.fx_thumb = theirs.fx_thumb.or(merged.fx_thumb);
+        merged.anim_thumb = theirs.anim_thumb.or(merged.anim_thumb);
+        merged.model_thumb = theirs.model_thumb.or(merged.model_thumb);
+        deps.caches.stats.save(key, &merged).await;
+    }
 }
 
 fn io_error(what: &str, e: impl std::fmt::Display) -> String {
@@ -235,18 +291,7 @@ pub async fn import_index(root: &Path, deps: &Deps) -> Result<Counts, String> {
         Some(raw) => deps.caches.stats.import_many(raw).await,
         None => 0,
     };
-    // Cards replaced above: the measurement says so, or they would be drawn again.
-    for (key, theirs) in &shared {
-        let Some(mine) = local_dto.get(key) else { continue };
-        if !newer(key) {
-            continue;
-        }
-        let mut merged = mine.clone();
-        merged.fx_thumb = theirs.fx_thumb.or(merged.fx_thumb);
-        merged.anim_thumb = theirs.anim_thumb.or(merged.anim_thumb);
-        merged.model_thumb = theirs.model_thumb.or(merged.model_thumb);
-        deps.caches.stats.save(key, &merged).await;
-    }
+    save_newer_cards(deps, &shared, &local_dto).await;
     Ok(result)
 }
 
@@ -273,9 +318,9 @@ struct ManifestFile<'a> {
 }
 
 #[derive(Serialize)]
-struct FactsFile {
-    repo: String,
-    facts: Map<String, Value>,
+pub(crate) struct FactsFile {
+    pub repo: String,
+    pub facts: Map<String, Value>,
 }
 
 /// Writes this app's index to the shared folder, after taking in what others wrote there (so nobody's
@@ -292,12 +337,7 @@ pub async fn export_index(root: &Path, deps: &Deps, by: Option<&str>, types: &st
     for c in &catalogs {
         let file = root.join("catalog").join(format!("{}.json.gz", repo_slug(&c.repo)));
         let there = read_json_gz(file.clone()).await;
-        let same = there.as_ref().is_some_and(|t| {
-            t.get("commits").and_then(Value::as_object).is_some_and(|have| c.commits.keys().all(|k| have.contains_key(k)))
-                && t.get("defaultBranch").and_then(Value::as_str) == c.default_branch.as_deref()
-                && serde_json::to_value(&c.branches).is_ok_and(|mine| t.get("branches").is_some_and(|theirs| canonical(theirs) == canonical(&mine)))
-        });
-        if !same {
+        if catalog_adds(there.as_ref(), c) {
             write_json_gz(&file, catalog_json(c)).await?;
         }
     }
@@ -312,18 +352,14 @@ pub async fn export_index(root: &Path, deps: &Deps, by: Option<&str>, types: &st
             }
         }
         for repo in repos {
-            let known = deps.facts.shared_facts(kind, &repo).await.map_err(|e| e.message)?;
-            if known.is_empty() {
-                continue;
-            }
+            let Some(file_facts) = repo_facts(deps, kind, &repo).await? else { continue };
             let file = root.join("facts").join(kind).join(format!("{}.json.gz", repo_slug(&repo)));
             let there = read_json_gz(file.clone()).await;
-            if !covers(there.as_ref().and_then(|t| t.get("facts")).and_then(Value::as_object), known.keys()) {
-                let sorted: BTreeMap<&String, &Value> = known.iter().collect();
-                let facts_sorted: Map<String, Value> = sorted.into_iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-                write_json_gz(&file, FactsFile { repo: repo.clone(), facts: facts_sorted }).await?;
+            let count = file_facts.facts.len();
+            if facts_add(there.as_ref().and_then(|t| t.get("facts")).and_then(Value::as_object), &file_facts.facts) {
+                write_json_gz(&file, file_facts).await?;
             }
-            facts += known.len();
+            facts += count;
         }
     }
     let shared_raw = read_json_gz(root.join("stats.json.gz")).await;
@@ -459,6 +495,11 @@ pub mod tests {
     }
 
     pub fn machine(root: &Path, name: &str) -> Machine {
+        machine_of_types(root, name, TYPES)
+    }
+
+    /// A machine that lists the given asset types (a catalog made for other types starts over).
+    pub fn machine_of_types(root: &Path, name: &str, types: &str) -> Machine {
         let dir = root.join(name);
         let place = dir.join("catalog");
         let config = CatalogConfig::new(
@@ -466,7 +507,7 @@ pub mod tests {
             Arc::new(|_: &TreeEntry| true),
             Arc::new(|_: &str| Some("fbx".to_owned())),
             Box::new(|| false),
-            TYPES.into(),
+            types.into(),
             Box::new(|_| {}),
         );
         let facts = Arc::new(MemFacts::default());
@@ -528,6 +569,38 @@ pub mod tests {
         assert_eq!(b.deps.caches.thumbs.read("fish").await.unwrap().content_type, "image/png");
         // Nothing new the second time.
         assert_eq!(import_index(&shared, &b.deps).await.unwrap(), Counts::default());
+    }
+
+    #[tokio::test]
+    async fn per_repo_helpers_match_export_index_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let a = machine(tmp.path(), "a");
+        a.deps.catalog.merge(&single_commit_hero()).await;
+        a.facts.put("prefabfx3", "org/hero", "p1", "fx");
+        a.deps.caches.stats.save("fish", &stat(json!({"triangles": 500}))).await;
+        a.deps.caches.stats.save("other", &stat(json!({"triangles": 7}))).await;
+        let shared = tmp.path().join("drive").join(INDEX_FOLDER);
+        export_index(&shared, &a.deps, Some("dan"), TYPES, &|_| true, Utc::now()).await.unwrap();
+
+        let catalogs = a.deps.catalog.snapshot().await;
+        let written = tokio::fs::read(shared.join("catalog").join("org__hero.json.gz")).await.unwrap();
+        assert_eq!(gzip_json(&catalog_json(&catalogs[0])).unwrap(), written);
+        assert!(!catalog_adds(read_json_gz(shared.join("catalog").join("org__hero.json.gz")).await.as_ref(), &catalogs[0]));
+        assert!(catalog_adds(None, &catalogs[0]));
+
+        let file = repo_facts(&a.deps, "prefabfx3", "org/hero").await.unwrap().unwrap();
+        let written = tokio::fs::read(shared.join("facts").join("prefabfx3").join("org__hero.json.gz")).await.unwrap();
+        assert_eq!(gzip_json(&file).unwrap(), written);
+        let there = read_json_gz(shared.join("facts").join("prefabfx3").join("org__hero.json.gz")).await;
+        assert!(!facts_add(there.as_ref().and_then(|t| t.get("facts")).and_then(Value::as_object), &file.facts));
+        assert!(facts_add(None, &file.facts));
+        assert!(repo_facts(&a.deps, "metaguids", "org/hero").await.unwrap().is_none());
+
+        let shas = a.deps.catalog.blob_shas("org/hero").await;
+        assert_eq!(shas, HashSet::from(["fish".to_owned()]));
+        assert!(a.deps.catalog.blob_shas("org/unknown").await.is_empty());
+        let mine = repo_stats(&a.deps.caches.stats.all().await, &shas);
+        assert_eq!(mine.keys().collect::<Vec<_>>(), ["fish"]);
     }
 
     #[tokio::test]

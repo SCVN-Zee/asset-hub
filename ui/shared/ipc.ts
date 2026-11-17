@@ -144,6 +144,9 @@ export interface SharedIndexResult {
   thumbs: number
 }
 
+/** Whether the team backend answers; `offline` while it is out of reach (browsing and previews go on with local data). */
+export type TeamStatus = 'disabled' | 'online' | 'offline'
+
 export interface SharedIndexStatus {
   state: 'idle' | 'importing' | 'exporting' | 'error'
   error?: string
@@ -285,6 +288,13 @@ export interface AssetHubApi {
     /** Writes this app's index there (after taking in what is already there). */
     export(): Promise<IpcResult<SharedIndexStatus>>
     onStatus(listener: (status: SharedIndexStatus) => void): () => void
+  }
+  /** The team backend (shared cache and popularity); its absence never blocks anything. */
+  team: {
+    status(): Promise<TeamStatus>
+    onStatus(listener: (status: TeamStatus) => void): () => void
+    /** The team's score of each blob SHA of `repo` that has one. `{}` when the team backend is off or out of reach. */
+    popular(repo: string): Promise<Record<string, number>>
   }
   cache: {
     /** Bytes the cache folder holds, by kind. */

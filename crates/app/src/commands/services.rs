@@ -61,7 +61,7 @@ pub async fn update_install(app: AppHandle, version: String) -> Result<OkMessage
         if std::env::current_exe().ok().and_then(|exe| updater::own_bundle(&exe)).is_none() {
             return Err(failed("This copy of Asset Hub cannot replace itself; run the installer again.".into()));
         }
-        let update = match updater::find(&app).await.map_err(&failed)? {
+        let update = match updater::find(&app).await.map_err(failed)? {
             Some(update) if update.version == version => update,
             _ => return Err(failed(format!("Version {version} is no longer the latest; check again."))),
         };
@@ -91,6 +91,16 @@ pub async fn update_install(app: AppHandle, version: String) -> Result<OkMessage
 pub async fn usage_track(state: State<'_, AppState>, event: UsageEvent) -> Result<(), IpcError> {
     traced("usage_track", async {
         state.usage.note_event(&event);
+        // The team counts views of assets, and knows which previews were warm.
+        if let Some(session) = state.hub.current() {
+            match &event {
+                UsageEvent::View { repo, sha, .. } => session.team.events.note_view(repo.as_deref(), sha.as_deref()),
+                UsageEvent::Preview { repo: Some(repo), sha: Some(sha), .. } if session.prefetch.was_prefetched(repo, sha) => {
+                    state.usage.recorder().with(|s| s.bump("preview.warm", 1));
+                }
+                _ => {}
+            }
+        }
         Ok(())
     })
     .await

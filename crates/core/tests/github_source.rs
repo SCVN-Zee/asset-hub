@@ -298,6 +298,28 @@ fn reading_a_file_uses_the_blob_cache_and_checks_the_path() {
 }
 
 #[test]
+fn blob_shas_of_listed_paths() {
+    let (src, _) = source();
+    let mat = "proj/Assets/Art/Mats/M_Hero_Urp.mat".to_string();
+    let found = block_on(src.blob_shas(REPO, "main", &[mat.clone(), "proj/Assets/missing.png".to_string()])).expect("shas");
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[&mat].len(), 40);
+}
+
+#[test]
+fn paths_of_shas_skips_unknown() {
+    let (src, _) = source();
+    let mat = "proj/Assets/Art/Mats/M_Hero_Urp.mat".to_string();
+    let sha = block_on(src.blob_shas(REPO, "main", std::slice::from_ref(&mat))).expect("shas")[&mat].clone();
+    let unknown = "0".repeat(40);
+    let found = block_on(src.paths_of_shas(REPO, "main", &[unknown, sha.clone(), sha.clone()], "proj/")).expect("paths");
+    assert_eq!(found, [(sha.clone(), mat.clone())]);
+    // A root with no copy of it still finds the first copy anywhere.
+    let elsewhere = block_on(src.paths_of_shas(REPO, "main", std::slice::from_ref(&sha), "other/")).expect("paths");
+    assert_eq!(elsewhere.len(), 1);
+}
+
+#[test]
 fn files_are_found_by_name_nearest_first() {
     let (src, _) = source();
     let found = block_on(src.find_by_names(REPO, "main", &["m_hero_urp.mat".to_string(), "m_hero_urp.mat".to_string(), "absent.mat".to_string()], "proj/Assets/Art/Mats/x", ROOT)).expect("find");

@@ -1,4 +1,4 @@
-import { Fragment, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RunningUnity } from '@shared/ipc'
 import { UnityControl, useUnityEditors } from './UnityButton'
@@ -64,7 +64,8 @@ interface Props {
   onPrefabFiles(path: string, files: string[]): void
   /** Opens the same file in another branch or repo. */
   onOpenLocation(repo: string, branch: string, path: string): void
-  onViewerLoading?(loading: boolean): void
+  /** The viewer of `sha` started or stopped loading. */
+  onViewerLoading?(loading: boolean, sha: string): void
   /** Every model of the branch (repo paths), for picking a rig to play a clip on. */
   models?: readonly string[]
   /** Opened from a tab of animations: a model starts playing its first clip. */
@@ -580,6 +581,9 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
   const budget = useBudget()
   const editors = useUnityEditors()
   const { state: copyState, copy } = useCopy()
+  // A viewer says which asset it loads, so a load of the previous asset cannot pass for this one.
+  const sha = asset?.sha ?? ''
+  const reportLoading = useMemo(() => (onViewerLoading ? (loading: boolean) => onViewerLoading(loading, sha) : undefined), [onViewerLoading, sha])
   const [deps, setDeps] = useState<Deps>({ status: 'idle' })
   const [stats, setStats] = useState<ModelStats>()
   /** What the viewer measured, in the shape the budget judges. */
@@ -810,7 +814,7 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
             publish(summarizeStats(s, 'viewer'))
           }}
           onThumb={(url) => onThumb(asset.sha, url)}
-          onLoading={onViewerLoading}
+          onLoading={reportLoading}
         />
       ) : live && repoPath && kind === 'prefab' ? (
         <PrefabViewer
@@ -825,21 +829,21 @@ export function AssetDetails({ asset, handler, live, onThumb, onReport, primary 
             if (report?.particles) void particleStats(report, summary).then(publish, () => undefined)
           }}
           onThumb={(url) => onThumb(asset.sha, url)}
-          onLoading={onViewerLoading}
+          onLoading={reportLoading}
           onBackdrop={setBackdrop}
         />
       ) : live && repoPath && kind === 'animation' ? (
-        <AnimViewer key={repoPath} live={live} path={repoPath} report={report} models={models} onInfo={setAnimInfo} onThumb={(url) => onThumb(asset.sha, url)} onLoading={onViewerLoading} />
+        <AnimViewer key={repoPath} live={live} path={repoPath} report={report} models={models} onInfo={setAnimInfo} onThumb={(url) => onThumb(asset.sha, url)} onLoading={reportLoading} />
       ) : live && repoPath && kind === 'material' ? (
-        <MaterialViewer key={repoPath} live={live} path={repoPath} report={report} onLook={setLook} onStats={publish} onThumb={(url) => onThumb(asset.sha, url)} onLoading={onViewerLoading} />
+        <MaterialViewer key={repoPath} live={live} path={repoPath} report={report} onLook={setLook} onStats={publish} onThumb={(url) => onThumb(asset.sha, url)} onLoading={reportLoading} />
       ) : live && repoPath && kind === 'audio' ? (
-        <AudioViewer key={repoPath} live={live} path={repoPath} onInfo={setAudioInfo} onStats={publish} onLoading={onViewerLoading} />
+        <AudioViewer key={repoPath} live={live} path={repoPath} onInfo={setAudioInfo} onStats={publish} onLoading={reportLoading} />
       ) : live && repoPath && kind === 'tmpfont' ? (
-        <TmpFontViewer key={repoPath} live={live} path={repoPath} onInfo={setTmpInfo} onStats={publish} onLoading={onViewerLoading} />
+        <TmpFontViewer key={repoPath} live={live} path={repoPath} onInfo={setTmpInfo} onStats={publish} onLoading={reportLoading} />
       ) : live && repoPath && kind === 'font' ? (
-        <FontViewer key={repoPath} live={live} path={repoPath} onInfo={setFontInfo} onStats={publish} onLoading={onViewerLoading} />
+        <FontViewer key={repoPath} live={live} path={repoPath} onInfo={setFontInfo} onStats={publish} onLoading={reportLoading} />
       ) : live && repoPath && kind === 'image' ? (
-        <ImageViewer key={repoPath} live={live} path={repoPath} onInfo={setImageInfo} onStats={publish} onLoading={onViewerLoading} />
+        <ImageViewer key={repoPath} live={live} path={repoPath} onInfo={setImageInfo} onStats={publish} onLoading={reportLoading} />
       ) : (
         <div className="insp-preview">
           <CubeIcon size={72} />

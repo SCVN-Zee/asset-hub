@@ -459,6 +459,7 @@
   "ranking": {
     "sort": "Sort",
     "sorts": {
+      "popular": "Popular with the team",
       "relevance": "Best match",
       "playable": "Best for playables",
       "smallest": "Smallest",
@@ -813,6 +814,10 @@
   "link": {
     "copy": "Copy link",
     "hint": "An assethub:// link: a teammate who opens it (or pastes it in the search box) lands on this asset."
+  },
+  "team": {
+    "offline": "Team offline",
+    "offlineHint": "Team features are offline. Browsing and previews still work."
   },
   "update": {
     "install": "Update to v{{version}}",

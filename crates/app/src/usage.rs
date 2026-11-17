@@ -98,9 +98,22 @@ impl UsageSession {
     /// Counts what the page reported itself.
     pub fn note_event(&mut self, event: &UsageEvent) {
         match event {
-            UsageEvent::View { asset_type } => {
+            UsageEvent::View { asset_type, .. } => {
                 let safe: String = asset_type.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-').take(20).collect();
                 self.bump(&format!("view.{}", if safe.is_empty() { "other" } else { &safe }), 1);
+            }
+            UsageEvent::Preview { ms, .. } => {
+                // A negative or non-finite time is no measurement.
+                if ms.is_finite() && *ms >= 0.0 {
+                    let bucket = match *ms {
+                        m if m < 2_000.0 => "lt2s",
+                        m if m < 5_000.0 => "2to5",
+                        m if m < 10_000.0 => "5to10",
+                        m if m < 20_000.0 => "10to20",
+                        _ => "gt20",
+                    };
+                    self.bump(&format!("preview.ms.{bucket}"), 1);
+                }
             }
             UsageEvent::Search => self.bump("search", 1),
             UsageEvent::Feedback => self.bump("feedback", 1),
@@ -676,11 +689,20 @@ mod tests {
     #[test]
     fn keeps_asset_types_to_a_safe_key() {
         let mut s = fresh();
-        s.note_event(&UsageEvent::View { asset_type: "fbx".into() });
-        s.note_event(&UsageEvent::View { asset_type: "../../x y".into() });
-        s.note_event(&UsageEvent::View { asset_type: "/ /".into() });
+        s.note_event(&UsageEvent::View { asset_type: "fbx".into(), repo: None, sha: None });
+        s.note_event(&UsageEvent::View { asset_type: "../../x y".into(), repo: None, sha: None });
+        s.note_event(&UsageEvent::View { asset_type: "/ /".into(), repo: None, sha: None });
         s.note_event(&UsageEvent::Search);
         assert_eq!(counts(&s), [("search", 1), ("view.fbx", 1), ("view.other", 1), ("view.xy", 1)]);
+    }
+
+    #[test]
+    fn buckets_preview_ms() {
+        let mut s = fresh();
+        for ms in [1999.0, 2000.0, 25000.0, -1.0, f64::NAN, f64::INFINITY] {
+            s.note_event(&UsageEvent::Preview { ms, repo: None, sha: None });
+        }
+        assert_eq!(counts(&s), [("preview.ms.2to5", 1), ("preview.ms.gt20", 1), ("preview.ms.lt2s", 1)]);
     }
 
     #[test]
