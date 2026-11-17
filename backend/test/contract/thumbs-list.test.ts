@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { allowRepo, api, applyMainMigration, build, db, repoPath, SCHEMA, sha, useContract } from './harness'
+import { allowRepo, api, applyMainMigration, db, repoPath, SCHEMA, sha, useContract } from './harness'
 import { expectNoCors, JSON_TYPE } from './raw'
 import { list, seedThumbs, uuidFor } from './thumbs-helpers'
 
 useContract()
 
-/** The Rust Worker names its thumbnail storage epoch in every list reply. The TypeScript Worker names none. */
-const EPOCH = build === 'rust' ? ',"epoch":2' : ''
+/** The Worker names its thumbnail storage epoch in every list reply. */
+const EPOCH = ',"epoch":3'
 
 describe('thumbnail index', () => {
   it('cursor handles equal timestamps', async () => {
@@ -84,14 +84,14 @@ describe('thumbnail index raw bytes and headers', () => {
   })
 })
 
-describe.runIf(build === 'rust')('thumbnail index of the Rust Worker', () => {
+describe('thumbnail index', () => {
   const legacy = ['', '4_z27c88f1d182b150646ff0b16_f2142e4dc1b0e0c88_d20250101_m000000_c004_v0402005_t0001_u01735689600000']
 
   it('says which storage epoch it serves', async () => {
     allowRepo('game')
     const { res, body } = await list()
     expect(res.status).toBe(200)
-    expect(body).toEqual({ items: [], epoch: 2 })
+    expect(body).toEqual({ items: [], epoch: 3 })
   })
 
   it('does not list a row that names no generation of its own', async () => {
@@ -111,7 +111,7 @@ describe.runIf(build === 'rust')('thumbnail index of the Rust Worker', () => {
   })
 })
 
-describe.runIf(build === 'rust')('migration 0003', () => {
+describe('migration 0003', () => {
   const rows = (names: number[]) => names.map((n) => ({ repo: 'supercent-io/game', schema: 1, name: sha(n), rev: n }))
 
   it('deletes only the rows of the B2 era, keeps thumb_rev and can run again', async () => {

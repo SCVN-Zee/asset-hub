@@ -1,11 +1,16 @@
 //! The binary pack of named blobs the thumbnail routes use: repeated
-//! `[u16 nameLength][name utf8][u32 byteLength][bytes]`, big-endian lengths. The Worker's codec is
-//! `backend/src/pack.ts`; both files hold the same test vectors. Shared by `crates/app` and the Worker.
+//! `[u16 nameLength][name utf8][u32 byteLength][bytes]`, big-endian lengths. Shared by `crates/app`
+//! (the client) and `backend/` (the Worker), so both sides use one codec.
 //! The shard mapping of thumbnail names lives here too, so the client can group a request by the
 //! one shard database it touches.
 
 /// Thumbnail shard databases. The first hex digit of a thumbnail name picks one.
 pub const SHARDS: usize = 8;
+
+/// The most bytes of one thumbnail: the Worker refuses a larger entry and the desktop app does not
+/// send one. D1 hands a BLOB to the isolate as an array of numbers, so the CPU cost of a write grows
+/// with its bytes. Thumbnails average about 6 KB with a 62 KB maximum.
+pub const MAX_THUMB_BYTES: usize = 128 * 1024;
 
 /// The shard of a thumbnail name, `.fx` suffix included: its first hex digit modulo 8. A name that
 /// does not start with a hex digit has no shard.
@@ -91,7 +96,7 @@ mod tests {
         (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap()).collect()
     }
 
-    /// The vectors of `backend/src/pack.test.ts`.
+    /// Pinned vectors of the pack format.
     fn vectors() -> Vec<(Vec<Entry>, Vec<u8>)> {
         vec![
             (vec![("ab".into(), vec![1, 2, 3])], from_hex(&format!("{}{}{}", "00026162", "00000003", "010203"))),
@@ -155,5 +160,10 @@ mod tests {
     #[test]
     fn bad_utf8_is_error() {
         assert!(decode_pack(&from_hex("0001ff00000000")).is_err());
+    }
+
+    #[test]
+    fn the_largest_thumbnail_is_128_kib() {
+        assert_eq!(MAX_THUMB_BYTES, 131_072);
     }
 }

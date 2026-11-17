@@ -69,7 +69,7 @@ const PUT_ENTRIES: usize = 8;
 /// About the payload of a write. A thumbnail that is larger goes alone.
 const PUT_BYTES: usize = 64 * 1024;
 /// The Worker refuses a thumbnail above this size, so none above it is sent.
-const THUMB_BYTES: usize = 256 * 1024;
+const THUMB_BYTES: usize = asset_hub_pack::MAX_THUMB_BYTES;
 /// Thumbnails written in one session.
 const THUMBS_PER_SESSION: usize = 2000;
 /// A pull or a contribution that takes longer is dropped.

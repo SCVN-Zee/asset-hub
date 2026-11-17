@@ -5,6 +5,8 @@ status: done
 
 # Phase 3: Backend data API
 
+> Note (phase 3h): the TypeScript sources of this phase were replaced by the Rust Worker in phase 3h and removed.
+
 ## Overview
 
 All routes sit under `/v1/repos/:owner/:repo/` and pass `authenticate` + `assertRepoAccess` from phase 2 first. `:owner/:repo` is lower-cased before use, so one repo has one key. Data is per repo, so a caller only sees data of repos they can read on GitHub.

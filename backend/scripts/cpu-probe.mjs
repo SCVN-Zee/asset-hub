@@ -2,6 +2,10 @@
 // non-zero when any check fails or any route is skipped. With --tail it also matches the CPU time of each
 // request in a `wrangler tail` or Workers Logs export.
 //
+// Size limit: the Rust Worker refuses a thumbnail above 128 KiB (413 tooLarge); the TypeScript Worker took 256 KiB and more.
+// thumbs-put-big-1s and thumbs-put-new-256k-1s send 256 KiB and are kept for the TypeScript baseline history only: the Rust
+// Worker rejects them, so they fail the 200 check there. thumbs-put-oversize-1s sends 128 KiB + 1 byte and expects the 413.
+//
 // Run:  ASSETHUB_PROBE_TOKEN="$(gh auth token -u SCVN-Zee)" \
 //         node scripts/cpu-probe.mjs --base https://asset-hub-api.asset-hub-team.workers.dev \
 //         --routes health,events,popular --n 20
@@ -11,7 +15,9 @@
 //   --base <url>          Worker URL. Plain http is allowed for localhost only, so the token never travels in clear.
 //   --routes <a,b,...>    health, events, popular, cache-get-200, cache-get-304, cache-put-small, cache-put-large,
 //                         thumbs-list, thumbs-put, thumbs-put-new, thumbs-put-max, thumbs-get, thumbs-get-max,
-//                         thumbs-put-1s, thumbs-put-new-1s, thumbs-put-big-1s, thumbs-get-1s, thumbs-put-1s-8x
+//                         thumbs-put-1s, thumbs-put-new-1s, thumbs-put-big-1s, thumbs-get-1s, thumbs-put-1s-8x,
+//                         thumbs-put-64k-1s, thumbs-put-128k-1s, thumbs-put-new-64k-1s, thumbs-put-new-128k-1s,
+//                         thumbs-put-new-256k-1s, thumbs-put-oversize-1s, thumbs-list-empty
 //                         (default: everything except the thumbs-put and thumbs-get routes).
 //   --n <count>           Requests per route (default 20).
 //   --delay <ms>          Pause between requests (default 150).
@@ -20,9 +26,11 @@
 //                         databases must not run them, because their index rows would hold generation ids that the live
 //                         TypeScript Worker cannot serve.
 //   --run-id <id>         Run id (1 to 24 letters, digits or dashes). Default: 8 random hex digits.
-//   --tail <file>         After the run, read a `wrangler tail --format json` file (or a Workers Logs export) and print, per
-//                         route, how many requests were sent, completed and observed, how many are missing, and the cpuTime
-//                         median, p95 and max of the observed ones. Requests match by the header x-probe-run.
+//   --tail <file>         After the run, read a `wrangler tail --format json` file (or a Workers Logs JSON export, `--logs` is
+//   --logs <file>         the same option) and print, per route, how many requests were sent, completed and observed, how many
+//                         are missing, and the cpuTime median, p95 and max of the observed ones. Requests match by the header
+//                         x-probe-run. Only an invocation record with a numeric CPU value counts as seen. Custom log records
+//                         of the same request are ignored for CPU, and exceptions count from every record of the request.
 //   --tail-wait <ms>      Wait before reading the tail file, so late events arrive (default 5000, only with --tail).
 //   --dry                 Print the planned requests and exit.
 //
@@ -42,7 +50,7 @@
 //   thumbs-get*               200, the pack holds the requested names in order, and every byte equals what the probe wrote.
 //
 // Thumbnail payloads. typical: 3 KiB to 9 KiB, 6 KiB on average. max: the same mix plus one 62 KiB entry (the live maximum)
-// and one 256 KiB entry (the limit of this Worker). The bytes derive from the name, so a read-back can compare them.
+// and one 128 KiB entry (the limit of the Rust Worker). The bytes derive from the name, so a read-back can compare them.
 //   thumbs-put       20 typical entries, names 0..19. Replaces rows that the setup wrote.
 //   thumbs-put-new   20 typical entries with fresh names for every request: 20 new rows per request stay in schema 998.
 //   thumbs-put-max   the max mix in 20 entries, names 100..119, about 420 KiB. Replaces rows that the setup wrote.
@@ -54,15 +62,24 @@
 // a fixed text for ones on shard ONE_SHARD, so the choice is deterministic. The plan lists the shards of each request.
 //   thumbs-put-1s       8 typical entries (about 48 KiB), one shard. Replaces rows that the setup wrote.
 //   thumbs-put-new-1s   8 typical entries with fresh names for every request, one shard. New rows stay in schema 998.
-//   thumbs-put-big-1s   one 256 KiB entry alone, one shard.
+//   thumbs-put-big-1s   one 256 KiB entry alone, one shard. The Rust Worker rejects it (TypeScript baseline only).
 //   thumbs-get-1s       21 typical names (about 128 KiB), one shard. The first 8 are the names of thumbs-put-1s.
 //   thumbs-put-1s-8x    the sizes of thumbs-put-1s with one name on each of the 8 shards. It isolates the per-shard cost.
-// A one-shard pack that holds a 256 KiB entry reads back as one reply of about 256 KiB. The read-back is not counted in n.
+//   thumbs-put-oversize-1s   one 128 KiB + 1 byte entry, one shard: expects 413 {"error":"tooLarge"}, stores nothing, no read-back.
+// A one-shard pack that holds a 128 KiB entry reads back as one reply of about 128 KiB. The read-back is not counted in n.
+//
+// Single-entry size sweep. One entry, one shard, schema 998. The `put` routes replace the same name every request, the `put-new`
+// routes write a fresh name every request. Every put is read back and compared byte for byte.
+//   thumbs-put-64k-1s, thumbs-put-128k-1s            64 KiB and 128 KiB, same name every request.
+//   thumbs-put-new-64k-1s, -128k-1s, -256k-1s        64, 128 and 256 KiB, fresh name every request (256 KiB: TypeScript baseline only).
+// List routes with a controlled size:
+//   thumbs-list        lists schema 998 (or --read-schema). The summary prints the row count and the response bytes of the last reply.
+//   thumbs-list-empty  lists schema 997, which no probe writes, so the reply holds no rows (a few dozen bytes).
 //
 // Safety:
 //   - The only repo this script may touch is supercent-io/hb_creative_bulldozer. It is hard-coded.
 //   - Every write uses schema 998 (PROBE_SCHEMA), a cache namespace no desktop build uses, so the real catalog,
-//     stats and facts (schema 1) stay untouched. Cache objects are facts-metaguids, facts-tmpfont and facts-prefabfx3
+//     stats and facts (schema 1) stay untouched. Cache objects are facts-metaguids, facts-tmpfont and facts-prefabfx4
 //     under that schema.
 //   - Thumbnail names must be sha40, so they cannot carry a "probe" prefix. They are sha1("assethub-cpu-probe-thumb-<i>")
 //     or, for thumbs-put-new, sha1("assethub-cpu-probe-thumb-new-<run id>-<n>"), which no real git blob hash equals, and they
@@ -84,13 +101,17 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 import { argv, env, exit } from 'node:process'
+import { pathToFileURL } from 'node:url'
 
 const ALLOWED_REPO = 'supercent-io/hb_creative_bulldozer'
 const PROBE_SCHEMA = '998'
 const LARGE_BYTES = 15 * 1024 * 1024
 const MAX_BAD_STREAK = 3
 const LIVE_MAX_THUMB = 62 * 1024
-const WORKER_MAX_THUMB = 256 * 1024
+const WORKER_MAX_THUMB = 128 * 1024 // the limit of the Rust Worker
+const LEGACY_MAX_THUMB = 256 * 1024 // the old limit, sent only by the baseline routes
+const EMPTY_LIST_SCHEMA = '997' // read-only: no probe route writes this schema
+const SWEEP_SIZES = { '64k': 64 * 1024, '128k': 128 * 1024, '256k': LEGACY_MAX_THUMB }
 const PUT_ENTRIES = 20
 const GET_NAMES = 40
 const SHARDS = 8
@@ -98,8 +119,8 @@ const ONE_SHARD = 3
 const ONE_SHARD_PUT = 8
 const ONE_SHARD_GET = 21
 const DEFAULT_ROUTES = ['health', 'events', 'popular', 'cache-get-200', 'cache-get-304', 'cache-put-small', 'cache-put-large', 'thumbs-list']
-const THUMB_ROUTES = ['thumbs-put', 'thumbs-put-new', 'thumbs-put-max', 'thumbs-get', 'thumbs-get-max', 'thumbs-put-1s', 'thumbs-put-new-1s', 'thumbs-put-big-1s', 'thumbs-get-1s', 'thumbs-put-1s-8x']
-const ALL_ROUTES = [...DEFAULT_ROUTES, ...THUMB_ROUTES]
+const THUMB_ROUTES = ['thumbs-put', 'thumbs-put-new', 'thumbs-put-max', 'thumbs-get', 'thumbs-get-max', 'thumbs-put-1s', 'thumbs-put-new-1s', 'thumbs-put-big-1s', 'thumbs-get-1s', 'thumbs-put-1s-8x', 'thumbs-put-64k-1s', 'thumbs-put-128k-1s', 'thumbs-put-new-64k-1s', 'thumbs-put-new-128k-1s', 'thumbs-put-new-256k-1s', 'thumbs-put-oversize-1s']
+const ALL_ROUTES = [...DEFAULT_ROUTES, ...THUMB_ROUTES, 'thumbs-list-empty']
 const EXIT_FAILED = 1
 const EXIT_USAGE = 2
 const EXIT_NO_TAIL_MATCH = 3
@@ -168,13 +189,13 @@ function parseArgs(args) {
     else if (flag === '--delay') opts.delay = Number(value(i++, flag))
     else if (flag === '--read-schema') opts.readSchema = value(i++, flag)
     else if (flag === '--run-id') opts.runId = value(i++, flag)
-    else if (flag === '--tail') opts.tail = value(i++, flag)
+    else if (flag === '--tail' || flag === '--logs') opts.tail = value(i++, flag)
     else if (flag === '--tail-wait') opts.tailWait = Number(value(i++, flag))
     else if (flag === '--allow-thumbs') opts.allowThumbs = true
     else if (flag === '--dry') opts.dry = true
     else fail(`unknown option ${flag}`)
   }
-  if (!opts.base) fail('usage: node scripts/cpu-probe.mjs --base <url> --routes <comma list> --n <count> [--dry] [--allow-thumbs] [--tail <file>]')
+  if (!opts.base) fail('usage: node scripts/cpu-probe.mjs --base <url> --routes <comma list> --n <count> [--dry] [--allow-thumbs] [--tail|--logs <file>]')
   if (!Number.isInteger(opts.n) || opts.n < 1 || opts.n > 1000) fail('--n must be an integer from 1 to 1000')
   if (!Number.isFinite(opts.delay) || opts.delay < 0) fail('--delay must be 0 or more')
   if (!Number.isFinite(opts.tailWait) || opts.tailWait < 0) fail('--tail-wait must be 0 or more')
@@ -276,7 +297,21 @@ const oneShardNewEntries = (ctx) => {
 }
 const bigEntry = () => {
   const [name] = namesOnShard('assethub-cpu-probe-thumb-big-1s', ONE_SHARD, 1)
-  return [{ name, bytes: thumbBytes(name, WORKER_MAX_THUMB) }]
+  return [{ name, bytes: thumbBytes(name, LEGACY_MAX_THUMB) }]
+}
+const oversizeEntry = () => {
+  const [name] = namesOnShard('assethub-cpu-probe-thumb-oversize-1s', ONE_SHARD, 1)
+  return [{ name, bytes: thumbBytes(name, WORKER_MAX_THUMB + 1) }]
+}
+// One entry of `size` bytes on ONE_SHARD. The same name every call, or a fresh one for every new pack.
+const sweepEntry = (label, size) => {
+  const [name] = namesOnShard(`assethub-cpu-probe-thumb-${label}-1s`, ONE_SHARD, 1)
+  return [{ name, bytes: thumbBytes(name, size) }]
+}
+const sweepNewEntry = (ctx, label, size) => {
+  const run = ctx.newPacks++
+  const [name] = namesOnShard(`assethub-cpu-probe-thumb-new-${label}-1s-${ctx.runId}-${run}`, ONE_SHARD, 1)
+  return [{ name, bytes: thumbBytes(name, size) }]
 }
 const spreadEntries = () =>
   Array.from({ length: ONE_SHARD_PUT }, (_, k) => {
@@ -284,7 +319,7 @@ const spreadEntries = () =>
     return { name, bytes: thumbBytes(name, typicalSize(k)) }
   })
 
-const OBJECT = { get: 'facts-metaguids', small: 'facts-tmpfont', large: 'facts-prefabfx3' }
+const OBJECT = { get: 'facts-metaguids', small: 'facts-tmpfont', large: 'facts-prefabfx4' }
 const SCHEMA_HEADER = { 'x-asset-hub-schema': PROBE_SCHEMA }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -326,6 +361,16 @@ const getRequest = (entries) => ({
   expect: entries
 })
 
+// A pack with one entry above the limit: 413 {"error":"tooLarge"} and nothing stored, so no read-back.
+const rejectedPutRequest = (entries) => ({
+  method: 'POST',
+  path: repoPath('/thumbs/put'),
+  headers: { ...SCHEMA_HEADER, 'content-type': 'application/octet-stream' },
+  body: encodePack(entries),
+  check: (result) => [...statusIs(result, 413), ...(result.status === 413 ? jsonProblems(result, (b) => b.error === 'tooLarge', '{"error":"tooLarge"}') : [])],
+  expect: entries
+})
+
 const putRequest = (entries) => ({
   method: 'POST',
   path: repoPath('/thumbs/put'),
@@ -352,6 +397,27 @@ function cachePut(ctx, name, body) {
     }
   }
 }
+
+// GET /thumbs for one schema. `empty` demands zero rows. `rows` and `bytes` feed the run summary.
+const listRequest = (ctx, schema, empty) => ({
+  method: 'GET',
+  path: repoPath('/thumbs'),
+  headers: { 'x-asset-hub-schema': schema },
+  listing: true,
+  check: (r) => {
+    const problems = statusIs(r, 200)
+    if (problems.length) return problems
+    const body = json(r)
+    if (!body || !Array.isArray(body.items) || !Number.isInteger(body.epoch)) return ['body is not {"items":[...],"epoch":n}']
+    if (empty && body.items.length > 0) problems.push(`${body.items.length} rows listed, expected none`)
+    for (const item of body.items) {
+      if (typeof item.name !== 'string' || !Number.isInteger(item.size) || !Number.isInteger(item.rev)) return ['an item has no name, size or rev']
+      const want = ctx.expectedSizes.get(item.name)
+      if (schema === PROBE_SCHEMA && want !== undefined && item.size !== want) problems.push(`${item.name.slice(0, 8)} lists size ${item.size}, expected ${want}`)
+    }
+    return problems
+  }
+})
 
 // Each route builds a request from `ctx`: { runId, etags, readSchema, newPacks, expectedSizes }.
 // `seed` names the thumbnail set that the route needs to exist before its first request.
@@ -394,25 +460,8 @@ const ROUTES = {
   },
   'cache-put-small': { setup: [OBJECT.small], request: (ctx) => cachePut(ctx, OBJECT.small, smallGzip('small')) },
   'cache-put-large': { setup: [OBJECT.large], request: (ctx) => cachePut(ctx, OBJECT.large, largeGzip()), timeoutMs: 180_000 },
-  'thumbs-list': {
-    request: (ctx) => ({
-      method: 'GET',
-      path: repoPath('/thumbs'),
-      headers: { 'x-asset-hub-schema': ctx.readSchema },
-      check: (r) => {
-        const problems = statusIs(r, 200)
-        if (problems.length) return problems
-        const body = json(r)
-        if (!body || !Array.isArray(body.items) || !Number.isInteger(body.epoch)) return ['body is not {"items":[...],"epoch":n}']
-        for (const item of body.items) {
-          if (typeof item.name !== 'string' || !Number.isInteger(item.size) || !Number.isInteger(item.rev)) return ['an item has no name, size or rev']
-          const want = ctx.expectedSizes.get(item.name)
-          if (ctx.readSchema === PROBE_SCHEMA && want !== undefined && item.size !== want) problems.push(`${item.name.slice(0, 8)} lists size ${item.size}, expected ${want}`)
-        }
-        return problems
-      }
-    })
-  },
+  'thumbs-list': { request: (ctx) => listRequest(ctx, ctx.readSchema, false) },
+  'thumbs-list-empty': { request: (ctx) => listRequest(ctx, EMPTY_LIST_SCHEMA, true) },
   'thumbs-put': { seed: 'typical', request: () => putRequest(typicalEntries(0, PUT_ENTRIES)) },
   'thumbs-put-new': { request: (ctx) => putRequest(newEntries(ctx)) },
   'thumbs-put-max': { seed: 'max', request: () => putRequest(maxEntries()) },
@@ -422,7 +471,13 @@ const ROUTES = {
   'thumbs-put-new-1s': { request: (ctx) => putRequest(oneShardNewEntries(ctx)) },
   'thumbs-put-big-1s': { request: () => putRequest(bigEntry()) },
   'thumbs-get-1s': { seed: 'oneShard', request: () => getRequest(oneShardEntries(ONE_SHARD_GET)) },
-  'thumbs-put-1s-8x': { seed: 'spread', request: () => putRequest(spreadEntries()) }
+  'thumbs-put-1s-8x': { seed: 'spread', request: () => putRequest(spreadEntries()) },
+  'thumbs-put-64k-1s': { request: () => putRequest(sweepEntry('64k', SWEEP_SIZES['64k'])) },
+  'thumbs-put-128k-1s': { request: () => putRequest(sweepEntry('128k', SWEEP_SIZES['128k'])) },
+  'thumbs-put-new-64k-1s': { request: (ctx) => putRequest(sweepNewEntry(ctx, '64k', SWEEP_SIZES['64k'])) },
+  'thumbs-put-new-128k-1s': { request: (ctx) => putRequest(sweepNewEntry(ctx, '128k', SWEEP_SIZES['128k'])) },
+  'thumbs-put-new-256k-1s': { request: (ctx) => putRequest(sweepNewEntry(ctx, '256k', SWEEP_SIZES['256k'])) },
+  'thumbs-put-oversize-1s': { request: () => rejectedPutRequest(oversizeEntry()) }
 }
 
 const SEEDS = {
@@ -539,7 +594,7 @@ function plan(opts) {
     const mix = entries
       ? `  ${entries.length} entries, ${Math.min(...entries.map((e) => e.bytes.length))} to ${Math.max(...entries.map((e) => e.bytes.length))} bytes each, ${total} bytes of thumbnails, ${shards.length} shard${shards.length === 1 ? '' : 's'} (${shards.join(',')})`
       : ''
-    console.log(`${name}: ${opts.n} x ${req.method} ${req.path}  ${size}${mix}  headers ${Object.keys(req.headers ?? {}).join(',') || '-'}`)
+    console.log(`${name}: ${opts.n} x ${req.method} ${req.path}  ${size}${mix}${req.listing ? `  schema ${req.headers['x-asset-hub-schema']}${req.headers['x-asset-hub-schema'] === EMPTY_LIST_SCHEMA ? ' (no rows expected)' : ', rows and response bytes are printed in the summary'}` : ''}  headers ${Object.keys(req.headers ?? {}).join(',') || '-'}`)
     if (req.readBack) console.log(`${name}: verify  POST /thumbs/get of the last request, every byte compared`)
   }
   console.log('every request: header x-probe-run: <run id>.<sequence>')
@@ -577,6 +632,10 @@ async function run(opts, base, token) {
       stats.statuses.set(key, (stats.statuses.get(key) ?? 0) + 1)
       stats.times.push(result.ms)
       last = req
+      if (req.listing && result.status === 200) {
+        const body = json(result)
+        stats.listed = { rows: Array.isArray(body?.items) ? body.items.length : null, bytes: result.buf.length }
+      }
 
       const problems = problemsOf(req, result)
       if (req.method === 'PUT' && req.path.includes('/cache/')) {
@@ -623,7 +682,7 @@ async function run(opts, base, token) {
       continue
     }
     const counts = [...s.statuses].map(([status, count]) => `${status} x${count}`).join(', ')
-    console.log(`${s.name}: ${s.times.length} requests  ${counts}  failed ${s.failed}  median ${median(s.times).toFixed(0)} ms  max ${Math.max(...s.times).toFixed(0)} ms`)
+    console.log(`${s.name}: ${s.times.length} requests  ${counts}  failed ${s.failed}  median ${median(s.times).toFixed(0)} ms  max ${Math.max(...s.times).toFixed(0)} ms${s.listed ? `  last reply: ${s.listed.rows ?? '?'} rows, ${s.listed.bytes} bytes` : ''}`)
   }
   return { state, failures }
 }
@@ -646,70 +705,93 @@ function readTailEvents(file) {
   }
 }
 
-// Prints sent, completed, observed and missing per label and the cpuTime of the observed requests. Gives the number of
-// requests that no tail event matched.
-function summarizeTail(opts, state) {
-  const wanted = new Map(state.sent.map((s) => [s.seq, s]))
+const isNumber = (v) => typeof v === 'number' && Number.isFinite(v)
+
+// Matches tail records to the requests of a run. Pure, so a test can feed it records.
+//   - A record belongs to a request when its x-probe-run header reads `<run id>.<sequence>` (tail shape: event.request.headers,
+//     Workers Logs shape: $workers.event.request.headers).
+//   - A request is seen only through an invocation record with a numeric CPU value (tail: cpuTime, Workers Logs: $workers.cpuTimeMs).
+//     A custom log record of the same request has no CPU value and never counts as seen.
+//   - Exceptions count from every record of the request: the top-level `exceptions`, `event.exceptions` and `$workers.exceptions`.
+//   - An outcome other than `ok` counts as not ok. A missing outcome is not ok either. A missing request stays unknown.
+export function matchTail(events, runId, wantedSeqs) {
   const seen = new Map()
+  const exceptions = new Map()
   let foreign = 0
-  for (const event of readTailEvents(opts.tail)) {
+  for (const event of events) {
+    if (!event || typeof event !== 'object') continue
     const headers = event.event?.request?.headers ?? event.$workers?.event?.request?.headers
     const tag = headers?.['x-probe-run']
     const [id, seqText] = typeof tag === 'string' ? tag.split('.') : []
-    if (id !== state.id || !wanted.has(Number(seqText))) {
-      if (id === state.id) foreign++
+    if (id !== runId) continue
+    const seq = Number(seqText)
+    if (!wantedSeqs.has(seq)) {
+      foreign++
       continue
     }
-    const seq = Number(seqText)
-    if (seen.has(seq)) continue
-    seen.set(seq, { cpu: event.cpuTime ?? event.$workers?.cpuTimeMs, outcome: event.outcome ?? event.$workers?.outcome, exceptions: (event.exceptions ?? []).length })
+    const count = [event.exceptions, event.event?.exceptions, event.$workers?.exceptions].reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0)
+    if (count > 0) exceptions.set(seq, (exceptions.get(seq) ?? 0) + count)
+    const cpu = isNumber(event.cpuTime) ? event.cpuTime : event.$workers?.cpuTimeMs
+    if (isNumber(cpu) && !seen.has(seq)) seen.set(seq, { cpu, outcome: event.outcome ?? event.$workers?.outcome })
   }
+  return { seen, exceptions, foreign }
+}
+
+// Prints sent, completed, observed and missing per label and the cpuTime of the observed requests. Gives the number of
+// requests that no invocation record matched.
+function summarizeTail(opts, state) {
+  const wanted = new Map(state.sent.map((s) => [s.seq, s]))
+  const { seen, exceptions, foreign } = matchTail(readTailEvents(opts.tail), state.id, wanted)
 
   const labels = [...new Set(state.sent.map((s) => s.label))]
   console.log(`\nTail ${opts.tail}  run ${state.id}`)
-  console.log('label'.padEnd(18) + ['sent', 'done', 'seen', 'missing', 'cpu median', 'p95', 'max', 'not ok', 'exceptions'].map((h) => h.padStart(11)).join(''))
+  console.log('label'.padEnd(26) + ['sent', 'done', 'seen', 'missing', 'cpu median', 'p95', 'max', 'not ok', 'exceptions'].map((h) => h.padStart(11)).join(''))
   let missingTotal = 0
   for (const label of labels) {
     const mine = state.sent.filter((s) => s.label === label)
     const observed = mine.filter((s) => seen.has(s.seq)).map((s) => seen.get(s.seq))
-    const cpu = observed.map((o) => o.cpu).filter((v) => typeof v === 'number')
+    const cpu = observed.map((o) => o.cpu)
     const missing = mine.length - observed.length
     missingTotal += missing
     const stat = (f) => (cpu.length ? String(f(cpu)).padStart(11) : '-'.padStart(11))
     console.log(
-      label.padEnd(18) +
+      label.padEnd(26) +
         [mine.length, mine.filter((s) => s.completed).length, observed.length, missing].map((v) => String(v).padStart(11)).join('') +
         stat(median) + stat((v) => percentile(v, 0.95)) + stat((v) => Math.max(...v)) +
         String(observed.filter((o) => o.outcome !== 'ok').length).padStart(11) +
-        String(observed.reduce((sum, o) => sum + o.exceptions, 0)).padStart(11)
+        String(mine.reduce((sum, s) => sum + (exceptions.get(s.seq) ?? 0), 0)).padStart(11)
     )
   }
   if (foreign > 0) console.log(`${foreign} tail events carry this run id with an unknown sequence number`)
-  if (missingTotal > 0) console.log(`WARNING: ${missingTotal} requests have no tail event. Missing events are unknown, not successful observations.`)
+  if (missingTotal > 0) console.log(`WARNING: ${missingTotal} requests have no invocation record with a CPU value. Missing events are unknown, not successful observations.`)
   return missingTotal
 }
 
-const opts = parseArgs(argv.slice(2))
-const base = parseBase(opts.base)
-opts.base = base
-if (opts.dry) {
-  plan(opts)
-  exit(0)
+async function main() {
+  const opts = parseArgs(argv.slice(2))
+  const base = parseBase(opts.base)
+  opts.base = base
+  if (opts.dry) {
+    plan(opts)
+    exit(0)
+  }
+  const token = env.ASSETHUB_PROBE_TOKEN
+  if (!token || /\s/.test(token)) fail('set ASSETHUB_PROBE_TOKEN to a GitHub token (no white space)')
+  const { state, failures } = await run(opts, base, token)
+  let code = 0
+  if (failures.length > 0) {
+    console.error(`\nFAILED: ${failures.length} problem${failures.length === 1 ? '' : 's'}`)
+    for (const line of failures.slice(0, 20)) console.error(`  ${line}`)
+    if (failures.length > 20) console.error(`  ... and ${failures.length - 20} more`)
+    code = EXIT_FAILED
+  } else {
+    console.log('\nOK: every response passed its checks')
+  }
+  if (opts.tail) {
+    if (opts.tailWait > 0) await sleep(opts.tailWait)
+    if (summarizeTail(opts, state) > 0 && code === 0) code = EXIT_NO_TAIL_MATCH
+  }
+  exit(code)
 }
-const token = env.ASSETHUB_PROBE_TOKEN
-if (!token || /\s/.test(token)) fail('set ASSETHUB_PROBE_TOKEN to a GitHub token (no white space)')
-const { state, failures } = await run(opts, base, token)
-let code = 0
-if (failures.length > 0) {
-  console.error(`\nFAILED: ${failures.length} problem${failures.length === 1 ? '' : 's'}`)
-  for (const line of failures.slice(0, 20)) console.error(`  ${line}`)
-  if (failures.length > 20) console.error(`  ... and ${failures.length - 20} more`)
-  code = EXIT_FAILED
-} else {
-  console.log('\nOK: every response passed its checks')
-}
-if (opts.tail) {
-  if (opts.tailWait > 0) await sleep(opts.tailWait)
-  if (summarizeTail(opts, state) > 0 && code === 0) code = EXIT_NO_TAIL_MATCH
-}
-exit(code)
+
+if (import.meta.url === pathToFileURL(argv[1] ?? '').href) await main()

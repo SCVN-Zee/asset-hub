@@ -5,6 +5,8 @@ status: done
 
 # Phase 2: Backend foundation
 
+> Note (phase 3h): the TypeScript sources of this phase were replaced by the Rust Worker in phase 3h and removed.
+
 ## Overview
 
 Create a separate Worker project in `backend/`, with its own `package.json`, TypeScript config and tests, so the desktop build and its `tsconfig` (`include: src`) do not change. This phase delivers health and authentication only; data endpoints come in phase 3.

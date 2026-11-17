@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { allowRepo, api, b2, build, db, denyRepo, repoPath, reservedBytes, SCHEMA, unsizedBody, useContract } from './harness'
+import { allowRepo, api, b2, db, denyRepo, repoPath, reservedBytes, SCHEMA, unsizedBody, useContract } from './harness'
 import { expectErrorReplies, expectNoCors, headerNames, JSON_TYPE, snapshot, type Snapshot } from './raw'
 
 useContract()
@@ -218,8 +218,8 @@ describe('cache objects', () => {
     expect(b2.callsTo('GET')).toHaveLength(2)
   })
 
-  // The TypeScript Worker answers 500 here. The Rust Worker reports an unusable store as 503.
-  describe.runIf(build === 'rust')('a B2 error on a cache object read', () => {
+  // The Worker reports an unusable store as 503.
+  describe('a B2 error on a cache object read', () => {
     for (const status of [403, 500]) {
       it(`${status} gives 503 storageUnavailable`, async () => {
         allowRepo('game', true)

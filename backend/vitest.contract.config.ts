@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config'
 
 // Black-box HTTP suite. It runs the bundled Worker in Miniflare, so it needs no Workers pool.
-// `CONTRACT_TARGET=ts` (default) or `CONTRACT_TARGET=rust` picks the build under test.
 export default defineConfig({
   test: {
     environment: 'node',

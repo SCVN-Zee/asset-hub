@@ -102,9 +102,9 @@ mod tests {
 
     #[test]
     fn a_thumbnail_sized_payload_stays_under_the_d1_string_limit() {
-        let payload = vec![0xA5u8; 256 * 1024];
+        let payload = vec![0xA5u8; crate::thumbs::MAX_THUMB_BYTES];
         let hex = encode(&payload);
-        assert_eq!(hex.len(), 512 * 1024);
+        assert_eq!(hex.len(), 2 * crate::thumbs::MAX_THUMB_BYTES);
         assert!(hex.len() < 2 * 1024 * 1024);
         assert_eq!(decode(&hex), Some(payload));
     }

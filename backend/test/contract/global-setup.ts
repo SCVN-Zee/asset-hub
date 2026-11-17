@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import type { TestProject } from 'vitest/node'
-import { backendDir, contractRoot, contractTarget } from './build-under-test'
+import { backendDir, contractRoot } from './build-under-test'
 
 const STALE_RUN_MS = 24 * 60 * 60 * 1000
 
@@ -26,22 +26,20 @@ function pruneStaleRuns(): void {
 }
 
 /**
- * Builds the bundle that production would get for the selected build, once per run, into a folder
+ * Builds the bundle that production gets, once per run, into a folder
  * of its own. Concurrent runs never touch each other's bundle. The folder goes away after the run.
  */
 export default function setup({ provide }: TestProject): () => void {
-  const build = contractTarget()
   mkdirSync(contractRoot, { recursive: true })
   pruneStaleRuns()
   const runDir = mkdtempSync(join(contractRoot, 'run-'))
-  const out = join(runDir, build)
-  const config = build === 'rust' ? ['-c', 'wrangler.rust.toml'] : []
+  const out = join(runDir, 'worker')
   try {
-    execFileSync('npx', ['wrangler', 'deploy', '--dry-run', ...config, '--outdir', out], { cwd: backendDir, stdio: 'pipe' })
+    execFileSync('npx', ['wrangler', 'deploy', '--dry-run', '--outdir', out], { cwd: backendDir, stdio: 'pipe' })
   } catch (err) {
     rmSync(runDir, { recursive: true, force: true })
     const e = err as { stdout?: Buffer; stderr?: Buffer }
-    throw new Error(`wrangler dry-run failed for ${build}\n${e.stdout?.toString() ?? ''}\n${e.stderr?.toString() ?? ''}`)
+    throw new Error(`wrangler dry-run failed\n${e.stdout?.toString() ?? ''}\n${e.stderr?.toString() ?? ''}`)
   }
   provide('bundleDir', out)
   return () => rmSync(runDir, { recursive: true, force: true })

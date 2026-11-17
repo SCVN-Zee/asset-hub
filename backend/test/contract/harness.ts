@@ -3,13 +3,12 @@ import { join } from 'node:path'
 import type { Readable } from 'node:stream'
 import { Miniflare, type WorkerOptions } from 'miniflare'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, vi } from 'vitest'
-import { backendDir, contractTarget } from './build-under-test'
+import { backendDir } from './build-under-test'
 import { B2_APP_KEY, B2_BUCKET, B2_ENDPOINT, B2_HOST, B2_KEY_ID, B2_REGION, FakeB2 } from './fake-b2'
 import { FakeGithub } from './fake-github'
 import { FakeUpstash, UPSTASH_TOKEN } from './fake-upstash'
 import { FakeNetwork } from './http-server'
 
-export const build = contractTarget()
 export const OWNER = 'supercent-io'
 export const SCHEMA = { 'x-asset-hub-schema': '1' }
 export const sha = (n: number): string => n.toString(16).padStart(40, '0')
@@ -67,7 +66,7 @@ export function db(): Promise<D1Database> {
   return mf.getD1Database('DB') as unknown as Promise<D1Database>
 }
 
-/** One thumbnail shard database. Only the Rust build writes to them. */
+/** One thumbnail shard database. The Worker writes thumbnails to them. */
 export function shardDb(shard: number): Promise<D1Database> {
   return mf.getD1Database(`THUMBS_${shard}`) as unknown as Promise<D1Database>
 }
@@ -93,7 +92,7 @@ export async function reservedBytes(): Promise<number> {
   return (await (await db()).prepare('SELECT reserved_bytes AS n FROM storage WHERE id = 1').first<{ n: number }>())!.n
 }
 
-/** Runs the cron trigger and waits for it to finish. The Rust build picks the shard to sweep from `scheduledTime`. */
+/** Runs the cron trigger and waits for it to finish. The Worker picks the shard to sweep from `scheduledTime`. */
 export async function runScheduled(scheduledTime?: Date): Promise<void> {
   const worker = await mf.getWorker()
   const result = await worker.scheduled({ cron: '17 */3 * * *', ...(scheduledTime ? { scheduledTime } : {}) })
@@ -190,7 +189,7 @@ export function useContract(): void {
     mf = new Miniflare({
       modules: moduleList(inject('bundleDir')),
       compatibilityDate: '2026-03-01',
-      compatibilityFlags: build === 'ts' ? ['nodejs_compat'] : [],
+      compatibilityFlags: [],
       d1Databases: {
         DB: 'contract-db',
         ...Object.fromEntries(Array.from({ length: THUMB_SHARDS }, (_, i) => [`THUMBS_${i}`, `contract-thumbs-${i}`]))

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { allowRepo, api, b2, build, db, repoPath, reservedBytes, restoreShardTable, runScheduled, SCHEMA, sha, shardDb, THUMB_SHARDS, unsizedBody, useContract, waitForLog } from './harness'
+import { allowRepo, api, b2, db, repoPath, reservedBytes, restoreShardTable, runScheduled, SCHEMA, sha, shardDb, THUMB_SHARDS, unsizedBody, useContract, waitForLog } from './harness'
 import { expectErrorReplies, expectNoCors, headerNames, JSON_TYPE, snapshot, type Snapshot } from './raw'
 import {
   ageBlobs,
@@ -25,30 +25,20 @@ import {
 
 useContract()
 
-// The TypeScript Worker keeps thumbnail bytes in B2 until the cutover. The Rust Worker keeps them in
-// eight D1 shards. Tests of one storage are tagged for its target. The rest run on both.
-const tsOnly = it.runIf(build === 'ts')
-
-/** The TypeScript Worker stops accepting uploads at 8 GiB of stored bytes. */
-const STORAGE_CAP_BYTES = 8 * 1024 * 1024 * 1024
-const setReserved = async (bytes: number) => void (await (await db()).prepare('UPDATE storage SET reserved_bytes = ?').bind(bytes).run())
-
 /** A shard refuses to grow past 300 MiB of payload. */
 const SHARD_CAP_BYTES = 300 * 1024 * 1024
 
-/** The most bytes of one thumbnail: B2 build 1 MiB, Rust build 256 KiB. */
-const THUMB_LIMIT = build === 'ts' ? 1024 * 1024 : 256 * 1024
+/** The most bytes of one thumbnail. */
+const THUMB_LIMIT = 128 * 1024
 
-/** Makes the next upload hit the storage cap of the build under test. */
+/** Makes the next upload hit the storage cap of every shard. */
 async function fillStorage(): Promise<void> {
-  if (build === 'ts') return setReserved(STORAGE_CAP_BYTES)
   for (let shard = 0; shard < THUMB_SHARDS; shard++) await setShardUsage(shard, SHARD_CAP_BYTES)
 }
 
-/** Nothing was stored for any thumbnail, in B2 or in a shard. */
+/** Nothing was stored for any thumbnail in any shard. */
 async function expectNothingStored(): Promise<void> {
-  if (build === 'ts') expect(b2.keys()).toEqual([])
-  else expect(await blobRows()).toEqual([])
+  expect(await blobRows()).toEqual([])
 }
 
 describe('thumbnails', () => {
@@ -116,8 +106,7 @@ describe('thumbnails', () => {
     await putPack([entry(1)])
     const other = await getPack([sha(1)], { 'x-asset-hub-schema': '2' })
     expect((await other.arrayBuffer()).byteLength).toBe(0)
-    if (build === 'ts') expect(b2.keys()).toEqual([`repos/supercent-io/game/s1/thumbs/${sha(1)}`])
-    else expect((await blobRows()).map((r) => [r.schema, r.name])).toEqual([[1, sha(1)]])
+    expect((await blobRows()).map((r) => [r.schema, r.name])).toEqual([[1, sha(1)]])
   })
 
   it('put needs push', async () => {
@@ -189,79 +178,7 @@ describe('thumbnails', () => {
     expect(decoded[0].bytes).toEqual(bytesFor(3))
   })
 
-  tsOnly('get reads B2 only as the client consumes', async () => {
-    allowRepo('game', true)
-    // 20 thumbnails of 1 MB: large enough that the HTTP layer pushes back on a reader that stops.
-    const names = Array.from({ length: 20 }, (_, i) => sha(i + 1))
-    for (let at = 0; at < 20; at += 3) {
-      const pack: PackEntry[] = names.slice(at, at + 3).map((name) => ({ name, bytes: new Uint8Array(1024 * 1024).fill(at + 1) }))
-      expect((await putPack(pack)).status).toBe(200)
-    }
-    b2.calls = []
-    const res = await getPack(names)
-    const reader = res.body!.getReader()
-    await reader.read()
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    // The window is 6 requests. Over HTTP the runtime may read a few entries ahead, but never the whole set.
-    expect(b2.callsTo('GET').length).toBeLessThanOrEqual(10)
-    await reader.cancel()
-  })
-
-  tsOnly('get runs at most 6 B2 requests at once and keeps request order', async () => {
-    allowRepo('game', true)
-    const names = Array.from({ length: 40 }, (_, i) => sha(i + 1))
-    await putPack(names.slice(0, 20).map((_n, i) => entry(i + 1)))
-    await putPack(names.slice(20).map((_n, i) => entry(i + 21)))
-    // Later names answer first, so only an ordered writer keeps the request order.
-    b2.hold = async (call) => {
-      await new Promise((r) => setTimeout(r, 40 - Number.parseInt(call.key.slice(-40), 16)))
-    }
-    const order = [...names].reverse()
-    const decoded = decodePack(new Uint8Array(await (await getPack(order)).arrayBuffer()))
-    expect(decoded.map((e) => e.name)).toEqual(order)
-    expect(b2.maxInflightGets).toBeGreaterThan(1)
-    expect(b2.maxInflightGets).toBeLessThanOrEqual(6)
-  })
-
-  tsOnly('a replaced thumbnail deletes its old version and releases its bytes', async () => {
-    allowRepo('game', true)
-    await putPack([entry(1)])
-    const key = `repos/supercent-io/game/s1/thumbs/${sha(1)}`
-    expect(b2.versionsOf(key)).toHaveLength(1)
-    await putPack([{ name: sha(1), bytes: new Uint8Array([9, 9, 9, 9, 9]) }])
-    expect(b2.versionsOf(key)).toHaveLength(1)
-    expect(await reservedBytes()).toBe(5)
-    expect(b2.callsTo('DELETE').every((c) => c.versionId)).toBe(true)
-  })
-
-  tsOnly('507 at the cap leaves B2 and the index untouched', async () => {
-    allowRepo('game', true)
-    await setReserved(STORAGE_CAP_BYTES - 3)
-    const res = await putPack([entry(1)])
-    expect(res.status).toBe(507)
-    expect(await res.json()).toEqual({ error: 'storageFull' })
-    expect(b2.calls).toEqual([])
-    expect((await list()).body.items).toEqual([])
-  })
-
-  tsOnly('a refused upload undoes the versions that landed', async () => {
-    allowRepo('game', true)
-    b2.failWith = (call) => (call.method === 'PUT' && call.key.endsWith(sha(2)) ? 503 : null)
-    const res = await putPack([entry(1), entry(2), entry(3)])
-    expect(res.status).toBe(500)
-    expect(b2.keys()).toEqual([])
-    expect(await reservedBytes()).toBe(0)
-    expect((await list()).body.items).toEqual([])
-  })
-
-  tsOnly('a name sent twice stores one version', async () => {
-    allowRepo('game', true)
-    await putPack([entry(1), { name: sha(1), bytes: new Uint8Array([5, 5]) }])
-    expect(b2.versionsOf(`repos/supercent-io/game/s1/thumbs/${sha(1)}`)).toHaveLength(1)
-    expect(await reservedBytes()).toBe(2)
-  })
-
-  it('put rejects a thumbnail over the size limit of the build', async () => {
+  it('put rejects a thumbnail over the size limit', async () => {
     allowRepo('game', true)
     const res = await putPack([{ name: sha(1), bytes: new Uint8Array(THUMB_LIMIT + 1) }])
     expect(res.status).toBe(413)
@@ -286,70 +203,9 @@ describe('thumbnails', () => {
     expect(body.items.map((i) => i.rev).sort()).toEqual([1, 2, 3])
   })
 
-  tsOnly('cancel aborts B2 requests that are still in flight', async () => {
-    allowRepo('game', true)
-    await putPack(Array.from({ length: 6 }, (_, i) => entry(i + 1)))
-    let aborted = 0
-    // The first thumbnail answers at once and the second after 300 ms. The other four stay in flight
-    // until aborted (or 5 s). When the second answer finds the client gone, the Worker must abort them.
-    b2.hold = (call, signal) => {
-      if (call.key.endsWith(sha(1))) return Promise.resolve()
-      if (call.key.endsWith(sha(2))) return new Promise((resolve) => setTimeout(resolve, 300))
-      return new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, 5000)
-        signal.addEventListener('abort', () => {
-          aborted += 1
-          clearTimeout(timer)
-          reject(new DOMException('aborted', 'AbortError'))
-        })
-      })
-    }
-    const res = await getPack(Array.from({ length: 6 }, (_, i) => sha(i + 1)))
-    const reader = res.body!.getReader()
-    expect((await reader.read()).done).toBe(false)
-    await reader.cancel()
-    await vi.waitFor(() => expect(aborted).toBe(4), { timeout: 3000 })
-  })
-
-  tsOnly('get asks B2 for the version the index names', async () => {
-    allowRepo('game', true)
-    await putPack([entry(1)])
-    const key = `repos/supercent-io/game/s1/thumbs/${sha(1)}`
-    const [indexed] = b2.versionsOf(key)
-    // A newer upload that the index does not name must not be served.
-    b2.seed(key, new Uint8Array([66, 66]))
-    b2.calls = []
-    const res = await getPack([sha(1)])
-    expect(decodePack(new Uint8Array(await res.arrayBuffer()))[0].bytes).toEqual(bytesFor(1))
-    expect(b2.callsTo('GET').map((c) => c.versionId)).toEqual([indexed])
-  })
-
-  tsOnly('a pack error aborts the sibling downloads', async () => {
-    allowRepo('game', true)
-    await putPack(Array.from({ length: 6 }, (_, i) => entry(i + 1)))
-    let aborted = 0
-    b2.failWith = (call) => (call.key.endsWith(sha(1)) ? 503 : null)
-    b2.hold = (call, signal) =>
-      call.key.endsWith(sha(1))
-        ? Promise.resolve()
-        : new Promise<void>((_resolve, reject) =>
-            signal.addEventListener('abort', () => {
-              aborted += 1
-              reject(new DOMException('aborted', 'AbortError'))
-            })
-          )
-    const res = await getPack(Array.from({ length: 6 }, (_, i) => sha(i + 1)))
-    // The reply is cut short: the client sees an error or an empty end, never a complete pack.
-    const received = await res.arrayBuffer().then(
-      (buf) => buf.byteLength,
-      () => 0
-    )
-    expect(received).toBe(0)
-    await vi.waitFor(() => expect(aborted).toBe(5), { timeout: 3000 })
-  })
 })
 
-describe.runIf(build === 'rust')('thumbnails in D1 shards', () => {
+describe('thumbnails in D1 shards', () => {
   /** One entry in each of the 16 first-digit groups: all 8 shards, two names each. */
   const spread = Array.from({ length: 16 }, (_, digit) => entryIn(digit, digit + 1, digit % 3 === 0 ? '.fx' : ''))
 
@@ -529,9 +385,9 @@ describe.runIf(build === 'rust')('thumbnails in D1 shards', () => {
     expect(await shardUsage(0)).toBe(6)
   })
 
-  it('rejects an entry of 256 KiB plus one byte and stores nothing of its pack', async () => {
+  it('rejects an entry of 128 KiB plus one byte and stores nothing of its pack', async () => {
     allowRepo('game', true)
-    const pack = [entry(1), { name: sha(2), bytes: new Uint8Array(256 * 1024 + 1) }]
+    const pack = [entry(1), { name: sha(2), bytes: new Uint8Array(THUMB_LIMIT + 1) }]
     const res = await putPack(pack)
     expect(res.status).toBe(413)
     expect(await res.json()).toEqual({ error: 'tooLarge' })
@@ -576,7 +432,7 @@ describe.runIf(build === 'rust')('thumbnails in D1 shards', () => {
   })
 })
 
-describe.runIf(build === 'rust')('sweep of the shards', () => {
+describe('sweep of the shards', () => {
   const HOUR = 60 * 60 * 1000
   const repo = 'supercent-io/game'
   /** A cron trigger whose time makes the run sweep `shard`. */

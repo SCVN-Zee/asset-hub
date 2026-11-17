@@ -10,6 +10,8 @@ created: 2026-11-09
 
 # Team backend: remote cache and popularity
 
+> Note (phase 3h): the TypeScript Worker sources were replaced by the Rust Worker in phase 3h and removed. `backend/` now holds only Rust, the contract tests and scripts.
+
 ## Overview
 
 Asset Hub has no backend today. Teammates share listings, measurements and thumbnails through the GitHub repo in `INDEX_REPO` (`crates/app/src/index_repo.rs:19`), which is **public**. This plan adds a small backend so that:

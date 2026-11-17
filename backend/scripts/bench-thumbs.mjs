@@ -6,7 +6,7 @@
 // builds on one machine, never to predict production CPU.
 //
 // Build a bundle without deploying:
-//   npx wrangler deploy --dry-run -c wrangler.rust.toml --outdir <dir>
+//   npx wrangler deploy --dry-run -c wrangler.toml --outdir <dir>
 // Run:
 //   node scripts/bench-thumbs.mjs <dir> [--n 60] [--warmup 10]
 import { readdirSync, readFileSync } from 'node:fs'

@@ -21,23 +21,23 @@ use crate::validate::{is_thumb_name, parse_cursor};
 const MAX_LIST: f64 = 1000.0;
 const MAX_GET_NAMES: usize = 40;
 const MAX_PUT_ENTRIES: usize = 20;
-const MAX_PUT_BYTES: usize = 4 * 1024 * 1024;
-/// The most bytes of one thumbnail. D1 hands a BLOB to the isolate as an array of numbers, so the
-/// cost of a request grows with the bytes it moves. Thumbnails average about 6 KB.
-pub const MAX_THUMB_BYTES: usize = 256 * 1024;
+const MAX_PUT_BYTES: usize = 3 * 1024 * 1024;
+/// The most bytes of one thumbnail, shared with the desktop client.
+pub use asset_hub_pack::MAX_THUMB_BYTES;
 /// The generation of the thumbnail storage, sent in the list reply. A client that sees another
 /// number than the one it synced with starts its thumbnail state again. The TypeScript Worker
-/// (thumbnails in B2) sends none, and clients read that as 1.
-pub const THUMB_EPOCH: u32 = 2;
+/// (thumbnails in B2) sends none, and clients read that as 1. Epoch 3 marks the recreated shard
+/// databases, which started empty, so every client must drop the thumbnails it believes are stored.
+pub const THUMB_EPOCH: u32 = 3;
 const MAX_GET_BODY_BYTES: usize = 8 * 1024;
 /// Shard queries in flight at once. D1 allows six open connections for one request.
 const SHARD_CONCURRENCY: usize = 6;
 /// The reply cap of the Free plan is far above a full GET, so no runtime check is needed.
 const MAX_REPLY_BYTES: usize = 48 * 1024 * 1024;
 const _: () = assert!(MAX_GET_NAMES * MAX_THUMB_BYTES <= MAX_REPLY_BYTES);
-/// The body of a PUT holds at most this many bytes of thumbnails, so the BLOB conversion of one
-/// request stays bounded.
-const _: () = assert!(MAX_PUT_BYTES <= MAX_PUT_ENTRIES * MAX_THUMB_BYTES);
+/// The body cap bounds the BLOB conversion of one request, and a full pack of maximum entries
+/// still fits under it with room for the entry headers.
+const _: () = assert!(MAX_PUT_ENTRIES * MAX_THUMB_BYTES + 64 * 1024 <= MAX_PUT_BYTES);
 /// The commit reads the previous rows with one `IN` list of every name, plus the repo and schema.
 const _: () = assert!(MAX_PUT_ENTRIES + 2 <= D1_MAX_PARAMS);
 
@@ -55,7 +55,7 @@ pub fn parse_limit(raw: Option<&str>) -> Option<usize> {
     (limit.fract() == 0.0 && (1.0..=MAX_LIST).contains(&limit)).then_some(limit as usize)
 }
 
-/// `{"items":[{"name":...,"size":...,"rev":...}],"next":"<rev>:<name>","epoch":2}`. One extra row
+/// `{"items":[{"name":...,"size":...,"rev":...}],"next":"<rev>:<name>","epoch":3}`. One extra row
 /// tells whether another page follows.
 pub fn list_body(rows: &[ThumbRow], limit: usize) -> String {
     let items = &rows[..rows.len().min(limit)];
@@ -462,15 +462,15 @@ mod tests {
     #[test]
     fn a_full_page_names_the_next_cursor() {
         let rows = vec![row("a", 4.0, 4.0), row("b", 4.0, 5.0)];
-        assert_eq!(list_body(&rows, 1), r#"{"items":[{"name":"a","size":4,"rev":4}],"next":"4:a","epoch":2}"#);
+        assert_eq!(list_body(&rows, 1), r#"{"items":[{"name":"a","size":4,"rev":4}],"next":"4:a","epoch":3}"#);
     }
 
     #[test]
     fn the_last_page_has_no_next() {
         let rows = vec![row("a", 4.0, 4.0), row("b", 4.0, 5.0)];
-        assert_eq!(list_body(&rows, 2), r#"{"items":[{"name":"a","size":4,"rev":4},{"name":"b","size":4,"rev":5}],"epoch":2}"#);
+        assert_eq!(list_body(&rows, 2), r#"{"items":[{"name":"a","size":4,"rev":4},{"name":"b","size":4,"rev":5}],"epoch":3}"#);
         assert_eq!(list_body(&rows, 1000), list_body(&rows, 2));
-        assert_eq!(list_body(&[], 1000), r#"{"items":[],"epoch":2}"#);
+        assert_eq!(list_body(&[], 1000), r#"{"items":[],"epoch":3}"#);
     }
 
     use crate::shards::{select_params, SHARDS, SHARD_CAP_BYTES};
@@ -838,8 +838,8 @@ mod tests {
     }
 
     #[test]
-    fn the_largest_thumbnail_is_256_kib() {
-        assert_eq!(MAX_THUMB_BYTES, 262_144);
+    fn the_largest_thumbnail_is_128_kib() {
+        assert_eq!(MAX_THUMB_BYTES, 131_072);
     }
 
     #[test]

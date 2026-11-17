@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { api, b2, build, github, OWNER, repoPath, waitForLog, SCHEMA, upstash, useContract } from './harness'
+import { api, b2, github, OWNER, repoPath, waitForLog, SCHEMA, upstash, useContract } from './harness'
 import { expectNoCors, JSON_TYPE } from './raw'
 
 useContract()
@@ -128,7 +128,7 @@ describe('authentication and repo access', () => {
     github.repo(TOKEN, OWNER, 'a', 200, readable())
     const res = await probe('a')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual(build === 'rust' ? { items: [], epoch: 2 } : { items: [] })
+    expect(await res.json()).toEqual({ items: [], epoch: 3 })
   })
 
   it('never logs the token', async () => {

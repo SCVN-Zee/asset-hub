@@ -2,7 +2,7 @@
 // grants push access to every token. It lets scripts/cpu-probe.mjs run end to end with no real service.
 //
 // Build a bundle without deploying:
-//   npx wrangler deploy --dry-run -c wrangler.rust.toml --outdir <dir>
+//   npx wrangler deploy --dry-run -c wrangler.toml --outdir <dir>
 // Run (stops on SIGTERM or Ctrl-C):
 //   node scripts/serve-local-worker.mjs <dir> [--port 8799]
 // Then:

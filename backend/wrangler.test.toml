@@ -13,55 +13,55 @@ command = 'cargo install -q worker-build@0.8.7 --locked && "$HOME/.cargo/bin/wor
 [[d1_databases]]
 binding = "DB"
 database_name = "asset-hub"
-database_id = "2bde477c-335b-44dc-b257-c10fbc8a4f25"
+database_id = "b3231772-34d6-4618-8011-6a8b2cf8a6cd"
 migrations_dir = "migrations"
 
 [[d1_databases]]
 binding = "THUMBS_0"
 database_name = "asset-hub-thumbs-0"
-database_id = "e1b5cafe-3112-49a1-9f15-a5834ab6a606"
+database_id = "1f776686-b2ea-4b7a-aa2b-33e8d680df73"
 migrations_dir = "migrations-thumbs"
 
 [[d1_databases]]
 binding = "THUMBS_1"
 database_name = "asset-hub-thumbs-1"
-database_id = "ae52fb04-fb87-4cfe-b1ef-258b601027d3"
+database_id = "67bec65d-dfe3-495e-8848-47db0e2d7e94"
 migrations_dir = "migrations-thumbs"
 
 [[d1_databases]]
 binding = "THUMBS_2"
 database_name = "asset-hub-thumbs-2"
-database_id = "861e04b4-bc5e-4e70-a180-0d1b31ba4961"
+database_id = "82788a4e-f61f-45ca-895e-e70cf7a44b34"
 migrations_dir = "migrations-thumbs"
 
 [[d1_databases]]
 binding = "THUMBS_3"
 database_name = "asset-hub-thumbs-3"
-database_id = "7377a6f5-2264-401d-87e2-fb3e9e72ed44"
+database_id = "9563ce79-6ed6-4dd0-bdc8-9ca9bbbaec38"
 migrations_dir = "migrations-thumbs"
 
 [[d1_databases]]
 binding = "THUMBS_4"
 database_name = "asset-hub-thumbs-4"
-database_id = "4a55d634-6ffe-4904-a50b-f8d408b05eaf"
+database_id = "7121e11e-b5cc-48b4-8e7e-c939f815dd99"
 migrations_dir = "migrations-thumbs"
 
 [[d1_databases]]
 binding = "THUMBS_5"
 database_name = "asset-hub-thumbs-5"
-database_id = "b130f9dc-9129-496e-a2e8-3e5c64fefc41"
+database_id = "3699a680-bb12-4eda-a838-f0a9309f711b"
 migrations_dir = "migrations-thumbs"
 
 [[d1_databases]]
 binding = "THUMBS_6"
 database_name = "asset-hub-thumbs-6"
-database_id = "cb7ffcbf-30a1-49f8-a330-09d621f70577"
+database_id = "33cd3d3a-a667-44b2-9c89-51acc9c32e55"
 migrations_dir = "migrations-thumbs"
 
 [[d1_databases]]
 binding = "THUMBS_7"
 database_name = "asset-hub-thumbs-7"
-database_id = "34bfe674-e426-43fd-b35f-8ca5a1325db3"
+database_id = "875177fa-e0c3-4caa-afc1-93292943ba9f"
 migrations_dir = "migrations-thumbs"
 
 [vars]
@@ -73,6 +73,9 @@ B2_BUCKET = "asset-hub-cache"
 [observability]
 enabled = true
 head_sampling_rate = 1
+
+[observability.logs]
+invocation_logs = true
 
 # Secrets UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, B2_KEY_ID and B2_APP_KEY: `wrangler secret put`
 # in production, `.dev.vars` (git-ignored) locally.

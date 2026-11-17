@@ -67,7 +67,7 @@ Live at `https://asset-hub-api.asset-hub-team.workers.dev`. A live smoke test pa
 - **Success criteria:** release published; ledger row present; the old index repo is the owner's to retire.
 - **Steps:**
   1. Add the change to `CHANGELOG.md` (Unreleased), then follow README "Release".
-  2. Add a ledger row to `docs/architecture.md`: "Team backend on Cloudflare Workers (D1, Backblaze B2, Upstash Redis); the app fails open". Why: private per-repo cache behind GitHub access, popularity needs shared counts, free tier fits. Rejected: public index repo (leaked listings), always-on server hosts (sleep or cost). Owners: `backend/`, `crates/app/src/team/`. Replace the shared-index row's GitHub-repo wording.
+  2. Add a ledger row to `docs/architecture.md`: "Team backend: Rust Worker (workers-rs) on Cloudflare Workers (D1, Backblaze B2, Upstash Redis); the app fails open". Why: private per-repo cache behind GitHub access, popularity needs shared counts, free tier fits. Rejected: public index repo (leaked listings), always-on server hosts (sleep or cost). Owners: `backend/`, `crates/app/src/team/`. Replace the shared-index row's GitHub-repo wording.
   3. Tell the owner when every active teammate runs the new build (usage comments show the version), so they can retire the old index repo.
   4. For the first month, check the Cloudflare and Upstash dashboards weekly against free limits.
 - **Verify:** `cargo test --workspace`, `bun run test` and `bun run typecheck` pass; links in `docs/architecture.md` resolve (`grep -o '](.*)' docs/architecture.md` targets exist).

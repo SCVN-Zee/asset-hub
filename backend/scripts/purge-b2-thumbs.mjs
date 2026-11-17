@@ -3,13 +3,13 @@
 //
 // Input: the index rows of the B2 era, exported after the Rust Worker is deployed and before
 // migration 0003 deletes them (the Rust Worker already treats these rows as absent):
-//   wrangler d1 execute asset-hub --remote -c wrangler.rust.toml --json \
+//   wrangler d1 execute asset-hub --remote -c wrangler.toml --json \
 //     --command "<the SELECT in the header of migrations/0003_thumbs_d1.sql>" > thumbs-export.json
 // A bare JSON array of rows works too.
 //
 // Run:  node scripts/purge-b2-thumbs.mjs thumbs-export.json            (lists what it would delete)
 //       node scripts/purge-b2-thumbs.mjs thumbs-export.json --execute  (deletes, then releases bytes)
-// Options: --config <file> picks the wrangler config for the release (default wrangler.rust.toml,
+// Options: --config <file> picks the wrangler config for the release (default wrangler.toml,
 //          resolved in the backend folder).
 // Secrets come from the environment: B2_KEY_ID and B2_APP_KEY. B2_ENDPOINT, B2_REGION and B2_BUCKET
 // default to the values in wrangler.toml.
@@ -31,7 +31,7 @@ const backendDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const [file, ...flags] = process.argv.slice(2)
 const execute = flags.includes('--execute')
 const configAt = flags.indexOf('--config')
-const config = configAt >= 0 && flags[configAt + 1] ? flags[configAt + 1] : 'wrangler.rust.toml'
+const config = configAt >= 0 && flags[configAt + 1] ? flags[configAt + 1] : 'wrangler.toml'
 if (!file) {
   console.error('usage: node scripts/purge-b2-thumbs.mjs <export.json> [--execute] [--config <wrangler file>]')
   exit(2)
