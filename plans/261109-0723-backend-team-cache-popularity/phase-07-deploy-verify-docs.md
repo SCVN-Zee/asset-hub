@@ -11,18 +11,21 @@ Create the accounts, deploy the Worker, point a test build at it, prove fail-ope
 
 ## Tasks
 
-### 7.1 Accounts, resources, secrets
+### 7.1 Accounts, resources, secrets (done 2026-11-16)
 - **Goal:** production resources exist; no secret in git.
 - **Target:** Cloudflare and Upstash dashboards; `backend/wrangler.toml` (IDs only).
 - **Steps (team owner):**
   1. Create a company-owned Cloudflare account and an Upstash account (free tiers; no card needed).
-  2. `cd backend && npx wrangler login`; `npx wrangler d1 create asset-hub`; `npx wrangler r2 bucket create asset-hub-cache`; put the D1 `database_id` and bucket name in `wrangler.toml` (IDs are not secrets).
+  2. `cd backend && npx wrangler login`; `npx wrangler d1 create asset-hub`; create the private B2 bucket and its bucket-limited application key; put the D1 `database_id` and the B2 endpoint, region and bucket name in `wrangler.toml` (IDs are not secrets) and set `B2_KEY_ID` and `B2_APP_KEY` as secrets.
   3. Create an Upstash Redis database (region near Singapore); `npx wrangler secret put UPSTASH_REDIS_REST_URL` and `... UPSTASH_REDIS_REST_TOKEN`.
   4. `npx wrangler d1 migrations apply DB --remote`.
 - **Success criteria:** resources listed in both dashboards; usage alerts or a weekly check set up against the free limits (Workers 100K requests/day, Upstash 500K commands/month, D1 5M rows read/day).
 - **Verify:** `npx wrangler secret list` shows both names; `git grep -n "UPSTASH_REDIS_REST_TOKEN\s*=" ` prints nothing.
 
-### 7.2 Deploy and smoke test
+### 7.2 Deploy and smoke test (done 2026-11-16)
+
+Live at `https://asset-hub-api.asset-hub-team.workers.dev`. A live smoke test passed: create, GET, 304, replace, stale replace (412), thumbnail put, list and get, and 401 without a token. Cloudflare weakened the ETag header of compressed PUT replies, so the PUT reply now sends `cache-control: no-transform`.
+
 - **Goal:** the Worker is live and enforces auth.
 - **Target:** `backend/` deploy; the Worker URL.
 - **Steps:**
@@ -34,15 +37,15 @@ Create the accounts, deploy the Worker, point a test build at it, prove fail-ope
 
 ### 7.3 Real-app fault test
 - **Goal:** prove the app works normally when the backend or Redis fails.
-- **Target:** `package.json` `backendUrl` (set to the Worker URL); report `plans/261109-0723-backend-team-cache-popularity/reports/fault-test.md`.
-- **Steps:** `npm run dev` with `ASSETHUB_TRACE=1`. For each case, open (a) a branch and prefab already cached on this Mac and (b) a branch never opened on this Mac:
+- **Target:** a debug build (`bun run dev`), which reads `team::TEAM_API` or the dev-only `ASSETHUB_BACKEND_URL` override (task 4.1); report `plans/261109-0723-backend-team-cache-popularity/reports/fault-test.md`.
+- **Steps:** `ASSETHUB_TRACE=1 bun run dev`. For each case, open (a) a branch and prefab already cached on this Mac and (b) a branch never opened on this Mac:
   1. normal;
-  2. `backendUrl` host that does not resolve (DNS failure);
+  2. `ASSETHUB_BACKEND_URL` set to a host that does not resolve (DNS failure);
   3. a local stub server on `http://127.0.0.1:<port>`, selected with the dev-only `ASSETHUB_BACKEND_URL` (task 4.1), that hangs, then returns 500, 429, 401, 403 and corrupt JSON in turn;
   4. Worker reachable, Redis token invalid (`wrangler secret put UPSTASH_REDIS_REST_TOKEN`, restore afterwards);
   5. network off after the grid loads.
 - **Success criteria:**
-  - In cases 2–4, both (a) and (b) show the grid and preview, and `[ipc]` times for `listTree` are within 10 % of the `backendUrl`-empty baseline. The offline dot shows after the breaker opens.
+  - In cases 2–4, both (a) and (b) show the grid and preview, and the traced command times for browsing (`browse_assets`) are within 10 % of the baseline with `ASSETHUB_BACKEND_URL=` (empty, client disabled). The offline dot shows after the breaker opens.
   - In case 4, cache sync still works and the order falls back to branch count.
   - In case 5, (a) previews from local caches; (b) is expected to fail as it does today without network.
 - **Verify:** the report lists the trace lines per case and states pass or fail for each criterion. Pass = every criterion above is met. 
@@ -51,7 +54,7 @@ Create the accounts, deploy the Worker, point a test build at it, prove fail-ope
 - **Goal:** popular assets open in 2–4 s, selection to visible preview, on a branch opened for the first time.
 - **Target:** the `preview.ms.*` and `preview.warm` counts from task 6.5; same report file.
 - **Steps:**
-  1. On a second Mac (or a fresh `userData` folder), open a branch not opened before.
+  1. On a second Mac (or a fresh `ASSETHUB_USER_DATA` folder), open a branch not opened before.
   2. Open 2 top-20 assets **immediately** (before prefetch can finish) and note the time.
   3. Wait until prefetch is done (≤ 1 min), then open 5 other top-20 assets.
   4. Read the session's usage JSON.
@@ -64,10 +67,10 @@ Create the accounts, deploy the Worker, point a test build at it, prove fail-ope
 - **Success criteria:** release published; ledger row present; the old index repo is the owner's to retire.
 - **Steps:**
   1. Add the change to `CHANGELOG.md` (Unreleased), then follow README "Release".
-  2. Add a ledger row to `docs/architecture.md`: "Team backend on Cloudflare Workers (D1, R2, Upstash Redis); the app fails open". Why: private per-repo cache behind GitHub access, popularity needs shared counts, free tier fits. Rejected: public index repo (leaked listings), always-on server hosts (sleep or cost). Owners: `backend/`, `src/main/backend.ts`, `src/main/remoteCache.ts`. Replace the shared-index row's GitHub-repo wording.
+  2. Add a ledger row to `docs/architecture.md`: "Team backend on Cloudflare Workers (D1, Backblaze B2, Upstash Redis); the app fails open". Why: private per-repo cache behind GitHub access, popularity needs shared counts, free tier fits. Rejected: public index repo (leaked listings), always-on server hosts (sleep or cost). Owners: `backend/`, `crates/app/src/team/`. Replace the shared-index row's GitHub-repo wording.
   3. Tell the owner when every active teammate runs the new build (usage comments show the version), so they can retire the old index repo.
   4. For the first month, check the Cloudflare and Upstash dashboards weekly against free limits.
-- **Verify:** `npm test` passes; links in `docs/architecture.md` resolve (`grep -o '](.*)' docs/architecture.md` targets exist).
+- **Verify:** `cargo test --workspace`, `bun run test` and `bun run typecheck` pass; links in `docs/architecture.md` resolve (`grep -o '](.*)' docs/architecture.md` targets exist).
 
 ## Success Criteria
 

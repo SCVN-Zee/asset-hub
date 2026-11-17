@@ -1,88 +1,98 @@
 ---
-title: "Phase 5: Remote cache sync; retire the GitHub index repo mode"
-status: todo
+title: "Phase 5: Remote cache sync; retire the GitHub index repo mode (Rust)"
+status: done
 ---
 
 # Phase 5: Remote cache sync
 
 ## Overview
 
-Replace the GitHub index repo with per-repo objects on the backend. The merge logic already exists in `importIndex` / `exportIndex` (`src/main/sharedIndex.ts`) behind `interface Deps { catalog; source; stats; thumbs }` (line ~47, not exported yet). This phase reuses it per repo instead of copying it. The shared-folder mode (`Settings.sharedIndexDir`) stays. When the backend is down, the app uses local caches and GitHub, as before, with no remote cache.
+Replace the GitHub index repo (`IndexRepo`, `crates/app/src/index_repo.rs`; `INDEX_REPO` at line 19) with per-repo objects on the Worker. The merge logic already exists in `import_index` / `export_index` (`crates/app/src/shared_index.rs:195`, `:285`) over `pub struct Deps { catalog, facts, caches }` (`shared_index.rs:68`). This phase extracts the per-repo parts and reuses them. It does not copy them. Folder mode (`Settings.shared_index_dir`, `SharedIndexService`) stays. With the Worker down, the app uses local caches and GitHub, as today.
+
+Depends on phase 4 (`team::TeamClient`, `Session.team`, `TeamStatus`).
 
 ## Requirements
 
-- Pull a repo on sign-in (repos in the local catalog) and when a branch of that repo is opened; at most once per repo per 10 min.
-- Conditional GETs with stored ETags (`<cacheDir>/remote-cache-etags.json`), so unchanged objects cost one small request.
-- Contribute a repo at most every `CONTRIBUTE_AFTER_MS` (2 h), only when local data adds something, and only when the backend says the user can push.
-- Background only: waits while the `foreground` counter in `src/main/github.ts` is above 0; never blocks a foreground request. Each `pull`/`contribute` has a whole-operation deadline (5 min) and is wrapped so no error escapes to an unhandled rejection.
-- Personal repos (owner = signed-in login) are never uploaded (the rule in `SharedIndexService.include`).
+- Pull a repo when a branch of it opens (`browse_assets`, `crates/app/src/commands/parse.rs:426`, and `source_list_tree`, `commands/source.rs:39`), after the local answer is built. Also pull, then contribute, every repo in the local catalog at sign-in and every `CHECK_EVERY` (30 min, `shared_index.rs:42`), one repo at a time. Pull each repo at most once per 10 min.
+- Conditional GETs with the stored ETag. Send `If-None-Match` only while the local store still holds data for that object, so a cleared store is filled again.
+- Contribute a repo at most every `CONTRIBUTE_AFTER_MS` (2 h, `shared_index.rs:40`), and only when local data adds something. Only `team::writes_enabled()` builds contribute. They stop for the session on 403 `readOnly` (after every account was tried) or on 507.
+- Background only: `foreground.wait_idle()` (`crates/app/src/hub.rs:103`) runs before each request batch. Each `pull` / `contribute` has a 5 min whole-operation deadline (`tokio::time::timeout`). Every error is traced and dropped, and no error reaches a command.
+- Pull and contribute for one repo never overlap (a per-repo `tokio::sync::Mutex`).
+- Personal repos are never uploaded. A repo is personal when its owner equals the login of any signed-in account (`Session.accounts`). This widens `SharedIndexService::include` (`crates/app/src/shared_index_service.rs:131`) to multiple accounts.
 
 ### Validation of everything taken in (isolation)
 
-Remote objects are written by teammates, so the desktop checks them before merging:
-1. **Repo binding:** an object fetched for repo R must have `repo === R` (case-insensitive) inside; facts payloads too. Otherwise discard it and count `remote.mismatch`. This stops a reader of repo A from planting a catalog for repo B (`CatalogService.merge` in `src/main/catalog.ts:148` trusts the payload's `repo`).
-2. **Shape:** catalog through `RepoCatalog.parse`; facts as `Record<40-hex sha, value>`; stats keys must be 40-hex SHAs.
-3. **Membership:** stats, facts and thumbnails are taken only for SHAs listed in R's trusted catalog `blobs`. Trusted means listed by this Mac from GitHub, from the local catalog *before* this pull merged anything (`RepoCatalogData` in `src/core/catalog/catalog.ts`). A repo this Mac never listed takes in the catalog only. Its stats, facts and thumbnails are taken in on the next pull, after a local listing.
-4. **Size:** gunzip with `zlib.gunzip` (async, off the main thread) and `maxOutputLength: 64 MB`; larger → discard.
-5. **Provenance:** re-export (contribute) builds objects only from R's own catalog, so data taken in for one repo is never uploaded under another.
+1. **Repo binding:** a catalog fetched for repo R must have `repo` equal to R, ignoring case. A facts object must also have `repo == R`. Otherwise discard it and trace `remote.mismatch`. `CatalogService::merge` (`crates/app/src/catalog_service.rs:590`) trusts the payload's `repo`, so this check runs before it.
+2. **Shape:** the catalog goes through `RepoCatalog::parse` (inside `merge`). Facts must be an object keyed by 40-hex SHAs. Stats keys must be 40-hex SHAs. Thumbnail names must match `^[0-9a-f]{40}(\.fx)?$`, and a pack entry that was not requested is dropped.
+3. **Membership:** stats, facts and thumbnails are taken only for SHAs in R's trusted `blobs`. Trusted means read from this Mac's local catalog *before* this pull merged anything (`RepoCatalogData.blobs`, `crates/core/src/catalog.rs:45`). A repo this Mac never listed takes in the catalog only. Its other objects come on the next pull.
+4. **Size:** the reply body is capped by the client (48 MB). Gunzip runs in `spawn_blocking` with `flate2::read::GzDecoder` and `.take(64 MB + 1)`. A larger output is discarded.
+5. **Provenance:** contribute builds objects only from R's own catalog and R's SHAs, so data taken in for one repo is never uploaded under another.
 
 ## Tasks
 
-### 5.1 Export the merge contract and per-repo serializers
-- **Goal:** one function builds each per-repo object; folder mode and remote cache both use it.
-- **Target:** `src/main/sharedIndex.ts` — `export interface Deps`; new exports `repoCatalogBytes(deps, repo)`, `repoFactsBytes(deps, kind, repo)`, `repoStatsBytes(deps, shas)`; `exportIndex` calls them.
-- **Steps:** export `Deps`; move the per-repo code from `exportIndex` into these functions without changing output bytes (deterministic key order stays).
-- **Success criteria:** folder export output is byte-identical.
-- **Verify:** `npx vitest run src/main/sharedIndex.test.ts` passes unchanged tests plus "per-repo serializers match exportIndex files".
+### 5.1 Extract per-repo serializers and merge helpers
+- **Target:** `crates/app/src/shared_index.rs`; `crates/app/src/catalog_service.rs` (new `pub async fn blob_shas(&self, repo: &str) -> HashSet<String>` over `load`, line 471).
+- **New functions, all `pub(crate)`:**
+  - `fn gzip_json<T: Serialize>(value: &T) -> Result<Vec<u8>, String>`, taken out of `write_json_gz` (line 103).
+  - `fn catalog_adds(theirs: Option<&Value>, mine: &RepoCatalogData) -> bool`, the `same` test at lines 295–299.
+  - `async fn repo_facts(deps: &Deps, kind: &str, repo: &str) -> Result<Option<FactsFile>, String>`, sorted as at lines 322–324. Make `FactsFile` `pub(crate)`.
+  - `fn facts_add(theirs: Option<&Map<String, Value>>, known: &Map<String, Value>) -> bool`, which wraps `covers` (line 142).
+  - `fn repo_stats(all: &HashMap<String, StatsSummary>, shas: &HashSet<String>) -> BTreeMap<String, StatsSummary>`.
+  - `async fn save_newer_cards(deps: &Deps, shared: &HashMap<String, CoreStats>, local: &HashMap<String, StatsSummary>)`, from lines 238–249.
+- **Steps:** `export_index` and `import_index` call these helpers, and their output bytes do not change.
+- **Verify:** `cargo test -p asset-hub shared_index::` passes the existing tests, plus `per_repo_helpers_match_export_index_files`. `cargo test -p asset-hub --test parity_index` passes.
 
-### 5.2 `RemoteCache.pull`
-- **Goal:** a fresh Mac gets a repo's catalog, facts, stats and thumbnails from the backend, validated.
-- **Target:** new `src/main/remoteCache.ts` — `class RemoteCache { constructor(client: BackendClient, deps: Deps, opts: { idle: () => Promise<void>; login: () => string | undefined }); pull(repo: string, signal: AbortSignal): Promise<RemoteCacheResult>; contribute(repo: string, signal: AbortSignal): Promise<RemoteCacheResult> }`.
-- **Steps:**
-  1. Read R's trusted blob set from the local catalog first.
-  2. GET `cache/catalog`, `cache/stats`, `cache/facts-<kind>` for each kind in `SHARED_FACT_KINDS` (`src/core/github/source.ts`), with `If-None-Match`.
-  3. Validate per "Validation" above, then merge with `deps.catalog.merge`, `deps.source.mergeSharedFacts(kind, repo, facts)`, `deps.stats.importMany`. A failed object is skipped and counted (`remote.corrupt`, `remote.mismatch`); the rest continue.
-  4. Thumbnails, after stats (their version check needs stats): page `GET thumbs?after=<rev>:<name>` (items carry `rev`, not a time); keep names whose SHA is in the trusted set and that are missing locally **or newer** per `newerCard(shared, local)` (`src/core/checks/playable.ts`, as `importIndex` does at `sharedIndex.ts:74–90`, including the stats card-version save afterwards). Fetch in batches of 40 with 2 in flight, `await opts.idle()` before each batch; `deps.thumbs.importFile(name, bytes, replace)`. Decode with `src/shared/thumbPack.ts`.
-  5. Save the cursor per repo **after** each batch is stored, so a crash re-fetches at most one batch.
-  6. Stop at once on `signal.aborted`, the 5-min deadline, or when the client returns `undefined` (backend down).
-- **Success criteria:** a pull against a fake client fills an empty cache and rejects mismatched or oversized data.
-- **Verify:** `npx vitest run src/main/remoteCache.test.ts` passes "pull fills empty stores", "304 skips merge", "corrupt object skipped", "catalog for other repo rejected", "stats for SHA outside repo ignored", "oversized gzip rejected", "newer card replaces thumb", "cursor saved after batch", "stops when backend down", "waits for idle before thumb batch", "never throws".
+### 5.2 Thumbnail pack codec
+- **Target:** new `crates/app/src/team/pack.rs` — `pub fn encode_pack(entries: &[(String, Vec<u8>)]) -> Vec<u8>` and `pub fn decode_pack(data: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String>`. The format is repeated `[u16 BE nameLen][utf-8 name][u32 BE byteLen][bytes]` (`backend/src/pack.ts:1`).
+- **Steps:** copy the two vectors from `backend/src/pack.test.ts` into Rust tests. Delete the now-unused `ui/shared/thumbPack.ts` and `ui/shared/thumbPack.test.ts`. The page makes no network request, and only `backend/src` comments mention them (`grep -rn thumbPack ui backend/src`). Point the comments in `backend/src/pack.ts:3` and `backend/src/pack.test.ts:7` to `crates/app/src/team/pack.rs`.
+- **Verify:** `cargo test -p asset-hub team::pack` passes `encodes_vectors`, `decodes_vectors`, `truncated_is_error`, `bad_utf8_is_error`. `cd backend && npm test` passes.
 
-### 5.3 `RemoteCache.contribute`
-- **Goal:** what this Mac lists and renders reaches teammates.
-- **Target:** `src/main/remoteCache.ts` — `contribute`; per-repo state in `<cacheDir>/remote-cache-state.json` (last upload hash and time per object).
+### 5.3 `RemoteCache::pull`
+- **Target:** new `crates/app/src/team/remote_cache.rs`. `pub struct RemoteCache` is built by `RemoteCache::new(client: Arc<TeamClient>, deps: Deps, foreground: Foreground, logins: Vec<String>, state_dir: PathBuf)` and has `pub async fn pull(&self, repo: &str) -> Counts`. Per-repo state lives in `<cacheDir>/remote-cache/<repo_slug>.json` (`repo_slug`, `catalog_service.rs:52`), written with `write_atomic`. It holds the ETag and JSON SHA-256 per object, the thumbnail cursor, `last_contributed` and the remote thumbnail names.
 - **Steps:**
-  1. Skip personal repos, repos contributed within 2 h, and repos where the backend answered `readOnly` (remember for the session).
-  2. For catalog, stats (R's SHAs only) and each facts kind: build bytes with 5.1; if the SHA-256 equals the last uploaded or pulled bytes, skip; else PUT with `If-Match` (or `If-None-Match: *` when none). On 412: pull that object, merge, rebuild, retry; at most 4 attempts (`PUSH_ATTEMPTS`).
-  3. Thumbnails: local names whose SHA is in R's catalog `blobs`, minus remote names with an equal or newer card → upload in packs of 20, at most 2,000 per session, waiting for idle.
-- **Success criteria:** concurrent writers converge; readers without push never upload.
-- **Verify:** `npx vitest run src/main/remoteCache.test.ts -t contribute` passes "412 then merge then succeed", "gives up after 4", "skips personal repo", "skips unchanged bytes", "stops after readOnly", "uploads only this repo's SHAs".
+  1. Read R's trusted blob set first (`CatalogService::blob_shas`).
+  2. GET `cache/catalog`, `cache/stats` and `cache/facts-<kind>` for each kind in `SHARED_FACT_KINDS` (`crates/core/src/github/source.rs:156`), with the `BACKGROUND` budget. A 304 or 404 skips the object.
+  3. Validate as above. Then merge with `deps.catalog.merge`, `deps.facts.merge_shared_facts(kind, repo, facts)` and `deps.caches.stats.import_many`. A failed object is skipped and traced, and the rest continue.
+  4. Do thumbnails before the stats merge, as `import_index` does (lines 210–249). Read the local stats first. Page `GET thumbs?after=<rev>:<name>&limit=1000` from the saved cursor (items are `{ name, size, rev }`, `backend/src/thumbs.ts:29`). Keep names whose key is trusted and that are missing locally or `newer_card(remote, local)` (`asset_hub_core::stats::newer_card`). Chunk each page in listing order into groups of 40, and POST `thumbs/get` `{ "names": [...] }` for each group's wanted names. Use `stream::iter(..).buffered(2)`, so the order is kept, and wait for idle before each group. Decode with `pack::decode_pack`, then call `deps.caches.thumbs.import_file(name, bytes, replace)`. Save the cursor (the group's last `rev:name`) after the group is stored, and add the names to the remote set.
+  5. Then `import_many` the stats and call `save_newer_cards`.
+  6. Stop at once on the deadline or on `TeamError::{Offline, Disabled, Timeout, Network}`.
+- **Verify:** `cargo test -p asset-hub team::remote_cache::pull` passes `fills_empty_stores`, `not_modified_skips_merge`, `corrupt_object_skipped`, `catalog_for_other_repo_rejected`, `stats_for_sha_outside_repo_ignored`, `oversized_gzip_rejected`, `newer_card_replaces_thumb`, `cursor_saved_after_group`, `stops_when_offline`, `waits_for_idle_before_group`, `unrequested_pack_entry_dropped`. The tests run against `test_server::serve_full`.
 
-### 5.4 Wire it in and retire the GitHub index repo mode
-- **Goal:** the backend replaces `INDEX_REPO`; folder mode stays.
-- **Target:** `src/main/github.ts` (lines ~113–121 where `SharedIndexService` and `IndexRepo` are created; the `IPC.listTree` handler at ~235; sign-out handling), `src/main/sharedIndex.ts` (`github()`, `include`, the `write` push loop, `readOnly`), delete `src/main/indexRepo.ts` and `src/main/indexRepo.test.ts`, `src/renderer/src/screens/Settings.tsx` (`SharedIndexSetting`), locale keys about the GitHub index repo in en/vi/ko.
+### 5.4 `RemoteCache::contribute`
+- **Target:** `crates/app/src/team/remote_cache.rs` — `pub async fn contribute(&self, repo: &str) -> Counts`.
 - **Steps:**
-  1. Create `RemoteCache` after sign-in; in the background, `pull` then `contribute` for catalog repos, one repo at a time.
-  2. In the `IPC.listTree` handler, after the local answer is returned, schedule `pull(repo)` (not awaited); abort the previous one when another branch opens.
-  3. On sign-out or account change, abort all remote cache work and reset per-session state.
-  4. Remove the `IndexRepo` path from `SharedIndexService`: with no folder picked, the service is idle. Keep folder import/export.
-  5. Settings shows "Team cache: online / offline" from `BackendStatus` instead of the GitHub repo name. Update en/vi/ko; delete keys no longer used.
-- **Success criteria:** no reference to `INDEX_REPO` remains; folder mode tests still pass.
-- **Verify:** `git grep -n "INDEX_REPO\|IndexRepo" src` prints nothing, and `npm test && npm run typecheck && npm run build` exit 0.
+  1. Skip the repo in these cases: writes are off or paused, the repo is personal, it was contributed within 2 h, or `readOnly` was answered this session.
+  2. For the catalog, stats (R's SHAs only) and each facts kind: build the JSON. Skip the object when `catalog_adds` / `facts_add` / the stats canonical compare says the remote object already covers it, or when its SHA-256 equals the last pulled or uploaded value. Otherwise PUT `cache/<name>` with gzip bytes and `If-Match: <etag>` (or `If-None-Match: *` when no ETag is known). On 412, pull that object, merge, rebuild and retry, at most `PUSH_ATTEMPTS` (4, `shared_index_service.rs:25`) times.
+  3. Thumbnails: take local names whose key is in R's `blobs`. Leave out remote names, unless the local card is newer than the remote one. Upload in packs of at most 20 entries and 4 MB, at most 2,000 per session, waiting for idle before each pack. Skip entries over 1 MB.
+- **Verify:** `cargo test -p asset-hub team::remote_cache::contribute` passes `conflict_then_merge_then_succeed`, `gives_up_after_4`, `skips_personal_repo_of_any_account`, `skips_covered_objects`, `stops_after_read_only`, `stops_after_storage_full`, `uploads_only_this_repos_shas`, `dev_build_uploads_nothing`.
+
+### 5.5 Wire in, gate, then retire the GitHub index repo mode
+- **Status:** wiring and the live-check test are done. The Retire step is deferred until the live read-only check has run. The index repo mode is still in place, so the final `git grep` Verify below does not pass yet.
+- **Wire:** `Session` gains `pub remote_cache: Arc<RemoteCache>` (`hub.rs:39`, built in `services`, line 188). `Hub::begin` starts `remote_cache.start(CHECK_EVERY)`, which follows the `start_checks` pattern. `Session::end` stops it and aborts the running task (`AbortHandle`). `browse_assets` and `source_list_tree` call `session.remote_cache.schedule_pull(&repo)` after the local result: it spawns, is not awaited, and is rate-limited.
+- **Gate (before deleting anything):** 5.1–5.4 pass. A read-only live check passes: `ASSETHUB_LIVE_TOKEN="$(gh auth token)" ASSETHUB_LIVE_REPO=<owner/repo> cargo test -p asset-hub team::remote_cache::live -- --ignored --nocapture`. It is an `#[ignore]` test against `TEAM_API`: health is OK, and `pull` returns with no `Status` error other than 404.
+- **Retire:** delete `crates/app/src/index_repo.rs`, `crates/app/tests/parity_index_repo.rs`, and `pub mod index_repo` (`lib.rs:27`). In `shared_index_service.rs`, remove `repo`, `auto_contribute`, `github()`, `resolve_writer`, `read_only`, `should_contribute` and the push loop in `write`, and delete the GitHub-mode tests. With no folder picked, the service is idle. In `hub.rs`, remove `index_remote`, `with_index_remote` and the `IndexRepo` construction (lines 216–217). In `commands/caches.rs:63`, remove the `resolve_writer` call. In `dto.rs:844–862`, remove `SharedIndexVia::Github` and `SharedIndexStatus.{repo, read_only, writer}`. Then `bun run bindings`.
+- **UI:** `ui/shared/ipc.ts` types. In `ui/src/screens/Settings.tsx`, `SharedIndexSetting` (line 369) shows "Team cache: online / offline" from `team.status()` in place of the GitHub repo text. Delete `settings.sharedIndexNone`, `sharedIndexNoGit`, `sharedIndexAuto`, `sharedIndexReadOnly`, `sharedIndexReadOnlyMany` and `sharedIndexWriter` from en/vi/ko, and add `settings.teamCacheOnline` and `settings.teamCacheOffline`.
+- **Docs:** in `docs/architecture.md`, the read-only row and the "Share the catalog through a GitHub repository" row name `IndexRepo`. Change them to the folder plus the team API.
+- **Verify:** `git grep -n "INDEX_REPO\|IndexRepo\|index_repo" crates ui docs/architecture.md` prints nothing. `cargo test --workspace`, `bun run test` and `bun run typecheck` exit 0.
 
 ## Success Criteria
 
-- With a fresh cache directory and a reachable backend, a repo's catalog and thumbnails fill without pulling the index repo.
-- With the backend unreachable, `listTree` times under `ASSETHUB_TRACE=1` match the same build with `backendUrl` empty (within 10 %).
+- With a fresh cache folder and a reachable Worker, opening a branch fills its catalog and thumbnails without git or the index repo.
+- With the Worker unreachable, `[ipc]` times of `browse_assets` and `source:list-tree` under `ASSETHUB_TRACE=1` are within 10 % of `ASSETHUB_BACKEND_URL=` (disabled).
+
+## Risks
+
+- **A teammate plants bad data (low × high).** The validation rules above apply, and the rejection tests cover each rule.
+- **Old 2.x builds still write only the index repo (high × low).** Data converges once teammates update. See open question 2.
+- **Retiring too early (medium × high).** The gate in 5.5 comes first, and retirement is its own commit.
+
+## Rollback
+
+Revert the retirement commit (5.5) to restore folder and GitHub modes. Delete `<cacheDir>/remote-cache/` to forget sync state. Local stores only ever gain validated data.
 
 ## Failure Protocol
 If any Verify step does not meet its stated pass condition, STOP this phase.
 Do not improvise a fix, retry blindly, or reason around the failure.
-Spawn the `kongming` subagent for next-step counsel and pass:
-- the phase and task id,
-- what you attempted (the steps you ran),
-- the exact command and its full output,
-- the pass condition it failed to meet.
+Spawn the `kongming` subagent for next-step counsel and pass the phase and task id, the steps you ran, the exact command and its full output, and the pass condition it failed to meet.
 Apply kongming's guidance, then re-run the Verify step.
-If `kongming` cannot be spawned in this environment, STOP and report the same
-failure evidence to the user. Never continue by self-reasoning.
+If `kongming` cannot be spawned in this environment, STOP and report the same failure evidence to the user. Never continue by self-reasoning.
