@@ -11,6 +11,18 @@ const REFRESH_MS = 3000
 /** …and never more than this share of the time: reading every repo's results takes seconds. */
 const REFRESH_SHARE = 0.1
 
+/** Snapshot reads in flight by key: React runs an effect twice in development, and the second run joins the first read. */
+const snapshotsInFlight = new Map<string, ReturnType<typeof window.api.catalog.snapshot>>()
+
+function sharedSnapshot(key: string, ask: () => ReturnType<typeof window.api.catalog.snapshot>) {
+  let read = snapshotsInFlight.get(key)
+  if (!read) {
+    read = ask().finally(() => snapshotsInFlight.delete(key))
+    snapshotsInFlight.set(key, read)
+  }
+  return read
+}
+
 /**
  * The cross-branch catalog for a scope: starts indexing when the scope is
  * opened, and re-reads the results as branches get listed.
@@ -28,6 +40,8 @@ export function useCatalog(
   const [assets, setAssets] = useState<CatalogAsset[]>()
   const [facets, setFacets] = useState<CatalogFacets>()
   const [error, setError] = useState<unknown>()
+  /** Counts the real listings taken in (not a saved one), so others can tell the catalog moved on. */
+  const [revision, setRevision] = useState(0)
   const lastRead = useRef(0)
   /** How long the last read took, to space out the next ones. */
   const readTime = useRef(0)
@@ -72,6 +86,7 @@ export function useCatalog(
           try {
             const listing = unwrap(r)
             landed.current = now.key
+            setRevision((n) => n + 1)
             setAssets(listing.assets)
             setFacets(listing.facets)
             setError(undefined)
@@ -114,7 +129,7 @@ export function useCatalog(
     ensure()
     // The listing made last time shows while the read runs; a real listing always replaces it.
     const asked = latest.current
-    void window.api.catalog.snapshot(asked.target, [...asked.excludedFolders], asked.filter).then((r) => {
+    void sharedSnapshot(asked.key, () => window.api.catalog.snapshot(asked.target, [...asked.excludedFolders], asked.filter)).then((r) => {
       if (!r.ok || !r.data || latest.current.key !== asked.key || landed.current === asked.key) return
       setAssets(r.data.assets)
       setFacets(r.data.facets)
@@ -156,6 +171,7 @@ export function useCatalog(
     status,
     assets: active ? assets : undefined,
     facets: active ? facets : undefined,
+    revision,
     error: active ? error : undefined,
     pause: () => void window.api.catalog.pause().then((r) => r.ok && setStatus(r.data)),
     resume: () => void window.api.catalog.resume().then((r) => r.ok && setStatus(r.data))

@@ -32,8 +32,19 @@ fn with_session(state: &AppState, status: Result<AuthStatus, IpcError>) -> Resul
 /// Whether the app is signed in, and how.
 #[tauri::command]
 #[specta::specta]
-pub async fn auth_status(state: State<'_, AppState>) -> Result<AuthStatus, IpcError> {
-    traced("auth_status", async { with_session(&state, state.auth.status().await) }).await
+pub async fn auth_status(app: AppHandle, state: State<'_, AppState>) -> Result<AuthStatus, IpcError> {
+    traced("auth_status", async {
+        state.auth.on_signed_out(Arc::new(move || {
+            let _ = crate::events::AuthChanged { signed_in: false }.emit(&app);
+        }));
+        let status = state.auth.status().await;
+        // A sign-in that GitHub rejected after the launch leaves a session that no longer matches.
+        if status.as_ref().is_ok_and(|s| !s.signed_in) {
+            state.hub.clear();
+        }
+        with_session(&state, status)
+    })
+    .await
 }
 
 /// Signs in with a personal access token.

@@ -47,6 +47,18 @@ export function App() {
     )
   }, [enterGitHub])
 
+  // The launch answers from the stored sign-in; GitHub confirms it afterwards. If GitHub then rejects
+  // the token, the backend says so and the sign-in screen comes back.
+  useEffect(() => {
+    return window.api.auth.onAuthChanged(({ signedIn }) => {
+      if (signedIn) return
+      setAuth(undefined)
+      setSource(undefined)
+      setSettingsOpen(false)
+      setScreen('signin')
+    })
+  }, [])
+
   useEffect(() => {
     if (!settings) return
     void i18n.changeLanguage(settings.language)

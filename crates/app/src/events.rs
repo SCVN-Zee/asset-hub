@@ -20,6 +20,13 @@ pub struct GhLoginPrompt {
     pub url: String,
 }
 
+/// The sign-in ended on the backend side: GitHub rejected the token the launch had restored.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthChanged {
+    pub signed_in: bool,
+}
+
 /// Download of GitHub CLI.
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
 #[serde(transparent)]

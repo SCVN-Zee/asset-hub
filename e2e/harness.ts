@@ -82,10 +82,20 @@ const descriptors = [
   descriptor('font', 'font', 'FNT', 'font', 'file')
 ]
 
-/** A listing as the backend sends it: one location with one branch and the totals; `catalog_where_is` has the rest. */
+/** A listing as the backend sends it: one location with one branch, and nothing the page can work out (see `hydrateListing`); `catalog_where_is` has the rest. */
 function slim(a: (typeof catalog)[number]) {
   const [first] = a.locations
-  return { ...a, locations: [{ ...first, branches: first.branches.slice(0, 1), branchTotal: first.branches.length }], locationTotal: a.locations.length }
+  const { id: _id, lfs, locations: _all, repos, ...rest } = a
+  const location: Record<string, unknown> = { repo: first.repo, branches: first.branches.slice(0, 1) }
+  if (first.path !== a.path) location.path = first.path
+  if (first.branches.length > 1) location.branchTotal = first.branches.length
+  return {
+    ...rest,
+    ...(lfs ? { lfs } : {}),
+    locations: [location],
+    ...(a.locations.length > 1 ? { locationTotal: a.locations.length } : {}),
+    ...(repos.length === 1 && repos[0] === first.repo ? {} : { repos })
+  }
 }
 
 function listingOf(assets: typeof catalog) {

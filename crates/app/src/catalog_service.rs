@@ -144,7 +144,14 @@ struct Listed {
     assets: Arc<Vec<CatalogAsset>>,
     /// Filter counts of the grouped results, per repo filter (the repos joined) (counting goes over every branch of every file).
     facets: HashMap<String, CatalogFacets>,
+    /// The prefabs' branches, made when the first prefab scan plan is asked for.
+    prefabs: Option<Arc<PrefabIndex>>,
+    /// Prefab scan plans already made, by filter and scanned set.
+    plans: HashMap<String, Arc<Vec<(String, String)>>>,
 }
+
+/// Plans kept per grouping; the page asks for a few at most.
+const PLANS_KEEP: usize = 16;
 
 pub struct CatalogService {
     source: Arc<dyn CatalogSource>,
@@ -630,11 +637,17 @@ impl CatalogService {
 
     /// Groups the catalogs of `repos` unless the last grouping is current, and answers the cache
     /// slot (locked, and holding the grouping). None when a newer request overtook this one.
+    /// The repos a request groups and what identifies that grouping (repos and excluded folders).
+    async fn grouping_key(&self, repos: &[String], excluded_folders: &[String]) -> (Vec<String>, String) {
+        let names = if repos.is_empty() { self.saved_repos().await } else { repos.to_vec() };
+        let key = serde_json::to_string(&(&names, excluded_folders)).unwrap_or_default();
+        (names, key)
+    }
+
     async fn grouped(&self, repos: &[String], excluded_folders: &[String], ticket: Option<u64>) -> Result<Option<tokio::sync::MutexGuard<'_, Option<Listed>>>, SourceError> {
         let requests = self.requests.clone();
         let stale = move || ticket.is_some_and(|t| requests.load(Ordering::SeqCst) != t);
-        let names = if repos.is_empty() { self.saved_repos().await } else { repos.to_vec() };
-        let key = serde_json::to_string(&(&names, excluded_folders)).unwrap_or_default();
+        let (names, key) = self.grouping_key(repos, excluded_folders).await;
         let version = self.version.load(Ordering::SeqCst);
         self.warm(&names).await;
         let mut slot = self.listed.lock().await;
@@ -660,7 +673,7 @@ impl CatalogService {
             .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not group the catalog: {e}")))?;
             // A grouping that was given up is not kept.
             let Some(assets) = assets else { return Ok(None) };
-            *slot = Some(Listed { key, version, assets: Arc::new(assets), facets: HashMap::new() });
+            *slot = Some(Listed { key, version, assets: Arc::new(assets), facets: HashMap::new(), prefabs: None, plans: HashMap::new() });
         }
         Ok(Some(slot))
     }
@@ -682,6 +695,8 @@ impl CatalogService {
                 facets
             }
         };
+        // The cache slot is free while the listing is made, so a prefab scan plan does not wait on it.
+        drop(slot);
         let listing = Arc::new(narrow(assets, facets, filter).await?);
         self.snapshots.remember(self.dir(), snapshot_key, listing.clone());
         Ok(Some(listing))
@@ -700,16 +715,52 @@ impl CatalogService {
     }
 
     /// The fewest branches that between them hold every prefab of the listing (see [`scan_targets`]),
-    /// from the whole catalog; `scanned` are the branches the page has read already.
+    /// from the whole catalog; `scanned` are the branches the page has read already. The grouping is
+    /// the one `listing` uses and the plan is kept with it, so asking again for the same filter and
+    /// scanned set answers at once.
     pub async fn prefab_scan_targets(&self, repos: &[String], excluded_folders: &[String], filter: ListFilter, scanned: Vec<(String, String)>) -> Result<Vec<(String, String)>, SourceError> {
-        let assets = {
-            let Some(slot) = self.grouped(repos, excluded_folders, None).await? else { return Ok(Vec::new()) };
-            let Some(listed) = slot.as_ref() else { return Ok(Vec::new()) };
-            listed.assets.clone()
+        let mut sorted = scanned;
+        sorted.sort();
+        sorted.dedup();
+        let plan_key = serde_json::to_string(&(&filter.repos, &filter.branches, &sorted)).unwrap_or_default();
+        // A plan is a hint, so a grouping of an older version serves: regrouping a big catalog while a scan
+        // keeps changing it would make the plan wait for seconds. The page asks again when a new listing lands.
+        let (_, grouping) = self.grouping_key(repos, excluded_folders).await;
+        let reused = {
+            let mut slot = self.listed.lock().await;
+            slot.as_mut().filter(|l| l.key == grouping).map(|listed| match listed.plans.get(&plan_key) {
+                Some(plan) => Err(plan.as_ref().clone()),
+                None => Ok((listed.assets.clone(), listed.prefabs.clone(), listed.version, listed.key.clone())),
+            })
         };
-        tauri::async_runtime::spawn_blocking(move || scan_targets(&assets, &filter, &scanned))
-            .await
-            .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not plan the prefab scan: {e}")))
+        let (assets, index, version, key) = match reused {
+            Some(Err(plan)) => return Ok(plan),
+            Some(Ok(found)) => found,
+            None => {
+                let Some(mut slot) = self.grouped(repos, excluded_folders, None).await? else { return Ok(Vec::new()) };
+                let Some(listed) = slot.as_mut() else { return Ok(Vec::new()) };
+                if let Some(plan) = listed.plans.get(&plan_key) {
+                    return Ok(plan.as_ref().clone());
+                }
+                (listed.assets.clone(), listed.prefabs.clone(), listed.version, listed.key.clone())
+            }
+        };
+        let (index, plan) = tauri::async_runtime::spawn_blocking(move || {
+            let index = index.unwrap_or_else(|| Arc::new(PrefabIndex::new(&assets)));
+            let plan = scan_targets_in(&index, &assets, &filter, &sorted);
+            (index, plan)
+        })
+        .await
+        .map_err(|e| SourceError::new(SourceErrorCode::Unknown, format!("could not plan the prefab scan: {e}")))?;
+        // Kept only while the grouping it came from is still the current one.
+        if let Some(listed) = self.listed.lock().await.as_mut().filter(|l| l.version == version && l.key == key) {
+            listed.prefabs = Some(index);
+            if listed.plans.len() >= PLANS_KEEP {
+                listed.plans.clear();
+            }
+            listed.plans.insert(plan_key, Arc::new(plan.clone()));
+        }
+        Ok(plan)
     }
 
     /// Every saved repo's catalog, as stored (for the team cache).
@@ -791,7 +842,7 @@ fn count(n: usize) -> f64 {
 }
 
 fn location_dto(l: &CatalogLocation) -> dto::CatalogLocation {
-    dto::CatalogLocation { repo: l.repo.clone(), path: l.path.clone(), branches: l.branches.clone(), branch_total: l.branch_total.map(count) }
+    dto::CatalogLocation { repo: l.repo.clone(), path: Some(l.path.clone()), branches: l.branches.clone(), branch_total: l.branch_total.map(count) }
 }
 
 pub fn locations_dto(locations: &[CatalogLocation]) -> Vec<dto::CatalogLocation> {
@@ -818,16 +869,24 @@ pub fn slim_listing(assets: &[CatalogAsset], filter: &ListFilter, facets: &Catal
                 repos.push(l.repo.clone());
             }
         }
+        // The page takes the first location's repo as the only one when none is listed.
+        if repos.len() == 1 && repos[0] == first.repo {
+            repos.clear();
+        }
         out.push(dto::CatalogAsset {
-            id: a.id.clone(),
             kind: a.kind.clone(),
             path: a.path.clone(),
             name: a.name.clone(),
             sha: a.sha.clone(),
             size: a.size.map(|s| s as f64),
             lfs: a.lfs,
-            locations: vec![dto::CatalogLocation { repo: first.repo.clone(), path: first.path.clone(), branches: branch.cloned().into_iter().collect(), branch_total: Some(count(first.branches.len())) }],
-            location_total: Some(count(a.locations.len())),
+            locations: vec![dto::CatalogLocation {
+                repo: first.repo.clone(),
+                path: (first.path != a.path).then(|| first.path.clone()),
+                branches: branch.cloned().into_iter().collect(),
+                branch_total: (first.branches.len() > 1).then(|| count(first.branches.len())),
+            }],
+            location_total: (a.locations.len() > 1).then(|| count(a.locations.len())),
             branch_count: count(a.branch_count),
             repo_count: count(a.repo_count),
             repos,
@@ -842,41 +901,131 @@ pub fn slim_listing(assets: &[CatalogAsset], filter: &ListFilter, facets: &Catal
     }
 }
 
+/// What a grouping holds about its prefabs, whatever the filter: the branches that hold each one.
+/// Built once per grouping; every plan for it (any filter, any scanned set) reads this.
+pub struct PrefabIndex {
+    /// Every branch that holds a prefab, as (repo, branch).
+    branches: Vec<(String, String)>,
+    /// Per prefab, its asset's place in the grouping.
+    assets: Vec<u32>,
+    /// `flat[starts[i]..starts[i + 1]]` are the branch numbers that hold prefab `i`, in the order its
+    /// locations list them (a branch met twice is listed twice).
+    starts: Vec<u32>,
+    flat: Vec<u32>,
+}
+
+impl PrefabIndex {
+    pub fn new(assets: &[CatalogAsset]) -> Self {
+        let mut ids: HashMap<(&str, &str), u32> = HashMap::new();
+        let mut branches: Vec<(String, String)> = Vec::new();
+        let (mut prefabs, mut starts, mut flat) = (Vec::new(), vec![0u32], Vec::new());
+        for (n, a) in assets.iter().enumerate().filter(|(_, a)| a.kind == "prefab") {
+            let before = flat.len();
+            for l in &a.locations {
+                for b in &l.branches {
+                    let key = (l.repo.as_str(), b.as_str());
+                    let id = *ids.entry(key).or_insert_with(|| {
+                        branches.push((l.repo.clone(), b.clone()));
+                        (branches.len() - 1) as u32
+                    });
+                    flat.push(id);
+                }
+            }
+            if flat.len() > before {
+                prefabs.push(n as u32);
+                starts.push(flat.len() as u32);
+            }
+        }
+        Self { branches, assets: prefabs, starts, flat }
+    }
+
+    fn holders(&self, prefab: usize) -> &[u32] {
+        &self.flat[self.starts[prefab] as usize..self.starts[prefab + 1] as usize]
+    }
+}
+
 /// The branches to read, most prefabs first, until every prefab of the listing (on `filter`'s repos
 /// and branches) is in a read branch. `scanned` are the (repo, branch) pairs read already or tried
 /// and failed: the prefabs in them need nothing more. Reading a branch downloads only the prefabs no
 /// earlier read has seen, so a few branches that between them hold every prefab are enough.
-/// Greedy: each pick is the branch holding most of the prefabs still open (the first met on a tie).
+/// Greedy: each pick is the branch holding most of the prefabs still open (the first met on a tie,
+/// meeting the open prefabs and their branches in listing order).
 pub fn scan_targets(assets: &[CatalogAsset], filter: &ListFilter, scanned: &[(String, String)]) -> Vec<(String, String)> {
+    scan_targets_in(&PrefabIndex::new(assets), assets, filter, scanned)
+}
+
+/// [`scan_targets`] with the prefab index of `assets` already made. Near-linear in the holders of the
+/// open prefabs: the count of each branch drops as prefabs close, and a heap of counts, corrected
+/// only when a branch comes to the top, finds the next pick.
+pub fn scan_targets_in(index: &PrefabIndex, assets: &[CatalogAsset], filter: &ListFilter, scanned: &[(String, String)]) -> Vec<(String, String)> {
     let done: HashSet<(&str, &str)> = scanned.iter().map(|(r, b)| (r.as_str(), b.as_str())).collect();
+    let done_branch: Vec<bool> = index.branches.iter().map(|(r, b)| done.contains(&(r.as_str(), b.as_str()))).collect();
     let fits = |l: &CatalogLocation| (filter.repos.is_empty() || filter.repos.contains(&l.repo)) && (filter.branches.is_empty() || l.branches.iter().any(|b| filter.branches.contains(b)));
     let filtered = !filter.repos.is_empty() || !filter.branches.is_empty();
-    // Prefabs no read branch holds, each with the branches that do hold it.
-    let mut open: Vec<Vec<(&str, &str)>> = Vec::new();
-    for a in assets.iter().filter(|a| a.kind == "prefab" && (!filtered || a.locations.iter().any(fits))) {
-        let holders: Vec<(&str, &str)> = a.locations.iter().flat_map(|l| l.branches.iter().map(|b| (l.repo.as_str(), b.as_str()))).collect();
-        if !holders.is_empty() && !holders.iter().any(|h| done.contains(h)) {
-            open.push(holders);
+    // The prefabs no read branch holds (and the filter keeps), in listing order.
+    let open: Vec<usize> = (0..index.assets.len())
+        .filter(|&i| index.holders(i).iter().all(|&h| !done_branch[h as usize]) && (!filtered || assets[index.assets[i] as usize].locations.iter().any(fits)))
+        .collect();
+    if open.is_empty() {
+        return Vec::new();
+    }
+    // Where each branch is met: (open prefab, place in its holders), in the order the old pass met them.
+    let n = index.branches.len();
+    let mut offset = vec![0u32; n + 1];
+    for &p in &open {
+        for &h in index.holders(p) {
+            offset[h as usize + 1] += 1;
         }
     }
-    let mut targets = Vec::new();
-    while !open.is_empty() {
-        let mut index: HashMap<(&str, &str), usize> = HashMap::new();
-        let mut counts: Vec<((&str, &str), usize)> = Vec::new();
-        for holders in &open {
-            for h in holders {
-                match index.get(h) {
-                    Some(&i) => counts[i].1 += 1,
-                    None => {
-                        index.insert(*h, counts.len());
-                        counts.push((*h, 1));
-                    }
+    for b in 0..n {
+        offset[b + 1] += offset[b];
+    }
+    let mut count: Vec<u32> = (0..n).map(|b| offset[b + 1] - offset[b]).collect();
+    let mut fill = offset.clone();
+    let mut met = vec![0u64; offset[n] as usize];
+    for (o, &p) in open.iter().enumerate() {
+        for (pos, &h) in index.holders(p).iter().enumerate() {
+            met[fill[h as usize] as usize] = (o as u64) << 32 | pos as u64;
+            fill[h as usize] += 1;
+        }
+    }
+    let mut next: Vec<u32> = offset[..n].to_vec();
+    let mut closed = vec![false; open.len()];
+    // The first place of `b` in a prefab still open.
+    let first = |b: usize, next: &mut [u32], closed: &[bool]| -> Option<u64> {
+        while next[b] < offset[b + 1] && closed[(met[next[b] as usize] >> 32) as usize] {
+            next[b] += 1;
+        }
+        (next[b] < offset[b + 1]).then(|| met[next[b] as usize])
+    };
+    // A branch's count only falls and its first place only moves later, so an entry that reaches the
+    // top unchanged is the best pick.
+    let mut heap = std::collections::BinaryHeap::new();
+    for b in 0..n {
+        if let Some(key) = first(b, &mut next, &closed) {
+            heap.push((count[b], std::cmp::Reverse(key), b as u32));
+        }
+    }
+    let (mut remaining, mut targets) = (open.len(), Vec::new());
+    while remaining > 0 {
+        let Some((was, std::cmp::Reverse(key), b)) = heap.pop() else { break };
+        let b = b as usize;
+        let Some(now) = first(b, &mut next, &closed) else { continue };
+        if count[b] != was || now != key {
+            heap.push((count[b], std::cmp::Reverse(now), b as u32));
+            continue;
+        }
+        targets.push(index.branches[b].clone());
+        for m in offset[b]..offset[b + 1] {
+            let o = (met[m as usize] >> 32) as usize;
+            if !closed[o] {
+                closed[o] = true;
+                remaining -= 1;
+                for &h in index.holders(open[o]) {
+                    count[h as usize] -= 1;
                 }
             }
         }
-        let best = counts.iter().fold(counts[0], |a, b| if b.1 > a.1 { *b } else { a }).0;
-        targets.push((best.0.to_owned(), best.1.to_owned()));
-        open.retain(|holders| !holders.contains(&best));
     }
     targets
 }
@@ -884,7 +1033,7 @@ pub fn scan_targets(assets: &[CatalogAsset], filter: &ListFilter, scanned: &[(St
 // ---- the listing snapshot ----
 
 /// Changes whenever the layout of a snapshot file does; files of another version are deleted.
-const SNAPSHOT_VERSION: u32 = 2;
+const SNAPSHOT_VERSION: u32 = 3;
 
 /// Listings of the last requests, so the page can show cards before the catalogs are read.
 /// They are kept in memory (newest first) and, a moment after they were made, in files beside the catalog folder.
@@ -1518,7 +1667,7 @@ mod tests {
         assert_eq!(repos, ["o/a", "o/b"]);
         // The total is that location's own branch count.
         let first = &s.locations[0];
-        let expected = match (first.repo.as_str(), first.path.as_str()) {
+        let expected = match (first.repo.as_str(), first.path.as_deref().unwrap_or(s.path.as_str())) {
             ("o/a", "Assets/S.fbx") => 2.0,
             _ => 1.0,
         };
@@ -1582,6 +1731,180 @@ mod tests {
         let in_a = ListFilter { repos: vec!["a".into()], branches: vec![] };
         let list = [prefab_asset(&[("a", &["main"])]), prefab_asset(&[("b", &["main"])])];
         assert_eq!(scan_targets(&list, &in_a, &[]), [pair("a", "main")]);
+    }
+
+    /// The plain algorithm the indexed one replaced: it counts the holders of the open prefabs again after every pick.
+    fn scan_targets_reference(assets: &[CatalogAsset], filter: &ListFilter, scanned: &[(String, String)]) -> Vec<(String, String)> {
+        let done: HashSet<(&str, &str)> = scanned.iter().map(|(r, b)| (r.as_str(), b.as_str())).collect();
+        let fits = |l: &CatalogLocation| (filter.repos.is_empty() || filter.repos.contains(&l.repo)) && (filter.branches.is_empty() || l.branches.iter().any(|b| filter.branches.contains(b)));
+        let filtered = !filter.repos.is_empty() || !filter.branches.is_empty();
+        let mut open: Vec<Vec<(&str, &str)>> = Vec::new();
+        for a in assets.iter().filter(|a| a.kind == "prefab" && (!filtered || a.locations.iter().any(fits))) {
+            let holders: Vec<(&str, &str)> = a.locations.iter().flat_map(|l| l.branches.iter().map(|b| (l.repo.as_str(), b.as_str()))).collect();
+            if !holders.is_empty() && !holders.iter().any(|h| done.contains(h)) {
+                open.push(holders);
+            }
+        }
+        let mut targets = Vec::new();
+        while !open.is_empty() {
+            let mut index: HashMap<(&str, &str), usize> = HashMap::new();
+            let mut counts: Vec<((&str, &str), usize)> = Vec::new();
+            for holders in &open {
+                for h in holders {
+                    match index.get(h) {
+                        Some(&i) => counts[i].1 += 1,
+                        None => {
+                            index.insert(*h, counts.len());
+                            counts.push((*h, 1));
+                        }
+                    }
+                }
+            }
+            let best = counts.iter().fold(counts[0], |a, b| if b.1 > a.1 { *b } else { a }).0;
+            targets.push((best.0.to_owned(), best.1.to_owned()));
+            open.retain(|holders| !holders.contains(&best));
+        }
+        targets
+    }
+
+    /// A small deterministic generator (the tests need no random crate).
+    struct Lcg(u64);
+
+    impl Lcg {
+        fn below(&mut self, n: usize) -> usize {
+            self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            ((self.0 >> 33) as usize) % n
+        }
+    }
+
+    /// `prefabs` prefabs over `repos` repos of `branches` branches each; a prefab sits in one to three
+    /// locations (a repeated repo gives a branch twice), on up to `width` branches each, among other asset types.
+    fn random_catalog(seed: u64, prefabs: usize, repos: usize, branches: usize, width: usize) -> Vec<CatalogAsset> {
+        let mut rng = Lcg(seed);
+        let mut out = Vec::with_capacity(prefabs * 5 / 4);
+        for i in 0..prefabs {
+            if i % 4 == 3 {
+                let mut other = prefab_asset(&[("r0", &["b0"])]);
+                other.kind = "fbx".into();
+                out.push(other);
+            }
+            let mut asset = prefab_asset(&[]);
+            for _ in 0..1 + rng.below(3) {
+                let repo = format!("r{}", rng.below(repos));
+                let held: Vec<String> = (0..1 + rng.below(width)).map(|_| format!("b{}", rng.below(branches))).collect();
+                asset.locations.push(CatalogLocation { repo, path: "A.prefab".into(), branches: held, branch_total: None });
+            }
+            out.push(asset);
+        }
+        out
+    }
+
+    #[test]
+    fn the_indexed_scan_plan_equals_the_plain_one_on_large_random_catalogs() {
+        for (seed, prefabs, repos, branches, width) in [(1, 4000, 3, 40, 6), (2, 6000, 8, 12, 3), (3, 3000, 1, 25, 25), (4, 5000, 20, 9, 2)] {
+            let assets = random_catalog(seed, prefabs, repos, branches, width);
+            let scanned = [pair("r0", "b0"), pair("r1", "b3"), pair("r2", "b5"), pair("none", "none")];
+            let filters = [ListFilter::default(), ListFilter { repos: vec!["r0".into(), "r1".into()], branches: vec![] }, ListFilter { repos: vec![], branches: vec!["b1".into(), "b2".into()] }];
+            for filter in &filters {
+                for scanned in [&scanned[..0], &scanned[..]] {
+                    let plan = scan_targets(&assets, filter, scanned);
+                    assert_eq!(plan, scan_targets_reference(&assets, filter, scanned), "seed {seed}, filter {filter:?}, {} scanned", scanned.len());
+                    assert!(scanned.is_empty() || plan.iter().all(|p| !scanned.contains(p)));
+                }
+            }
+        }
+    }
+
+    /// Run with `cargo test --release -p asset-hub --lib -- --ignored --nocapture prefab_scan_bench`.
+    #[test]
+    #[ignore = "a timing, not a check"]
+    fn prefab_scan_bench() {
+        // About 380 000 assets, a fifth of them prefabs on 19 branches on average, spread over 139 repos of 60 branches.
+        let mut rng = Lcg(7);
+        let mut assets = Vec::with_capacity(380_000);
+        for i in 0..380_000 {
+            let mut asset = prefab_asset(&[]);
+            if i % 5 != 0 {
+                asset.kind = "fbx".into();
+                asset.locations.push(CatalogLocation { repo: "r0".into(), path: "A.fbx".into(), branches: vec!["main".into()], branch_total: None });
+            } else {
+                let repo = format!("r{}", rng.below(139));
+                let held: Vec<String> = (0..1 + rng.below(37)).map(|_| format!("b{}", rng.below(60))).collect();
+                asset.locations.push(CatalogLocation { repo, path: "A.prefab".into(), branches: held, branch_total: None });
+            }
+            assets.push(asset);
+        }
+        let started = Instant::now();
+        let index = PrefabIndex::new(&assets);
+        let indexed = started.elapsed();
+        let started = Instant::now();
+        let plan = scan_targets_in(&index, &assets, &ListFilter::default(), &[]);
+        let planned = started.elapsed();
+        let started = Instant::now();
+        let again = scan_targets_in(&index, &assets, &ListFilter { repos: vec!["r1".into(), "r2".into()], branches: vec![] }, &[pair("r1", "b1")]);
+        println!("prefab scan on {} assets: index {indexed:?}, plan {planned:?} ({} branches), filtered plan {:?} ({} branches)", assets.len(), plan.len(), started.elapsed(), again.len());
+    }
+
+    #[tokio::test]
+    async fn a_prefab_scan_plan_is_made_once_per_grouping_and_asked_again_at_once() {
+        let h = harness(2);
+        h.source.set_heads("o/r", &[("main", "c1", None), ("dev", "c2", None)]);
+        h.source.set_tree("c1", &[("A.prefab", "a"), ("B.prefab", "b")]);
+        h.source.set_tree("c2", &[("A.prefab", "a")]);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        let first = h.service.prefab_scan_targets(&[], &[], ListFilter::default(), vec![pair("x", "y"), pair("a", "b")]).await.unwrap();
+        // The order of the scanned set does not matter: this is the very same plan, found in the cache.
+        let slot = h.service.listed.lock().await;
+        let kept = slot.as_ref().unwrap();
+        assert_eq!((kept.plans.len(), kept.prefabs.is_some()), (1, true));
+        drop(slot);
+        let again = h.service.prefab_scan_targets(&[], &[], ListFilter::default(), vec![pair("a", "b"), pair("x", "y")]).await.unwrap();
+        assert_eq!(first, again);
+        assert_eq!(h.service.listed.lock().await.as_ref().unwrap().plans.len(), 1);
+        // Something new indexed: a listing regroups, and the plans go with the old grouping.
+        h.service.update(true, |_| {});
+        h.service.version.fetch_add(1, Ordering::SeqCst);
+        h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        assert_eq!(h.service.listed.lock().await.as_ref().unwrap().plans.len(), 0);
+        h.service.prefab_scan_targets(&[], &[], ListFilter::default(), vec![]).await.unwrap();
+        assert_eq!(h.service.listed.lock().await.as_ref().unwrap().plans.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn a_prefab_scan_plan_uses_the_grouping_it_finds_whatever_its_version() {
+        let h = harness(2);
+        h.source.set_heads("o/r", &[("main", "c1", None), ("dev", "c2", None)]);
+        h.source.set_tree("c1", &[("A.prefab", "a"), ("B.prefab", "b")]);
+        h.source.set_tree("c2", &[("A.prefab", "a")]);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        let grouped_at = h.service.listed.lock().await.as_ref().unwrap().version;
+        h.service.version.fetch_add(1, Ordering::SeqCst);
+        // A repo catalog held, as a running scan holds it: regrouping would wait on it forever.
+        let _held = h.service.load("o/r").await.lock_owned().await;
+        let plan = tokio::time::timeout(Duration::from_secs(2), h.service.prefab_scan_targets(&[], &[], ListFilter::default(), vec![])).await.expect("the plan waited for the catalog").unwrap();
+        assert_eq!(plan, [pair("o/r", "main")]);
+        let slot = h.service.listed.lock().await;
+        let kept = slot.as_ref().unwrap();
+        assert_eq!((kept.version, kept.plans.len()), (grouped_at, 1), "the old grouping was kept and not regrouped");
+    }
+
+    #[tokio::test]
+    async fn a_prefab_scan_plan_groups_when_there_is_no_grouping_for_its_request() {
+        let h = harness(2);
+        h.source.set_heads("o/r", &[("main", "c1", None)]);
+        h.source.set_tree("c1", &[("A.prefab", "a")]);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        assert!(h.service.listed.lock().await.is_none());
+        let plan = h.service.prefab_scan_targets(&[], &[], ListFilter::default(), vec![]).await.unwrap();
+        assert_eq!(plan, [pair("o/r", "main")]);
+        assert!(h.service.listed.lock().await.is_some());
+        // Other excluded folders are another grouping.
+        h.service.prefab_scan_targets(&[], &["Plugins".into()], ListFilter::default(), vec![]).await.unwrap();
+        assert_eq!(h.service.listed.lock().await.as_ref().unwrap().key, h.service.grouping_key(&[], &["Plugins".into()]).await.1);
     }
 
     #[tokio::test]
@@ -1725,9 +2048,17 @@ mod tests {
         let listing = slim_listing(&assets, &ListFilter::default(), &catalog_facets(&assets, &[]));
         let value = serde_json::to_value(&listing).unwrap();
         assert_eq!(value["assets"][0]["type"], "fbx");
-        assert_eq!(value["assets"][0]["locationTotal"], 1.0);
-        assert_eq!(value["assets"][0]["locations"][0]["branchTotal"], 1.0);
-        assert_eq!(value["assets"][0]["repos"], json!(["o/r"]));
+        // What the page can work out itself is not sent: the asset's own id (its sha), the location's path
+        // when it is the asset's, the totals of one location and one branch, the repo list of one repo, a false lfs.
+        let sent = value["assets"][0].as_object().unwrap();
+        for key in ["id", "locationTotal", "repos", "lfs"] {
+            assert!(!sent.contains_key(key), "{key} should be left out");
+        }
+        assert_eq!(value["assets"][0]["locations"][0], json!({"repo": "o/r", "branches": ["main"]}));
+        assert_eq!(value["assets"][0]["path"], "A.fbx");
+        // A listing without those keys reads back the same.
+        let back: dto::CatalogListing = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(back, listing);
         assert_eq!(value["facets"]["repos"], json!([["o/r", 1.0]]));
     }
 }

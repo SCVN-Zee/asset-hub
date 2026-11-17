@@ -24,6 +24,10 @@ macro_rules! dto {
     };
 }
 
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 // ---------------------------------------------------------------------------------------------
 // Settings (`src/shared/settings.ts`, `src/shared/collections.ts`)
 // ---------------------------------------------------------------------------------------------
@@ -736,17 +740,16 @@ dto! {
     /// One place an asset lives: a path in a repo, on one or more branches.
     pub struct CatalogLocation {
         pub repo: String,
-        pub path: String,
+        /// Left out of a listing when it is the asset's own `path`.
+        pub path: Option<String>,
         /// Default branch first, then most recently committed.
         pub branches: Vec<String>,
-        /// In a listing, only the first branch is sent: how many there are in all.
+        /// In a listing, only the first branch is sent: how many there are in all (left out when it is `branches.len()`).
         pub branch_total: Option<f64>,
     }
 
     /// A file found anywhere in the catalog; identical files (same blob SHA) are one entry.
     pub struct CatalogAsset {
-        /// Stable id within one repo + branch: the file path.
-        pub id: String,
         /// Handler id, e.g. 'fbx'.
         #[serde(rename = "type")]
         pub kind: String,
@@ -754,13 +757,16 @@ dto! {
         pub name: String,
         pub sha: String,
         pub size: Option<f64>,
+        /// Left out when false.
+        #[serde(default, skip_serializing_if = "is_false")]
         pub lfs: bool,
         pub locations: Vec<CatalogLocation>,
-        /// In a listing, only the first location is sent: how many there are in all.
+        /// In a listing, only the first location is sent: how many there are in all (left out when it is `locations.len()`).
         pub location_total: Option<f64>,
         pub branch_count: f64,
         pub repo_count: f64,
-        /// Every repo that holds it (a listing sends one location only).
+        /// Every repo that holds it (a listing sends one location only); left out when it is the first location's repo alone.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
         pub repos: Vec<String>,
     }
 

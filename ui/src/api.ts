@@ -9,7 +9,7 @@ import { invoke } from '@tauri-apps/api/core'
 import type { AssetHubApi, ExportRequest, IpcError, IpcResult, UpdateInfo } from '@shared/ipc'
 import { commands, events } from './bindings'
 import type * as Wire from './bindings'
-import type { DependencyReport, FactKind } from '@shared/types'
+import type { CatalogAsset, CatalogListing, DependencyReport, FactKind } from '@shared/types'
 import { reviveTangents } from './tangents'
 
 type Outcome = { status: 'ok'; data: unknown } | { status: 'error'; error: unknown }
@@ -35,6 +35,23 @@ async function result<T>(call: Promise<Outcome>): Promise<IpcResult<T>> {
   } catch (raised) {
     return { ok: false, error: toIpcError(raised) }
   }
+}
+
+/**
+ * A listing as the page works with it. The backend leaves out what the page can work out: an asset's `id` is its
+ * blob SHA, a location without `path` is at the asset's own path, and no `repos` means the first location's repo
+ * alone. The objects are the ones just parsed, so they are filled in place (hundreds of thousands of them).
+ */
+export function hydrateListing(wire: Wire.CatalogListing_Deserialize): CatalogListing {
+  for (const a of wire.assets) {
+    const asset = a as unknown as CatalogAsset
+    const first = asset.locations[0]
+    asset.id = a.sha
+    asset.lfs ??= false
+    if (first) first.path ??= a.path
+    asset.repos ??= first ? [first.repo] : []
+  }
+  return wire as unknown as CatalogListing
 }
 
 /** For the calls that `AssetHubApi` does not wrap in `IpcResult`: a failure rejects. */
@@ -105,6 +122,7 @@ export const api: AssetHubApi = {
     ghWebLogin: () => result(commands.authGhWebLogin()),
     cancelGhWebLogin: () => done(commands.authCancelGhWebLogin()),
     onGhLoginPrompt: (listener) => on(events.ghLoginPrompt, listener),
+    onAuthChanged: (listener) => on(events.authChanged, listener),
     signOut: (options) => result(commands.authSignOut(options ? withNulls(options) : null))
   },
   tools: {
@@ -147,10 +165,14 @@ export const api: AssetHubApi = {
     pause: () => result(commands.catalogPause()),
     resume: () => result(commands.catalogResume()),
     status: () => result(commands.catalogStatus()),
-    list: (repo, excludedFolders, filter) =>
-      result(commands.catalogList(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null)),
-    snapshot: (repo, excludedFolders, filter) =>
-      result(commands.catalogSnapshot(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null)),
+    list: async (repo, excludedFolders, filter) => {
+      const r = await result<Wire.CatalogListing_Deserialize>(commands.catalogList(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null))
+      return r.ok ? { ok: true, data: hydrateListing(r.data) } : r
+    },
+    snapshot: async (repo, excludedFolders, filter) => {
+      const r = await result<Wire.CatalogListing_Deserialize | null>(commands.catalogSnapshot(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null))
+      return r.ok ? { ok: true, data: r.data ? hydrateListing(r.data) : null } : r
+    },
     prefabScanTargets: (repo, excludedFolders, filter, scanned) =>
       result(commands.catalogPrefabScanTargets(repo, excludedFolders, filter ? { repos: filter.repos ?? [], branches: filter.branches ?? [] } : null, scanned)),
     whereIs: (sha) => result(commands.catalogWhereIs(sha)),

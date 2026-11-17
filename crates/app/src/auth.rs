@@ -2,11 +2,12 @@
 //!
 //! The token never reaches the page. A gh sign-in stores nothing: the token is read from gh again
 //! at every launch. A personal access token lives in the Keychain, and `auth.json` only records
-//! the method.
+//! the method and the login (not a secret), so the next launch can start from them without
+//! waiting for GitHub.
 
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -89,6 +90,9 @@ impl TokenVault for KeychainVault {
 #[derive(Serialize, Deserialize)]
 struct StoredAuth {
     method: AuthMethod,
+    /// Whom GitHub said the token belongs to, as of the last sign-in or check.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    login: Option<String>,
 }
 
 /// Remembers how the user signed in.
@@ -113,6 +117,18 @@ impl AuthStore {
         }
     }
 
+    /// The login saved next to the method; none before the first successful check.
+    pub fn saved_login(&self) -> Option<String> {
+        let stored: StoredAuth = serde_json::from_slice(&std::fs::read(&self.file).ok()?).ok()?;
+        stored.login.filter(|l| !l.is_empty())
+    }
+
+    /// Saves `login` next to the stored method. Nothing happens when no method is stored.
+    pub fn save_login(&self, login: &str) {
+        let Some(stored) = std::fs::read(&self.file).ok().and_then(|b| serde_json::from_slice::<StoredAuth>(&b).ok()) else { return };
+        let _ = self.write(&StoredAuth { method: stored.method, login: Some(login.to_owned()) });
+    }
+
     /// False when the method could not be persisted (no usable vault): the session then stays in
     /// memory only.
     pub fn save(&self, method: AuthMethod, token: &str) -> bool {
@@ -120,7 +136,7 @@ impl AuthStore {
             self.clear();
             return false;
         }
-        self.write_method(method).is_ok()
+        self.write(&StoredAuth { method, login: None }).is_ok()
     }
 
     pub fn clear(&self) {
@@ -128,7 +144,7 @@ impl AuthStore {
         let _ = self.vault.delete();
     }
 
-    fn write_method(&self, method: AuthMethod) -> std::io::Result<()> {
+    fn write(&self, stored: &StoredAuth) -> std::io::Result<()> {
         use std::io::Write;
         if let Some(dir) = self.file.parent() {
             std::fs::create_dir_all(dir)?;
@@ -137,7 +153,7 @@ impl AuthStore {
         options.write(true).create(true).truncate(true);
         #[cfg(unix)]
         std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
-        options.open(&self.file)?.write_all(serde_json::to_string(&StoredAuth { method })?.as_bytes())
+        options.open(&self.file)?.write_all(serde_json::to_string(stored)?.as_bytes())
     }
 }
 
@@ -382,16 +398,78 @@ struct PendingLogin {
 /// Sends a prompt to the page.
 pub type PromptSink = Arc<dyn Fn(&GhLoginPrompt) + Send + Sync>;
 
+/// Tells the page that the sign-in ended without the page asking for it.
+pub type SignedOutSink = Arc<dyn Fn() + Send + Sync>;
+
+/// Asks GitHub whether a restored `token` still works. A rejection signs the account out (when it
+/// is still the active one) and forgets it; a login that differs from the saved one is corrected;
+/// an unreachable GitHub changes nothing.
+async fn validate(session: Arc<Mutex<Option<Session>>>, store: AuthStore, api: String, token: String, signed_out: Arc<OnceLock<SignedOutSink>>) {
+    let outcome = http::get_user_login(http::client(), &api, &token).await;
+    let active = |s: &Option<Session>| s.as_ref().and_then(|s| s.accounts.first()).is_some_and(|(_, t)| *t == token);
+    let work: Option<(bool, Box<dyn FnOnce(AuthStore) + Send>)> = {
+        let Ok(mut current) = session.lock() else { return };
+        match outcome {
+            Err(error) if error.code == AppErrorCode::Unauthorized && active(&current) => {
+                *current = None;
+                Some((true, Box::new(|store| store.clear())))
+            }
+            Ok(login) if active(&current) => {
+                if let Some(s) = current.as_mut() {
+                    if s.accounts[0].0 != login {
+                        s.accounts[0].0.clone_from(&login);
+                        s.status.accounts[0].clone_from(&login);
+                        s.status.login = Some(login.clone());
+                    }
+                }
+                Some((false, Box::new(move |store| store.save_login(&login))))
+            }
+            _ => None,
+        }
+    };
+    let Some((forgotten, work)) = work else { return };
+    let _ = tokio::task::spawn_blocking(move || work(store)).await;
+    if forgotten {
+        if let Some(notify) = signed_out.get() {
+            notify();
+        }
+    }
+}
+
+/// Fills in the other gh accounts of a session that was restored from the active token alone. Reading
+/// them asks gh to check every token online, which is slow, so it runs after the launch has answered.
+/// The session is left alone when it was signed out, or signed in as another account, in the meantime.
+async fn refresh_gh_accounts(session: Arc<Mutex<Option<Session>>>, store: AuthStore, gh: Option<PathBuf>, token: String) {
+    let Ok(read) = read_gh_accounts(gh.as_deref()).await else { return };
+    let mut read = read.into_iter();
+    let Some((gh_login, active_token)) = read.next().filter(|(_, t)| *t == token) else { return };
+    let others: Vec<(String, String)> = read.filter_map(|(login, token)| Some((login?, token))).collect();
+    let corrected = {
+        let Ok(mut current) = session.lock() else { return };
+        let Some(s) = current.as_mut().filter(|s| s.status.method == Some(AuthMethod::Gh) && s.accounts.first().is_some_and(|(_, t)| *t == token)) else { return };
+        let login = gh_login.unwrap_or_else(|| s.accounts[0].0.clone());
+        let changed = login != s.accounts[0].0;
+        let persisted = s.status.persisted.unwrap_or(true);
+        *s = AuthService::new_session(AuthMethod::Gh, login.clone(), &active_token, others, persisted);
+        changed.then_some(login)
+    };
+    if let Some(login) = corrected {
+        let _ = tokio::task::spawn_blocking(move || store.save_login(&login)).await;
+    }
+}
+
 pub struct AuthService {
     store: AuthStore,
     tools_dir: PathBuf,
     api: String,
     /// Where gh is looked for before the copy the app installed.
     gh_dirs: Vec<PathBuf>,
-    session: Mutex<Option<Session>>,
+    session: Arc<Mutex<Option<Session>>>,
     /// Whether the previous sign-in was restored; held while that runs.
     restored: tokio::sync::Mutex<bool>,
     pending: Arc<Mutex<Option<Arc<PendingLogin>>>>,
+    /// Called when the background check finds the restored token revoked; set once by the app.
+    signed_out: Arc<OnceLock<SignedOutSink>>,
 }
 
 impl AuthService {
@@ -405,10 +483,16 @@ impl AuthService {
             tools_dir,
             api: api.to_owned(),
             gh_dirs: gh_search_dirs(),
-            session: Mutex::new(None),
+            session: Arc::default(),
             restored: tokio::sync::Mutex::new(false),
             pending: Arc::default(),
+            signed_out: Arc::default(),
         }
+    }
+
+    /// Sets what runs when GitHub rejects the restored token after the launch. The first call wins.
+    pub fn on_signed_out(&self, sink: SignedOutSink) {
+        let _ = self.signed_out.set(sink);
     }
 
     /// The token of the active account, for the requests the app makes on its behalf.
@@ -446,12 +530,25 @@ impl AuthService {
             return Err(gh_error(AppErrorCode::EmptyToken, "Token is empty"));
         }
         let login = http::get_user_login(http::client(), &self.api, token).await?;
-        let persisted = if persist {
-            let saved = token.to_owned();
-            self.blocking_store(move |store| store.save(method, &saved)).await?
-        } else {
-            true
-        };
+        let (saved, saved_login) = (token.to_owned(), login.clone());
+        let persisted = self
+            .blocking_store(move |store| {
+                // A restore keeps what is stored and only adds the login; a sign-in stores the method too.
+                let stored = !persist || store.save(method, &saved);
+                if stored {
+                    store.save_login(&saved_login);
+                }
+                stored
+            })
+            .await?;
+        let session = Self::new_session(method, login, token, others, persisted);
+        let status = session.status.clone();
+        *lock(&self.session)? = Some(session);
+        Ok(status)
+    }
+
+    /// The session of the main account `login` (whose token is `token`) and the `others` that go along.
+    fn new_session(method: AuthMethod, login: String, token: &str, others: Vec<(String, String)>, persisted: bool) -> Session {
         let mut accounts = vec![(login.clone(), token.to_owned())];
         for (other_login, other_token) in others {
             if !accounts.iter().any(|(l, t)| l.eq_ignore_ascii_case(&other_login) || *t == other_token) {
@@ -459,18 +556,26 @@ impl AuthService {
             }
         }
         let status = AuthStatus { signed_in: true, login: Some(login), accounts: accounts.iter().map(|(l, _)| l.clone()).collect(), method: Some(method), persisted: Some(persisted) };
-        *lock(&self.session)? = Some(Session { status: status.clone(), accounts });
-        Ok(status)
+        Session { status, accounts }
+    }
+
+    /// The gh accounts for a sign-in: the login of the active one when gh says it, its token, and
+    /// the other accounts (login and token).
+    async fn gh_accounts(&self) -> Result<(Option<String>, String, Vec<(String, String)>), IpcError> {
+        let mut accounts = read_gh_accounts(self.gh().as_deref()).await?.into_iter();
+        let (login, token) = accounts.next().ok_or_else(|| gh_error(AppErrorCode::GhNotLoggedIn, "gh is not logged in"))?;
+        Ok((login, token, accounts.filter_map(|(login, token)| Some((login?, token))).collect()))
     }
 
     /// Signs in with every account gh holds; the active one is the main account.
     async fn start_gh(&self, persist: bool) -> Result<AuthStatus, IpcError> {
-        let mut accounts = read_gh_accounts(self.gh().as_deref()).await?.into_iter();
-        let (_, token) = accounts.next().ok_or_else(|| gh_error(AppErrorCode::GhNotLoggedIn, "gh is not logged in"))?;
-        self.start(AuthMethod::Gh, &token, accounts.filter_map(|(login, token)| Some((login?, token))).collect(), persist).await
+        let (_, token, others) = self.gh_accounts().await?;
+        self.start(AuthMethod::Gh, &token, others, persist).await
     }
 
-    /// Restores the previous sign-in once per launch.
+    /// Restores the previous sign-in once per launch. With a login saved from an earlier launch the
+    /// session is built from the stored token at once and GitHub confirms it in the background;
+    /// without one (the first launch after an update) GitHub is asked first.
     async fn restore(&self) {
         let mut restored = self.restored.lock().await;
         if *restored {
@@ -478,12 +583,42 @@ impl AuthService {
         }
         *restored = true;
         let Ok(Some((method, saved))) = self.blocking_store(|store| store.load()).await else { return };
-        let started = match (method, saved) {
-            (AuthMethod::Pat, Some(token)) => self.start(AuthMethod::Pat, &token, Vec::new(), false).await,
-            (AuthMethod::Gh, _) => self.start_gh(false).await,
+        let saved_login = self.blocking_store(|store| store.saved_login()).await.ok().flatten();
+        // A gh user with a saved login needs only the active token now: listing every account asks gh to
+        // check each token online, which is slow, so the other accounts follow in the background.
+        if let (AuthMethod::Gh, Some(login), Some(gh)) = (method, saved_login.clone(), self.gh()) {
+            if let Some(token) = gh_token(&gh, None).await.ok().map(|t| t.trim().to_owned()).filter(|t| !t.is_empty()) {
+                if let Ok(mut session) = self.session.lock() {
+                    *session = Some(Self::new_session(method, login, &token, Vec::new(), true));
+                }
+                tauri::async_runtime::spawn(validate(self.session.clone(), self.store.clone(), self.api.clone(), token.clone(), self.signed_out.clone()));
+                tauri::async_runtime::spawn(refresh_gh_accounts(self.session.clone(), self.store.clone(), Some(gh), token));
+                return;
+            }
+        }
+        let found = match (method, saved) {
+            (AuthMethod::Pat, Some(token)) => Ok((None, token, Vec::new())),
+            (AuthMethod::Gh, _) => self.gh_accounts().await,
             (AuthMethod::Pat, None) => return,
         };
-        let Err(error) = started else { return };
+        let (gh_login, token, others) = match found {
+            Ok(found) => found,
+            Err(error) => return self.settle_restore_error(&error, &mut restored).await,
+        };
+        let token = token.trim().to_owned();
+        if let (Some(login), false) = (gh_login.or(saved_login), token.is_empty()) {
+            if let Ok(mut session) = self.session.lock() {
+                *session = Some(Self::new_session(method, login, &token, others, true));
+            }
+            tauri::async_runtime::spawn(validate(self.session.clone(), self.store.clone(), self.api.clone(), token, self.signed_out.clone()));
+            return;
+        }
+        if let Err(error) = self.start(method, &token, others, false).await {
+            self.settle_restore_error(&error, &mut restored).await;
+        }
+    }
+
+    async fn settle_restore_error(&self, error: &IpcError, restored: &mut bool) {
         match error.code {
             // A revoked token should not be retried on every launch.
             AppErrorCode::Unauthorized => {
@@ -928,6 +1063,150 @@ sleep 0.2"#);
         assert!(store.load().is_some(), "an offline start does not sign the user out");
     }
 
+    async fn eventually(mut done: impl FnMut() -> bool) -> bool {
+        for _ in 0..100 {
+            if done() {
+                return true;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        false
+    }
+
+    #[test]
+    fn the_login_is_saved_next_to_the_method_and_never_without_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = AuthStore::new(dir.path().join("auth.json"), Arc::new(MemoryVault::default()));
+        store.save_login("octo");
+        assert!(!dir.path().join("auth.json").exists(), "no method, nothing to attach the login to");
+        assert!(store.save(AuthMethod::Pat, "dummy-token"));
+        assert_eq!(store.saved_login(), None);
+        store.save_login("octo");
+        assert_eq!(store.saved_login().as_deref(), Some("octo"));
+        assert_eq!(std::fs::read_to_string(dir.path().join("auth.json")).unwrap(), r#"{"method":"pat","login":"octo"}"#);
+        assert!(!std::fs::read_to_string(dir.path().join("auth.json")).unwrap().contains("dummy-token"));
+    }
+
+    #[tokio::test]
+    async fn a_saved_login_restores_the_session_without_asking_github() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Pat, "dummy-token");
+        store.save_login("octo");
+
+        // GitHub is unreachable: the answer comes from the saved login, and the failed check signs nobody out.
+        let auth = service(dir.path(), vault, "http://127.0.0.1:1");
+        let status = auth.status().await.unwrap();
+        assert_eq!((status.signed_in, status.login.as_deref(), status.persisted), (true, Some("octo"), Some(true)));
+        assert_eq!(auth.account(), Some(("octo".into(), "dummy-token".into())));
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        assert!(auth.status().await.unwrap().signed_in, "an unreachable GitHub does not sign the user out");
+        assert!(store.load().is_some());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn the_restore_answers_before_a_slow_github_does() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Pat, "dummy-token");
+        store.save_login("octo");
+        let asked = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counter = asked.clone();
+        let api = serve(move |_| {
+            counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            std::thread::sleep(Duration::from_millis(1500));
+            Reply::json(200, r#"{"login":"octo"}"#)
+        })
+        .await;
+        let auth = service(dir.path(), vault, &api);
+        let began = std::time::Instant::now();
+        assert!(auth.status().await.unwrap().signed_in);
+        assert!(began.elapsed() < Duration::from_millis(1000), "status waited for GitHub: {:?}", began.elapsed());
+        assert!(eventually(|| asked.load(std::sync::atomic::Ordering::SeqCst) == 1).await, "GitHub is still asked, in the background");
+    }
+
+    #[tokio::test]
+    async fn a_rejection_found_in_the_background_signs_the_user_out() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Pat, "revoked");
+        store.save_login("octo");
+        let auth = service(dir.path(), vault.clone(), &github("other").await);
+        assert!(auth.status().await.unwrap().signed_in);
+        assert!(eventually(|| auth.account().is_none()).await, "the revoked token is dropped");
+        assert!(!auth.status().await.unwrap().signed_in);
+        assert_eq!(store.load(), None);
+        assert_eq!(vault.get().unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn a_rejection_found_in_the_background_tells_the_page() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Pat, "revoked");
+        store.save_login("octo");
+        let told = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let counter = told.clone();
+        let auth = service(dir.path(), vault, &github("other").await);
+        auth.on_signed_out(Arc::new(move || {
+            counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }));
+        assert!(auth.status().await.unwrap().signed_in);
+        assert!(eventually(|| told.load(std::sync::atomic::Ordering::SeqCst) == 1).await, "the page is told once");
+        assert!(!auth.status().await.unwrap().signed_in);
+    }
+
+    #[tokio::test]
+    async fn a_good_or_unreachable_check_does_not_tell_the_page() {
+        let dir = tempfile::tempdir().unwrap();
+        for api in [github("dummy-token").await, "http://127.0.0.1:1".to_owned()] {
+            let vault = Arc::new(MemoryVault::default());
+            let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+            store.save(AuthMethod::Pat, "dummy-token");
+            store.save_login("octo");
+            let told = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let counter = told.clone();
+            let auth = service(dir.path(), vault, &api);
+            auth.on_signed_out(Arc::new(move || {
+                counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }));
+            assert!(auth.status().await.unwrap().signed_in);
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            assert_eq!(told.load(std::sync::atomic::Ordering::SeqCst), 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn a_background_check_corrects_a_stale_login() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Pat, "dummy-token");
+        store.save_login("stale");
+        let auth = service(dir.path(), vault, &github("dummy-token").await);
+        assert_eq!(auth.status().await.unwrap().login.as_deref(), Some("stale"));
+        assert!(eventually(|| store.saved_login().as_deref() == Some("octo")).await);
+        let status = auth.status().await.unwrap();
+        assert_eq!((status.login.as_deref(), status.accounts), (Some("octo"), vec!["octo".to_owned()]));
+        assert_eq!(auth.account(), Some(("octo".into(), "dummy-token".into())));
+    }
+
+    #[tokio::test]
+    async fn the_first_launch_without_a_saved_login_asks_github_then_saves_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Pat, "dummy-token");
+        assert_eq!(store.saved_login(), None);
+        let auth = service(dir.path(), vault, &github("dummy-token").await);
+        assert_eq!(auth.status().await.unwrap().login.as_deref(), Some("octo"));
+        assert_eq!(store.saved_login().as_deref(), Some("octo"));
+    }
+
     #[tokio::test]
     async fn an_offline_start_is_tried_again_at_the_next_status_check() {
         let dir = tempfile::tempdir().unwrap();
@@ -974,7 +1253,40 @@ sleep 0.2"#);
         // The next launch signs in again from gh, with both accounts.
         let mut next = service(dir.path(), Arc::new(MemoryVault::default()), &api);
         next.gh_dirs = auth.gh_dirs.clone();
+        assert!(next.status().await.unwrap().signed_in);
+        assert!(eventually(|| next.accounts().is_some_and(|a| a.len() == 2)).await, "the other account follows in the background");
         assert_eq!(next.status().await.unwrap().accounts, ["octo", "other-user"]);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_gh_restore_with_a_saved_login_answers_before_gh_lists_its_accounts() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh_dir = dir.path().join("bin");
+        std::fs::create_dir_all(&gh_dir).unwrap();
+        let marker = dir.path().join("status-ran");
+        script(&gh_dir, "gh", &format!("case \"$*\" in \"auth status\"*) sleep 2; echo ran >> {}; esac\n{TWO_ACCOUNTS}", marker.display()));
+        let api = github("token-octo").await;
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Gh, "");
+        store.save_login("octo");
+        let mut auth = service(dir.path(), vault, &api);
+        auth.gh_dirs = vec![gh_dir];
+        let began = std::time::Instant::now();
+        let status = auth.status().await.unwrap();
+        assert!(began.elapsed() < Duration::from_secs(1), "status waited for gh auth status: {:?}", began.elapsed());
+        assert_eq!((status.signed_in, status.login.as_deref(), status.accounts.as_slice()), (true, Some("octo"), ["octo".to_owned()].as_slice()));
+        assert!(!marker.exists(), "gh auth status has not finished yet");
+        assert_eq!(auth.account(), Some(("octo".into(), "token-octo".into())));
+        let both = tokio::time::timeout(Duration::from_secs(6), async {
+            while auth.accounts().is_none_or(|a| a.len() < 2) {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+        })
+        .await;
+        assert!(both.is_ok(), "the other account follows in the background");
+        assert_eq!(auth.accounts().unwrap(), [("octo".to_owned(), "token-octo".to_owned()), ("other-user".to_owned(), "token-other".to_owned())]);
+        assert_eq!(auth.status().await.unwrap().accounts, ["octo", "other-user"]);
     }
 
     #[tokio::test]

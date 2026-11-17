@@ -822,11 +822,14 @@ export function Browse({
   const scanChain = useRef<Promise<void>>(Promise.resolve())
   /** Branches whose scan failed: not asked for again by the catalog (the open branch tries again when its tab is opened). */
   const scanFailed = useRef(new Set<string>())
+  /** Changes whenever the set of branches read or tried changes: the prefab scan plan is asked again then. */
+  const [scanEpoch, setScanEpoch] = useState(0)
   const scanKey = (kind: FactKind, repo: string, branch: string) => `${kind}:${repo}@${branch}`
   const startScans = useCallback((at: { repo: string; branch: string }, kinds: readonly FactKind[]) => {
     const pending = kinds.filter((kind) => !scans.current.has(scanKey(kind, at.repo, at.branch)))
     if (!pending.length) return
     for (const kind of pending) scans.current.add(scanKey(kind, at.repo, at.branch))
+    setScanEpoch((n) => n + 1)
     const run = async (kind: FactKind) => {
       const key = scanKey(kind, at.repo, at.branch)
       // Found SHAs are buffered: every update of `known` rebuilds the search indexes, so they land at most every KNOWN_FLUSH_MS.
@@ -858,6 +861,7 @@ export function Browse({
         // Tried again the next time the tab is opened.
         scans.current.delete(key)
         scanFailed.current.add(key)
+        setScanEpoch((n) => n + 1)
         setScan({ kind, status: 'error', done: 0, total: 0 })
       } finally {
         clearTimeout(timer)
@@ -873,23 +877,36 @@ export function Browse({
   }, [tabFacts, tagScans, live, startScans])
   // Across branches or repos, the prefabs of other branches are read too (the ones no scan has read yet, by SHA), so
   // their tags are known: the fewest branches that between them hold every prefab listed, one after the other.
-  useEffect(() => {
-    if (!inCatalog || !tagScans || !catalog.assets) return
+  // One plan at a time; when what it was for changes meanwhile (the catalog, the filters or the branches read), the newest is asked next.
+  const planLoop = useRef({ busy: false, asked: '' })
+  const runPlan = useRef(() => {})
+  runPlan.current = () => {
+    const state = planLoop.current
+    if (state.busy || !inCatalog || !tagScans || !catalog.assets) return
     // Keys are `kind:repo@branch`; a repo name has no `@`, so the first one splits them.
     const prefix = `${TAG_FACTS[0]}:`
-    const scanned = [...scans.current, ...scanFailed.current].filter((key) => key.startsWith(prefix)).map((key) => {
+    const scanned = [...scans.current, ...scanFailed.current].filter((key) => key.startsWith(prefix)).sort()
+    const asked = JSON.stringify([scope === 'repo' ? repo : null, excludedFolders, catalogFilter, catalog.revision, scanned])
+    if (asked === state.asked) return
+    state.asked = asked
+    state.busy = true
+    const pairs = scanned.map((key) => {
       const [repoName, ...branchParts] = key.slice(prefix.length).split('@')
       return { repo: repoName, branch: branchParts.join('@') }
     })
-    let cancelled = false
-    void window.api.catalog.prefabScanTargets(scope === 'repo' ? repo : null, [...excludedFolders], catalogFilter, scanned).then((r) => {
-      if (cancelled || !r.ok) return
-      for (const target of r.data) startScans(target, TAG_FACTS)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [inCatalog, tagScans, catalog.assets, startScans, scope, repo, excludedFolders, catalogFilter])
+    void window.api.catalog.prefabScanTargets(scope === 'repo' ? repo : null, [...excludedFolders], catalogFilter, pairs).then(
+      (r) => {
+        state.busy = false
+        if (r.ok) for (const target of r.data) startScans(target, TAG_FACTS)
+        runPlan.current()
+      },
+      () => {
+        state.busy = false
+        runPlan.current()
+      }
+    )
+  }
+  useEffect(() => runPlan.current(), [inCatalog, tagScans, !!catalog.assets, catalog.revision, scanEpoch, scope, repo, excludedFolders, catalogFilter])
 
   // Saved thumbnails and measurements of an open collection's assets, from any repo or branch (by content).
   const collectionShas = shownCollection?.items.map((i) => i.sha).join(',') ?? ''

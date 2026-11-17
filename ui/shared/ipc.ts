@@ -170,6 +170,8 @@ export interface AssetHubApi {
     cancelGhWebLogin(): Promise<void>
     /** Fires with the one-time code while ghWebLogin waits; returns an unsubscribe function. */
     onGhLoginPrompt(listener: (prompt: { code: string; url: string }) => void): () => void
+    /** Fires with `false` when the backend ends the sign-in (GitHub rejected the saved token); returns an unsubscribe function. */
+    onAuthChanged(listener: (change: { signedIn: boolean }) => void): () => void
     /** Forgets the app's sign-in; `gh` also logs the account out of GitHub CLI on this Mac. */
     signOut(options?: { gh?: boolean }): Promise<IpcResult<AuthStatus>>
   }

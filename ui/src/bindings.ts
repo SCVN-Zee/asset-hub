@@ -200,6 +200,7 @@ export const commands = {
 
 /** Events */
 export const events = {
+	authChanged: makeEvent<AuthChanged, AuthChanged>("auth-changed"),
 	catalogProgress: makeEvent<CatalogProgress_Serialize, CatalogProgress_Deserialize>("catalog-progress"),
 	deepLink: makeEvent<DeepLink, DeepLink>("deep-link"),
 	exportProgress: makeEvent<ExportProgress, ExportProgress>("export-progress"),
@@ -239,6 +240,11 @@ export const TIGHT_BUDGET = {"triangles":8000.0,"textureSize":512.0,"textureByte
  *  The strings are the ones `SourceErrorCode` and `AppErrorCode` use in `src/shared/ipc.ts`.
  */
 export type AppErrorCode = "unauthorized" | "sso" | "forbidden" | "notFound" | "rateLimited" | "network" | "truncated" | "readOnly" | "unknown" | "ghNotFound" | "ghNotLoggedIn" | "emptyToken" | "ghInstallFailed";
+
+/**  The sign-in ended on the backend side: GitHub rejected the token the launch had restored. */
+export type AuthChanged = {
+	signedIn: boolean,
+};
 
 export type AuthMethod = "gh" | "pat";
 
@@ -319,42 +325,40 @@ export type CatalogAsset = CatalogAsset_Serialize | CatalogAsset_Deserialize;
 
 /**  A file found anywhere in the catalog; identical files (same blob SHA) are one entry. */
 export type CatalogAsset_Deserialize = {
-	/**  Stable id within one repo + branch: the file path. */
-	id: string,
 	/**  Handler id, e.g. 'fbx'. */
 	type: string,
 	path: string,
 	name: string,
 	sha: string,
 	size?: number | null,
-	lfs: boolean,
+	/**  Left out when false. */
+	lfs?: boolean,
 	locations: CatalogLocation_Deserialize[],
-	/**  In a listing, only the first location is sent: how many there are in all. */
+	/**  In a listing, only the first location is sent: how many there are in all (left out when it is `locations.len()`). */
 	locationTotal?: number | null,
 	branchCount: number | null,
 	repoCount: number | null,
-	/**  Every repo that holds it (a listing sends one location only). */
-	repos: string[],
+	/**  Every repo that holds it (a listing sends one location only); left out when it is the first location's repo alone. */
+	repos?: string[],
 };
 
 /**  A file found anywhere in the catalog; identical files (same blob SHA) are one entry. */
 export type CatalogAsset_Serialize = {
-	/**  Stable id within one repo + branch: the file path. */
-	id: string,
 	/**  Handler id, e.g. 'fbx'. */
 	type: string,
 	path: string,
 	name: string,
 	sha: string,
 	size?: number | null,
-	lfs: boolean,
+	/**  Left out when false. */
+	lfs?: boolean,
 	locations: CatalogLocation_Serialize[],
-	/**  In a listing, only the first location is sent: how many there are in all. */
+	/**  In a listing, only the first location is sent: how many there are in all (left out when it is `locations.len()`). */
 	locationTotal?: number | null,
 	branchCount: number | null,
 	repoCount: number | null,
-	/**  Every repo that holds it (a listing sends one location only). */
-	repos: string[],
+	/**  Every repo that holds it (a listing sends one location only); left out when it is the first location's repo alone. */
+	repos?: string[],
 };
 
 /**  A branch of a repo. */
@@ -417,20 +421,22 @@ export type CatalogLocation = CatalogLocation_Serialize | CatalogLocation_Deseri
 /**  One place an asset lives: a path in a repo, on one or more branches. */
 export type CatalogLocation_Deserialize = {
 	repo: string,
-	path: string,
+	/**  Left out of a listing when it is the asset's own `path`. */
+	path?: string | null,
 	/**  Default branch first, then most recently committed. */
 	branches: string[],
-	/**  In a listing, only the first branch is sent: how many there are in all. */
+	/**  In a listing, only the first branch is sent: how many there are in all (left out when it is `branches.len()`). */
 	branchTotal?: number | null,
 };
 
 /**  One place an asset lives: a path in a repo, on one or more branches. */
 export type CatalogLocation_Serialize = {
 	repo: string,
-	path: string,
+	/**  Left out of a listing when it is the asset's own `path`. */
+	path?: string,
 	/**  Default branch first, then most recently committed. */
 	branches: string[],
-	/**  In a listing, only the first branch is sent: how many there are in all. */
+	/**  In a listing, only the first branch is sent: how many there are in all (left out when it is `branches.len()`). */
 	branchTotal?: number | null,
 };
 

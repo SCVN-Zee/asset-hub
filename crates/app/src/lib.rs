@@ -60,6 +60,7 @@ pub fn event_contract<R: tauri::Runtime>() -> Builder<R> {
         .events(collect_events![
             e::DeepLink,
             e::GhLoginPrompt,
+            e::AuthChanged,
             e::ToolsInstallProgress,
             e::IndexProgress,
             e::PrefabProgress,

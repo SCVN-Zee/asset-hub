@@ -297,14 +297,14 @@ export interface CatalogLocation {
   path: string
   /** Default branch first, then most recently committed. */
   branches: string[]
-  /** In a listing, only the first branch is sent: how many there are in all. */
+  /** In a listing, only the first branch is sent: how many there are in all (absent: `branches.length`). */
   branchTotal?: number
 }
 
 /** A file found anywhere in the catalog; identical files (same blob SHA) are one entry. */
 export interface CatalogAsset extends Asset {
   locations: CatalogLocation[]
-  /** In a listing, only the first location is sent: how many there are in all. */
+  /** In a listing, only the first location is sent: how many there are in all (absent: `locations.length`). */
   locationTotal?: number
   branchCount: number
   repoCount: number
