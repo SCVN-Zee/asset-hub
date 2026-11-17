@@ -140,6 +140,8 @@ pub fn contract() -> Builder<tauri::Wry> {
             parse::search_suggest,
             parse::search_folders,
             agent_cli::agent_cli_install,
+            agent_cli::agent_mcp_connect,
+            agent_cli::agent_mcp_status,
             catalog::catalog_scan,
             catalog::catalog_pause,
             catalog::catalog_resume,

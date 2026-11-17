@@ -160,7 +160,18 @@
     "cliNote": "Claude Code, Codex 같은 코딩 에이전트가 앱 창이 닫힌 상태에서도 에셋을 검색하고 내보낼 수 있게 합니다. asset-hub-cli를 ~/.local/bin에 연결합니다.",
     "cliInstalled": "설치됨: {{link}}",
     "cliNotOnPath": "~/.local/bin이 터미널 PATH에 아직 없습니다. 셸 설정 파일에 추가하거나 전체 경로로 실행하세요.",
-    "cliFailed": "설치하지 못했습니다: {{error}}"
+    "cliFailed": "설치하지 못했습니다: {{error}}",
+    "mcpTitle": "코딩 에이전트에 연결",
+    "mcpNote": "asset-hub MCP 서버를 사용자 계정의 Claude Code 또는 Codex에 추가합니다. 이 앱 안에 있는 asset-hub-cli 사본을 등록합니다.",
+    "mcpConnectClaude": "Claude Code 연결",
+    "mcpConnectCodex": "Codex 연결",
+    "mcpConnected": "{{client}}에 연결했습니다. 도구를 불러오려면 다시 시작하세요.",
+    "mcpFailed": "{{client}}에 연결하지 못했습니다: {{error}}",
+    "mcpStateConnected": "{{client}}: 연결됨",
+    "mcpStateOtherCopy": "{{client}}: 다른 사본에 연결됨 ({{command}})",
+    "mcpStateMissing": "{{client}}: 연결되지 않음",
+    "mcpReconnectClaude": "Claude Code 다시 연결",
+    "mcpReconnectCodex": "Codex 다시 연결"
   },
   "errors": {
     "unauthorized": "GitHub가 토큰을 거부했습니다. 토큰이 유효하고 만료되지 않았는지 확인하세요.",

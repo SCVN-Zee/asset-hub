@@ -6,7 +6,7 @@ import { DEFAULT_EXPORT_LAYOUT, EXPORT_LAYOUTS, type Settings as AppSettings, ty
 import type { BudgetPreset, PlayableBudget } from '@shared/types'
 import { formatBytes } from '../format'
 import { BUDGET_KEYS, BUDGET_PRESETS, DEFAULT_BUDGET_PRESET, budgetFor } from '../playable'
-import { commands, type CliInstall } from '../bindings'
+import { commands, type CliInstall, type McpClient, type McpStatus } from '../bindings'
 import { Dropdown } from '../components/Dropdown'
 import { ExcludedFoldersDialog } from '../components/ExcludedFoldersDialog'
 import { CloseIcon } from '../components/Icons'
@@ -246,6 +246,8 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
           <CacheSetting />
 
           <CliSetting />
+
+          <McpSetting />
         </div>
       </div>
     </div>
@@ -290,6 +292,74 @@ function CliSetting() {
       {failed && (
         <span className="small warn-text">
           {t('settings.cliFailed', { error: failed })}
+        </span>
+      )}
+    </section>
+  )
+}
+
+/** Registers the asset-hub MCP server with Claude Code or Codex, and shows whether each already runs it. */
+function McpSetting() {
+  const { t } = useTranslation()
+  const [busy, setBusy] = useState<McpClient>()
+  const [connected, setConnected] = useState<McpClient>()
+  const [failed, setFailed] = useState<{ client: McpClient; error: string }>()
+  const [status, setStatus] = useState<McpStatus[]>([])
+  const name = (client: McpClient) => (client === 'claude' ? 'Claude Code' : 'Codex')
+  const refresh = async () => {
+    try {
+      const outcome = await commands.agentMcpStatus()
+      if (outcome.status === 'ok') setStatus(outcome.data)
+    } catch {
+      // The status line is a convenience; the buttons still work without it.
+    }
+  }
+  useEffect(() => {
+    void refresh()
+  }, [])
+  const stateOf = (client: McpClient) => status.find((s) => s.client === client)
+  const connect = async (client: McpClient) => {
+    setBusy(client)
+    setFailed(undefined)
+    setConnected(undefined)
+    try {
+      const outcome = await commands.agentMcpConnect(client)
+      if (outcome.status === 'ok') setConnected(outcome.data.client)
+      else setFailed({ client, error: outcome.error.message })
+    } catch (raised) {
+      setFailed({ client, error: raised instanceof Error ? raised.message : String(raised) })
+    } finally {
+      setBusy(undefined)
+      await refresh()
+    }
+  }
+  return (
+    <section className="setting">
+      <h2>{t('settings.mcpTitle')}</h2>
+      <span className="muted small">{t('settings.mcpNote')}</span>
+      <div className="field-row">
+        <button type="button" className="btn" disabled={busy !== undefined} onClick={() => void connect('claude')}>
+          {t(stateOf('claude')?.state === 'connected' ? 'settings.mcpReconnectClaude' : 'settings.mcpConnectClaude')}
+        </button>
+        <button type="button" className="btn" disabled={busy !== undefined} onClick={() => void connect('codex')}>
+          {t(stateOf('codex')?.state === 'connected' ? 'settings.mcpReconnectCodex' : 'settings.mcpConnectCodex')}
+        </button>
+      </div>
+      {status.map((entry) => (
+        <span key={entry.client} className={entry.state === 'otherCopy' ? 'small warn-text' : 'muted small'}>
+          {entry.state === 'connected' && t('settings.mcpStateConnected', { client: name(entry.client) })}
+          {entry.state === 'otherCopy' && t('settings.mcpStateOtherCopy', { client: name(entry.client), command: entry.command })}
+          {entry.state === 'missing' && t('settings.mcpStateMissing', { client: name(entry.client) })}
+        </span>
+      ))}
+      {connected && (
+        <span className="muted small" role="status">
+          {t('settings.mcpConnected', { client: name(connected) })}
+        </span>
+      )}
+      {failed && (
+        <span className="small warn-text">
+          {t('settings.mcpFailed', { client: name(failed.client), error: failed.error })}
         </span>
       )}
     </section>

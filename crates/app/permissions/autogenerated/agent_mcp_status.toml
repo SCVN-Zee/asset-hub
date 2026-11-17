@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-agent-mcp-status"
+description = "Enables the agent_mcp_status command without any pre-configured scope."
+commands.allow = ["agent_mcp_status"]
+
+[[permission]]
+identifier = "deny-agent-mcp-status"
+description = "Denies the agent_mcp_status command without any pre-configured scope."
+commands.deny = ["agent_mcp_status"]

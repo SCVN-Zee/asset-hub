@@ -160,7 +160,18 @@
     "cliNote": "Cho phép các agent lập trình như Claude Code và Codex tìm và xuất asset khi cửa sổ app đã đóng. Liên kết asset-hub-cli vào ~/.local/bin.",
     "cliInstalled": "Đã cài: {{link}}",
     "cliNotOnPath": "~/.local/bin chưa nằm trong PATH của terminal. Hãy thêm nó vào file cấu hình shell, hoặc chạy công cụ bằng đường dẫn đầy đủ.",
-    "cliFailed": "Không cài được: {{error}}"
+    "cliFailed": "Không cài được: {{error}}",
+    "mcpTitle": "Kết nối với agent lập trình",
+    "mcpNote": "Thêm máy chủ MCP asset-hub vào Claude Code hoặc Codex cho tài khoản người dùng của bạn. Máy chủ dùng bản asset-hub-cli nằm trong app này.",
+    "mcpConnectClaude": "Kết nối Claude Code",
+    "mcpConnectCodex": "Kết nối Codex",
+    "mcpConnected": "Đã kết nối với {{client}}: hãy khởi động lại để tải các công cụ.",
+    "mcpFailed": "Không kết nối được {{client}}: {{error}}",
+    "mcpStateConnected": "{{client}}: đã kết nối",
+    "mcpStateOtherCopy": "{{client}}: đã kết nối với bản khác ({{command}})",
+    "mcpStateMissing": "{{client}}: chưa kết nối",
+    "mcpReconnectClaude": "Kết nối lại Claude Code",
+    "mcpReconnectCodex": "Kết nối lại Codex"
   },
   "errors": {
     "unauthorized": "GitHub từ chối token. Kiểm tra token còn hợp lệ và chưa hết hạn.",

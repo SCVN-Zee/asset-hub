@@ -167,7 +167,18 @@
     "cliNote": "Lets coding agents such as Claude Code and Codex search and export assets with the window closed. Links asset-hub-cli into ~/.local/bin.",
     "cliInstalled": "Installed: {{link}}",
     "cliNotOnPath": "~/.local/bin is not on your terminal PATH yet. Add it to your shell profile, or run the tool by its full path.",
-    "cliFailed": "Could not install: {{error}}"
+    "cliFailed": "Could not install: {{error}}",
+    "mcpTitle": "Connect to coding agents",
+    "mcpNote": "Adds the asset-hub MCP server to Claude Code or Codex for your user account. It registers the copy of asset-hub-cli inside this app.",
+    "mcpConnectClaude": "Connect Claude Code",
+    "mcpConnectCodex": "Connect Codex",
+    "mcpConnected": "Connected to {{client}}: restart it to load the tools.",
+    "mcpFailed": "Could not connect {{client}}: {{error}}",
+    "mcpStateConnected": "{{client}}: connected",
+    "mcpStateOtherCopy": "{{client}}: connected to another copy ({{command}})",
+    "mcpStateMissing": "{{client}}: not connected",
+    "mcpReconnectClaude": "Reconnect Claude Code",
+    "mcpReconnectCodex": "Reconnect Codex"
   },
   "errors": {
     "unauthorized": "GitHub rejected the token. Check that it is valid and not expired.",

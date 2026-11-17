@@ -133,6 +133,13 @@ export const commands = {
 	 *  that ships next to this app's executable.
 	 */
 	agentCliInstall: () => typedError<CliInstall, IpcError_Serialize>(__TAURI_INVOKE("agent_cli_install")),
+	/**
+	 *  Registers `asset-hub-cli mcp` as an MCP server of the user's Claude Code or Codex. The command is
+	 *  the absolute path of the `asset-hub-cli` next to the running app; nothing is linked into `~/.local/bin`.
+	 */
+	agentMcpConnect: (client: McpClient) => typedError<McpConnect, IpcError_Serialize>(__TAURI_INVOKE("agent_mcp_connect", { client })),
+	/**  Tells whether Claude Code and Codex already run this app's `asset-hub-cli` as the `asset-hub` MCP server. */
+	agentMcpStatus: () => typedError<McpStatus_Serialize[], IpcError_Serialize>(__TAURI_INVOKE("agent_mcp_status")),
 	/**  Indexes every branch of `repo`, or of every repo when it is omitted; returns at once and runs in the background. `current` is indexed first. */
 	catalogScan: (repo: string | null, current: CatalogCurrent_Deserialize | null) => typedError<CatalogStatus_Serialize, IpcError_Serialize>(__TAURI_INVOKE("catalog_scan", { repo, current })),
 	/**  Pauses the scan. */
@@ -804,6 +811,46 @@ export type MaterialRef_Serialize = {
 	unsure?: boolean,
 	shader?: ShaderRef_Serialize,
 	textures: TextureRef_Serialize[],
+};
+
+/**  A coding agent that can be connected to the MCP server. */
+export type McpClient = "claude" | "codex";
+
+/**  The client that was connected. */
+export type McpConnect = {
+	client: McpClient,
+	/**  The command the client now runs: the `asset-hub-cli` inside this app. */
+	command: string,
+	/**  The name the server is registered under. */
+	server: string,
+};
+
+/**  Whether a client's config names this app's server. */
+export type McpState = 
+/**  The `asset-hub` entry runs this app's `asset-hub-cli`. */
+"connected" | 
+/**  The `asset-hub` entry runs a different command (another copy of the app). */
+"otherCopy" | 
+/**  No readable `asset-hub` entry. */
+"missing";
+
+/**  The state of one client. */
+export type McpStatus = McpStatus_Serialize | McpStatus_Deserialize;
+
+/**  The state of one client. */
+export type McpStatus_Deserialize = {
+	client: McpClient,
+	state: McpState,
+	/**  The command of the entry when it runs another copy. */
+	command?: string | null,
+};
+
+/**  The state of one client. */
+export type McpStatus_Serialize = {
+	client: McpClient,
+	state: McpState,
+	/**  The command of the entry when it runs another copy. */
+	command: string | null,
 };
 
 /**  Unity's MinMaxCurve: a constant, a curve (x scalar), random between two curves or two constants. */

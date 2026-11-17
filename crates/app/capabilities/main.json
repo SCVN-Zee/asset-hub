@@ -60,6 +60,8 @@
     "allow-search-suggest",
     "allow-search-folders",
     "allow-agent-cli-install",
+    "allow-agent-mcp-connect",
+    "allow-agent-mcp-status",
     "allow-catalog-scan",
     "allow-catalog-pause",
     "allow-catalog-resume",
