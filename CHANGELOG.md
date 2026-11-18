@@ -2,6 +2,14 @@
 
 What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
 
+## [2.2.1] — 2026-11-18
+
+### Changed
+- **Faster sign-in with several GitHub CLI accounts:** the app remembers the logins of your other `gh` accounts, so it opens with every account at once instead of adding them after a slow online check.
+
+### Fixed
+- **Detail panel facts:** the stats strip in the result detail panel keeps its own layout instead of taking the facts grid's boxed style.
+
 ## [2.2.0] — 2026-11-18
 
 ### Removed
