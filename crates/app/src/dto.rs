@@ -117,6 +117,32 @@ dto! {
         pub target_project: Option<String>,
         pub collections: Option<Vec<Collection>>,
         pub recent: Option<RecentLists>,
+        /// What the background catalog index leaves out (absent: nothing).
+        pub cache_exclusions: Option<CacheExclusions>,
+    }
+
+    /// Orgs, repos and branches the background catalog index does not cache. A new repo or branch
+    /// is cached unless it is inside an excluded org or repo.
+    #[derive(Default)]
+    pub struct CacheExclusions {
+        /// Owners, as in `owner`.
+        pub orgs: Vec<String>,
+        /// Repos, as in `owner/name`.
+        pub repos: Vec<String>,
+        /// Branches, as in `owner/name@branch`.
+        pub branches: Vec<String>,
+    }
+
+    /// One repo of the cache scope tree.
+    pub struct CacheScopeRepo {
+        /// "owner/name"
+        pub full_name: String,
+        pub org: String,
+        pub default_branch: String,
+        /// Branches the repo's catalog knows (none when it was never listed or was left out).
+        pub branches: Vec<String>,
+        /// Bytes the repo's stored catalog takes.
+        pub bytes: f64,
     }
 }
 

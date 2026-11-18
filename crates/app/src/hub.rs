@@ -14,6 +14,7 @@ use asset_hub_core::handlers::create_default_registry;
 use asset_hub_core::registry::HandlerRegistry;
 
 use crate::cache::Caches;
+use crate::cache_scope::SharedExclusions;
 use crate::catalog_service::{CatalogConfig, CatalogService};
 use crate::dto::{CatalogStatus, TeamStatus};
 use crate::git_tree::GitTree;
@@ -125,6 +126,8 @@ pub struct Hub {
     emitters: OnceLock<Emitters>,
     /// The team backend's URL; none for a hub without a team client (the CLI, the MCP server, most tests).
     team_url: Option<String>,
+    /// What the user leaves out of the catalog index; every session's catalog follows it.
+    exclusions: SharedExclusions,
 }
 
 impl Hub {
@@ -142,7 +145,13 @@ impl Hub {
             api: api.to_owned(),
             emitters: OnceLock::new(),
             team_url: None,
+            exclusions: SharedExclusions::default(),
         }
+    }
+
+    /// What the user leaves out of the catalog index.
+    pub fn exclusions(&self) -> &SharedExclusions {
+        &self.exclusions
     }
 
     /// Tests: the team backend is at `url`.
@@ -252,7 +261,8 @@ impl Hub {
                         (sink.catalog)(status);
                     }
                 }),
-            ),
+            )
+            .with_exclusions(self.exclusions.clone()),
         )
     }
 

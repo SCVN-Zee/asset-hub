@@ -18,7 +18,7 @@ interface Props {
 /** Groups are open from the start while a column is this small, or while searching. */
 const OPEN_BELOW = 60
 
-function Box({ state, label, onChange }: { state: CheckState; label: string; onChange(): void }) {
+export function Box({ state, label, onChange }: { state: CheckState; label: string; onChange(): void }) {
   return (
     <input
       type="checkbox"

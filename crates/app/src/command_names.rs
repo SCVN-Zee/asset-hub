@@ -56,6 +56,7 @@ command_table! {
     ("thumbs_save", "thumbs:save"),
     ("cache_usage", "cache:usage"),
     ("cache_clear", "cache:clear"),
+    ("cache_scope", "cache:scope"),
     ("stats_get", "stats:get"),
     ("stats_save", "stats:save"),
     ("exporter_unity_package", "export:unitypackage"),

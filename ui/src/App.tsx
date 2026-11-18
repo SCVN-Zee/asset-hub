@@ -65,9 +65,7 @@ export function App() {
     document.documentElement.lang = settings.language
   }, [settings])
 
-  const update = useCallback((patch: Partial<AppSettings>) => {
-    void window.api.setSettings(patch).then(setSettings)
-  }, [])
+  const update = useCallback((patch: Partial<AppSettings>) => window.api.setSettings(patch).then(setSettings), [])
 
   if (!settings || screen === 'loading') return null
 

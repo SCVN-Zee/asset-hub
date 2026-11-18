@@ -4,6 +4,7 @@ pub mod auth;
 pub mod blender;
 pub mod bundle;
 pub mod cache;
+pub mod cache_scope;
 pub mod catalog_service;
 pub mod command_names;
 pub mod commands;
@@ -154,6 +155,7 @@ pub fn contract() -> Builder<tauri::Wry> {
             caches::thumbs_save,
             caches::cache_usage,
             caches::cache_clear,
+            caches::cache_scope,
             caches::stats_get,
             caches::stats_save,
             exporter::exporter_unity_package,

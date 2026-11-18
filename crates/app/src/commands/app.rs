@@ -19,14 +19,49 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<Settings, IpcErr
     traced("get_settings", async { Ok(state.settings()?.get()) }).await
 }
 
-/// Applies a partial update and returns the settings as saved.
+/// Applies a partial update and returns the settings as saved. A change of what the catalog index
+/// leaves out removes what is stored for it before this answers; the scan that follows runs in the
+/// background.
 #[tauri::command]
 #[specta::specta]
 pub async fn set_settings(state: State<'_, AppState>, patch: JsonObject) -> Result<Settings, IpcError> {
     traced("set_settings", async {
-        state.settings()?.set(&Value::Object(patch.0)).map_err(|e| IpcError::unknown(format!("could not save the settings: {e}")))
+        let (before, saved) = {
+            let mut store = state.settings()?;
+            let before = store.get().cache_exclusions.unwrap_or_default();
+            let saved = store.set(&Value::Object(patch.0)).map_err(|e| IpcError::unknown(format!("could not save the settings: {e}")))?;
+            // Set while the settings are held, so two saves cannot leave the older value in force.
+            state.hub.exclusions().set(saved.cache_exclusions.clone().unwrap_or_default());
+            (before, saved)
+        };
+        let now = saved.cache_exclusions.clone().unwrap_or_default();
+        if now != before {
+            // Without a session the next one starts from the new exclusions.
+            if let Ok(session) = state.session() {
+                session.catalog.apply_scope().await;
+                let before = state.scope_scan.supersede(before);
+                let pending = state.scope_scan.clone();
+                let task = tauri::async_runtime::spawn(async move {
+                    scan_after_scope_change(session, before, now).await;
+                    pending.finished();
+                });
+                state.scope_scan.started(task);
+            }
+        }
+        Ok(saved)
     })
     .await
+}
+
+/// Scans so that what was left out before and is cached now gets indexed.
+async fn scan_after_scope_change(session: std::sync::Arc<crate::hub::Session>, before: crate::dto::CacheExclusions, now: crate::dto::CacheExclusions) {
+    let Ok(repos) = session.repos().await else { return };
+    // Branch lists of repos that kept less are read again, or a branch put back would wait for the next refresh.
+    let loosened: Vec<_> = repos.iter().filter(|r| before.loosened_for(&now, &r.full_name)).cloned().collect();
+    if !loosened.is_empty() {
+        session.catalog.scan(&loosened, None, true).await;
+    }
+    session.catalog.scan(&repos, None, false).await;
 }
 
 /// Opens a folder picker; answers `None` when it is cancelled.

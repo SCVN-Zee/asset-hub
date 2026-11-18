@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
@@ -23,7 +23,8 @@ use serde_json::Value;
 use tokio::sync::{Mutex as AsyncMutex, OnceCell};
 
 use crate::cache::write_atomic;
-use crate::dto::{self, CatalogCurrent, CatalogState, CatalogStatus};
+use crate::cache_scope::SharedExclusions;
+use crate::dto::{self, CacheExclusions, CatalogCurrent, CatalogState, CatalogStatus};
 use crate::exporter::BoxFuture;
 use crate::github_net::ipc_error;
 use crate::hub::Source;
@@ -116,11 +117,19 @@ pub struct CatalogConfig {
     pub emit: StatusSink,
     /// Branches listed at the same time.
     pub concurrency: usize,
+    /// What the user leaves out of the index.
+    pub exclusions: SharedExclusions,
 }
 
 impl CatalogConfig {
     pub fn new(dir: Box<dyn Fn() -> PathBuf + Send + Sync>, is_asset: Arc<dyn Fn(&TreeEntry) -> bool + Send + Sync>, type_of: TypeOf, busy: Box<dyn Fn() -> bool + Send + Sync>, types: String, emit: StatusSink) -> Self {
-        Self { dir, is_asset, type_of, busy, types, emit, concurrency: SCAN_CONCURRENCY }
+        Self { dir, is_asset, type_of, busy, types, emit, concurrency: SCAN_CONCURRENCY, exclusions: SharedExclusions::default() }
+    }
+
+    /// The service follows `exclusions` (what the user leaves out of the index).
+    pub fn with_exclusions(mut self, exclusions: SharedExclusions) -> Self {
+        self.exclusions = exclusions;
+        self
     }
 }
 
@@ -159,6 +168,10 @@ pub struct CatalogService {
     names: Mutex<Option<HashMap<String, String>>>,
     /// Orders the writes of [`NAMES_FILE`].
     names_write: AsyncMutex<()>,
+    /// Set once the stored index has been made to follow the exclusions.
+    reconciled: AtomicBool,
+    /// Orders a catalog file's write against its removal.
+    files: AsyncMutex<()>,
     snapshots: Arc<Snapshots>,
     config: CatalogConfig,
     catalogs: Mutex<HashMap<String, Arc<OnceCell<Catalog>>>>,
@@ -194,6 +207,8 @@ impl CatalogService {
             source,
             names: Mutex::new(None),
             names_write: AsyncMutex::new(()),
+            files: AsyncMutex::new(()),
+            reconciled: AtomicBool::new(false),
             snapshots: Arc::default(),
             config,
             catalogs: Mutex::default(),
@@ -217,6 +232,27 @@ impl CatalogService {
         (self.config.dir)()
     }
 
+    /// What the user leaves out of the index now.
+    fn scope(&self) -> CacheExclusions {
+        self.config.exclusions.get()
+    }
+
+    /// Tests: what the user leaves out is `exclusions`.
+    #[cfg(test)]
+    pub fn leave_out(&self, exclusions: CacheExclusions) {
+        self.config.exclusions.set(exclusions);
+    }
+
+    /// The branch, or its repo, is left out of the index.
+    pub fn branch_excluded(&self, repo: &str, branch: &str) -> bool {
+        self.scope().branch_excluded(repo, branch)
+    }
+
+    /// The repo, or its org, is left out of the index.
+    pub fn repo_excluded(&self, repo: &str) -> bool {
+        self.scope().repo_excluded(repo)
+    }
+
     /// Reads branch lists (when stale) and queues every branch not indexed yet; recent branches go
     /// first, then those of what the user has open. Returns once the lists are read; listing the
     /// branches goes on in the background.
@@ -224,6 +260,13 @@ impl CatalogService {
         if self.stopped() {
             return self.status();
         }
+        // Once per service: what an older version, another account or a race left behind is removed.
+        if !self.scope().is_empty() && !self.reconciled.swap(true, Ordering::SeqCst) {
+            self.apply_scope().await;
+        }
+        let scope = self.scope();
+        let repos: Vec<RepoRef> = repos.iter().filter(|r| !scope.repo_excluded(&r.full_name)).cloned().collect();
+        let repos = repos.as_slice();
         let wanted: Vec<String> = repos.iter().map(|r| r.full_name.clone()).collect();
         self.warm(&wanted).await;
         let mut loaded = Vec::with_capacity(repos.len());
@@ -287,15 +330,16 @@ impl CatalogService {
         self.status()
     }
 
-    /// Reads the branch list of one repo. A repo that cannot be read (no access, archived...) just
-    /// has no branches; a rate limit stops the scan.
+    /// Reads the branch list of one repo, leaving out the branches the user excluded. A repo that
+    /// cannot be read (no access, archived...) just has no branches; a rate limit stops the scan.
     async fn refresh(self: &Arc<Self>, repo: &RepoRef) -> Result<(), SourceError> {
-        if self.stopped() {
+        if self.stopped() || self.repo_excluded(&repo.full_name) {
             return Ok(());
         }
         match self.source.list_branch_heads(&repo.full_name).await {
             Ok(heads) => {
-                let heads: Vec<CatalogBranch> = heads.into_iter().map(|h| CatalogBranch { name: h.name, commit: h.commit, date: h.date }).collect();
+                let scope = self.scope();
+                let heads: Vec<CatalogBranch> = heads.into_iter().filter(|h| !scope.branch_excluded(&repo.full_name, &h.name)).map(|h| CatalogBranch { name: h.name, commit: h.commit, date: h.date }).collect();
                 self.load(&repo.full_name).await.lock().await.set_branches(&heads, Some(&repo.default_branch), now_ms());
                 self.schedule_save(&repo.full_name);
                 Ok(())
@@ -408,6 +452,11 @@ impl CatalogService {
                     None => return,
                 }
             };
+            // Left out since it was queued.
+            if self.scope().branch_excluded(&task.repo, &task.branch) {
+                self.update(false, |i| i.status.done += 1.0);
+                continue;
+            }
             let catalog = self.load(&task.repo).await;
             // The branch moved on (or was listed by another task) since it was queued.
             let obsolete = {
@@ -421,7 +470,13 @@ impl CatalogService {
             let label = format!("{}@{}", task.repo, task.branch);
             self.update(false, move |i| i.status.current = Some(label));
             match self.source.asset_entries_at(&task.repo, &task.commit, &*self.config.is_asset).await {
-                Ok(entries) => catalog.lock().await.add_commit(&task.commit, &entries),
+                Ok(entries) => {
+                    let mut c = catalog.lock().await;
+                    // Left out while it was read: no commit of it is kept.
+                    if !self.scope().branch_excluded(&task.repo, &task.branch) && c.branches().iter().any(|b| b.commit == task.commit) {
+                        c.add_commit(&task.commit, &entries);
+                    }
+                }
                 Err(error) if matches!(error.code, SourceErrorCode::RateLimited | SourceErrorCode::Network | SourceErrorCode::Unauthorized) => {
                     // Worth trying again later: put it back.
                     lock(&self.inner).queue.push_front(task);
@@ -558,9 +613,17 @@ impl CatalogService {
         }
     }
 
+    /// Every repo with a saved catalog or one in memory, except those left out of the index.
+    async fn saved_repos(&self) -> Vec<String> {
+        let scope = self.scope();
+        let mut repos = self.stored_repos().await;
+        repos.retain(|repo| !scope.repo_excluded(repo));
+        repos
+    }
+
     /// Every repo with a saved catalog or one in memory. A file the names file does not know is
     /// read once for its repo; the rest are not opened.
-    async fn saved_repos(&self) -> Vec<String> {
+    async fn stored_repos(&self) -> Vec<String> {
         let dir = self.dir();
         let known = self.known_names().await;
         let (on_disk, learned) = tauri::async_runtime::spawn_blocking(move || {
@@ -604,12 +667,96 @@ impl CatalogService {
     }
 
     async fn save(&self, repo: &str) {
+        // A repo left out has no file: a task that was still running must not write one back.
+        if self.repo_excluded(repo) {
+            return;
+        }
         let guard = self.load(repo).await.lock_owned().await;
         let Ok(Ok(bytes)) = tauri::async_runtime::spawn_blocking(move || serde_json::to_vec(&catalog_json(guard.data()))).await else { return };
+        // Left out while it was serialized: a file now would outlive the purge.
+        let _turn = self.files.lock().await;
+        if self.repo_excluded(repo) {
+            return;
+        }
         // A catalog that cannot be written is built again from GitHub.
         if write_atomic(&self.dir().join(file_name(repo)), &bytes).await.is_ok() {
             self.learn_names(vec![(file_name(repo), repo.to_owned())]).await;
         }
+    }
+
+    /// Drops a repo's catalog from memory, disk and the names file.
+    async fn purge(&self, repo: &str) {
+        let _turn = self.files.lock().await;
+        lock(&self.catalogs).remove(repo);
+        lock(&self.saves).remove(repo);
+        let file = file_name(repo);
+        let _ = tokio::fs::remove_file(self.dir().join(&file)).await;
+        self.known_names().await;
+        let _turn = self.names_write.lock().await;
+        let snapshot = {
+            let mut guard = lock(&self.names);
+            guard.as_mut().and_then(|names| names.remove(&file).is_some().then(|| names.clone()))
+        };
+        let (Some(names), Some(path)) = (snapshot, self.names_path()) else { return };
+        if let Ok(bytes) = serde_json::to_vec(&names) {
+            let _ = write_atomic(&path, &bytes).await;
+        }
+    }
+
+    /// Makes what is stored follow the exclusions now: the catalogs of repos left out are removed,
+    /// the branches left out leave the other catalogs (with the commits only they held) and the
+    /// queued branches left out are dropped. Listings are made again afterwards.
+    pub async fn apply_scope(self: &Arc<Self>) {
+        let scope = self.scope();
+        self.update(false, |i| {
+            let before = i.queue.len();
+            i.queue.retain(|t| !scope.branch_excluded(&t.repo, &t.branch));
+            i.status.total = (i.status.total - (before - i.queue.len()) as f64).max(i.status.done);
+        });
+        let stored = self.stored_repos().await;
+        for repo in stored.iter().filter(|r| scope.repo_excluded(r)) {
+            self.purge(repo).await;
+        }
+        let with_branches: BTreeSet<&str> = stored.iter().map(String::as_str).filter(|repo| !scope.repo_excluded(repo) && !scope.excluded_branches_of(repo).is_empty()).collect();
+        for repo in with_branches {
+            let catalog = self.load(repo).await;
+            let changed = {
+                let mut c = catalog.lock().await;
+                let kept: Vec<CatalogBranch> = c.branches().iter().filter(|b| !scope.branch_excluded(repo, &b.name)).cloned().collect();
+                let changed = kept.len() != c.branches().len();
+                if changed {
+                    let (default_branch, checked_at) = (c.default_branch().map(str::to_owned), c.checked_at().unwrap_or(0));
+                    c.set_branches(&kept, default_branch.as_deref(), checked_at);
+                }
+                changed
+            };
+            if changed {
+                self.schedule_save(repo);
+            }
+        }
+        self.version.fetch_add(1, Ordering::SeqCst);
+        self.update(false, |_| {});
+    }
+
+    /// For each of `repos`: the branch names its catalog knows and the bytes its stored catalog
+    /// takes. A repo left out, or never listed, has neither.
+    pub async fn scope_info(&self, repos: &[String]) -> HashMap<String, (Vec<String>, u64)> {
+        let scope = self.scope();
+        let kept: Vec<String> = repos.iter().filter(|r| !scope.repo_excluded(r)).cloned().collect();
+        let mut held = Vec::new();
+        for repo in &kept {
+            if self.holds_repo(repo).await {
+                held.push(repo.clone());
+            }
+        }
+        self.warm(&held).await;
+        let mut out = HashMap::new();
+        for repo in held {
+            let branches = self.load(&repo).await.lock().await.branches().iter().map(|b| b.name.clone()).collect();
+            let bytes = tokio::fs::metadata(self.dir().join(file_name(&repo))).await.map_or(0, |m| m.len());
+            out.insert(repo, (branches, bytes));
+        }
+        out
     }
 
     /// Writes the changes that wait for their turn now.
@@ -639,7 +786,8 @@ impl CatalogService {
     /// slot (locked, and holding the grouping). None when a newer request overtook this one.
     /// The repos a request groups and what identifies that grouping (repos and excluded folders).
     async fn grouping_key(&self, repos: &[String], excluded_folders: &[String]) -> (Vec<String>, String) {
-        let names = if repos.is_empty() { self.saved_repos().await } else { repos.to_vec() };
+        let scope = self.scope();
+        let names = if repos.is_empty() { self.saved_repos().await } else { repos.iter().filter(|r| !scope.repo_excluded(r)).cloned().collect() };
         let key = serde_json::to_string(&(&names, excluded_folders)).unwrap_or_default();
         (names, key)
     }
@@ -704,7 +852,7 @@ impl CatalogService {
 
     /// What identifies a listing by the request's own inputs, so no directory is read to find it.
     fn snapshot_key(&self, repos: &[String], excluded_folders: &[String], filter: &ListFilter) -> String {
-        serde_json::to_string(&(self.config.types.as_str(), repos, excluded_folders, &filter.repos, &filter.branches)).unwrap_or_default()
+        serde_json::to_string(&(self.config.types.as_str(), repos, excluded_folders, &filter.repos, &filter.branches, self.scope())).unwrap_or_default()
     }
 
     /// The last listing made for this very request (repos, excluded folders and filter), from
@@ -779,6 +927,10 @@ impl CatalogService {
 
     /// Whether `repo` has a catalog in memory or on disk. It reads no catalog.
     pub async fn has_repo(&self, repo: &str) -> bool {
+        !self.repo_excluded(repo) && self.holds_repo(repo).await
+    }
+
+    async fn holds_repo(&self, repo: &str) -> bool {
         lock(&self.catalogs).contains_key(repo) || tokio::fs::try_exists(self.dir().join(file_name(repo))).await.unwrap_or(false)
     }
 
@@ -807,10 +959,20 @@ impl CatalogService {
         if raw.get("types").and_then(Value::as_str).unwrap_or("fbx") != self.config.types {
             return 0;
         }
+        let scope = self.scope();
+        if scope.repo_excluded(repo) {
+            return 0;
+        }
         let catalog = self.load(repo).await;
         let added = {
             let mut mine = catalog.lock().await;
-            let theirs = RepoCatalog::parse(repo, raw, Some(&self.config.types));
+            let mut theirs = RepoCatalog::parse(repo, raw, Some(&self.config.types));
+            // Branches left out stay out, and so do the commits only they hold.
+            if theirs.branches().iter().any(|b| scope.branch_excluded(repo, &b.name)) {
+                let kept: Vec<CatalogBranch> = theirs.branches().iter().filter(|b| !scope.branch_excluded(repo, &b.name)).cloned().collect();
+                let (default_branch, checked_at) = (theirs.default_branch().map(str::to_owned), theirs.checked_at().unwrap_or(0));
+                theirs.set_branches(&kept, default_branch.as_deref(), checked_at);
+            }
             mine.merge(&theirs)
         };
         // A newer branch list counts as a change too.
@@ -2060,5 +2222,169 @@ mod tests {
         let back: dto::CatalogListing = serde_json::from_value(value.clone()).unwrap();
         assert_eq!(back, listing);
         assert_eq!(value["facets"]["repos"], json!([["o/r", 1.0]]));
+    }
+
+    fn leave_out(h: &Harness, orgs: &[&str], repos: &[&str], branches: &[&str]) -> CacheExclusions {
+        let own = |list: &[&str]| list.iter().map(|s| (*s).to_owned()).collect();
+        let exclusions = CacheExclusions { orgs: own(orgs), repos: own(repos), branches: own(branches) };
+        h.service.config.exclusions.set(exclusions.clone());
+        exclusions
+    }
+
+    async fn scanned(h: &Harness, repos: &[&str]) {
+        h.source.set_heads("o/r", &[("main", "c1", Some("2026-11-01T00:00:00Z")), ("dev", "c2", Some("2026-11-05T00:00:00Z"))]);
+        h.source.set_heads("p/q", &[("main", "c3", None)]);
+        h.source.set_tree("c1", &[("Assets/A.fbx", "a")]);
+        h.source.set_tree("c2", &[("Assets/B.fbx", "b")]);
+        h.source.set_tree("c3", &[("Assets/C.fbx", "c")]);
+        let repos: Vec<RepoRef> = repos.iter().map(|r| repo(r)).collect();
+        h.service.scan(&repos, None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        h.service.flush().await;
+    }
+
+    #[tokio::test]
+    async fn a_scan_skips_the_repos_and_branches_left_out() {
+        let h = harness(1);
+        leave_out(&h, &["p"], &[], &["o/r@dev"]);
+        h.source.set_heads("o/r", &[("main", "c1", None), ("dev", "c2", None)]);
+        h.source.set_heads("p/q", &[("main", "c3", None)]);
+        h.source.set_tree("c1", &[("Assets/A.fbx", "a")]);
+        h.source.set_tree("c2", &[("Assets/B.fbx", "b")]);
+        h.service.scan(&[repo("o/r"), repo("p/q")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        assert_eq!(h.source.head_calls.lock().unwrap().clone(), ["o/r"]);
+        assert_eq!(h.source.calls(), ["o/r@c1"]);
+        let branches: Vec<String> = h.service.repo_data("o/r").await.unwrap().branches.into_iter().map(|b| b.name).collect();
+        assert_eq!(branches, ["main"]);
+        assert!(h.service.repo_data("p/q").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn the_default_branch_can_be_left_out_too() {
+        let h = harness(1);
+        leave_out(&h, &[], &[], &["o/r@main"]);
+        h.source.set_heads("o/r", &[("main", "c1", None), ("dev", "c2", None)]);
+        h.source.set_tree("c2", &[("Assets/B.fbx", "b")]);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        until(&h.service, CatalogState::Idle).await;
+        assert_eq!(h.source.calls(), ["o/r@c2"]);
+        assert_eq!(paths(&h.service.listing(&[], &[], ListFilter::default()).await.unwrap()), ["Assets/B.fbx"]);
+    }
+
+    #[tokio::test]
+    async fn merge_skips_a_repo_left_out_and_the_branches_left_out() {
+        let h = harness(1);
+        let mut theirs = RepoCatalog::empty("o/r", Some(TYPES));
+        theirs.set_branches(&[CatalogBranch { name: "main".into(), commit: "c1".into(), date: None }, CatalogBranch { name: "dev".into(), commit: "c2".into(), date: None }], Some("main"), 1000);
+        theirs.add_commit("c1", &[entry("A.fbx", "a")]);
+        theirs.add_commit("c2", &[entry("B.fbx", "b")]);
+        let raw = serde_json::to_value(theirs.data()).unwrap();
+        leave_out(&h, &[], &["o/r"], &[]);
+        assert_eq!(h.service.merge(&raw).await, 0);
+        assert!(h.service.repo_data("o/r").await.is_none());
+        leave_out(&h, &[], &[], &["o/r@dev"]);
+        assert_eq!(h.service.merge(&raw).await, 1);
+        assert_eq!(paths(&h.service.listing(&[], &[], ListFilter::default()).await.unwrap()), ["A.fbx"]);
+        let names: Vec<String> = h.service.repo_data("o/r").await.unwrap().branches.into_iter().map(|b| b.name).collect();
+        assert_eq!(names, ["main"]);
+    }
+
+    #[tokio::test]
+    async fn leaving_a_repo_out_removes_its_catalog_and_listing() {
+        let h = harness(1);
+        scanned(&h, &["o/r", "p/q"]).await;
+        assert!(h.dir.join("p__q.json").exists());
+        assert_eq!(h.service.listing(&[], &[], ListFilter::default()).await.unwrap().assets.len(), 3);
+        leave_out(&h, &[], &["p/q"], &[]);
+        h.service.apply_scope().await;
+        assert!(!h.dir.join("p__q.json").exists());
+        assert!(h.dir.join("o__r.json").exists());
+        assert_eq!(h.service.repos().await, ["o/r"]);
+        assert!(!h.service.has_repo("p/q").await);
+        let names: HashMap<String, String> = serde_json::from_slice(&std::fs::read(h.dir.parent().unwrap().join(NAMES_FILE)).unwrap()).unwrap();
+        assert!(!names.contains_key("p__q.json"));
+        assert_eq!(h.service.listing(&[], &[], ListFilter::default()).await.unwrap().assets.len(), 2);
+        // A save that was still waiting does not bring the file back.
+        h.service.schedule_save("p/q");
+        h.service.flush().await;
+        assert!(!h.dir.join("p__q.json").exists());
+    }
+
+    #[tokio::test]
+    async fn leaving_a_branch_out_drops_its_commits_and_putting_it_back_scans_it_again() {
+        let h = harness(1);
+        scanned(&h, &["o/r"]).await;
+        assert_eq!(h.service.listing(&[], &[], ListFilter::default()).await.unwrap().assets.len(), 2);
+        leave_out(&h, &[], &[], &["o/r@dev"]);
+        h.service.apply_scope().await;
+        let data = h.service.repo_data("o/r").await.unwrap();
+        assert_eq!(data.branches.iter().map(|b| b.name.as_str()).collect::<Vec<_>>(), ["main"]);
+        assert_eq!(data.commits.len(), 1);
+        assert_eq!(paths(&h.service.listing(&[], &[], ListFilter::default()).await.unwrap()), ["Assets/A.fbx"]);
+        // The info for the tree lists what the catalog knows.
+        let info = h.service.scope_info(&["o/r".to_owned(), "p/q".to_owned()]).await;
+        assert_eq!(info["o/r"].0, ["main"]);
+        assert!(info["o/r"].1 > 0 && !info.contains_key("p/q"));
+        leave_out(&h, &[], &[], &[]);
+        h.service.scan(&[repo("o/r")], None, true).await;
+        until(&h.service, CatalogState::Idle).await;
+        assert_eq!(paths(&h.service.listing(&[], &[], ListFilter::default()).await.unwrap()), ["Assets/A.fbx", "Assets/B.fbx"]);
+    }
+
+    #[tokio::test]
+    async fn queued_branches_left_out_are_dropped() {
+        let h = harness(1);
+        h.source.set_heads("o/r", &[("main", "c1", None), ("dev", "c2", None)]);
+        h.source.set_tree("c1", &[("Assets/A.fbx", "a")]);
+        h.source.set_tree("c2", &[("Assets/B.fbx", "b")]);
+        h.busy.store(true, Ordering::SeqCst);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        assert_eq!(h.service.status().total, 2.0);
+        leave_out(&h, &[], &[], &["o/r@dev"]);
+        h.service.apply_scope().await;
+        assert_eq!(h.service.status().total, 1.0);
+        h.busy.store(false, Ordering::SeqCst);
+        until(&h.service, CatalogState::Idle).await;
+        assert_eq!(h.source.calls(), ["o/r@c1"]);
+    }
+
+    #[tokio::test]
+    async fn a_listing_made_before_a_change_is_not_shown_after_it() {
+        let h = harness(1);
+        scanned(&h, &["o/r", "p/q"]).await;
+        let all = h.service.listing(&[], &[], ListFilter::default()).await.unwrap();
+        assert_eq!(h.service.listing_snapshot(&[], &[], &ListFilter::default()).await, Some(all));
+        leave_out(&h, &["p"], &[], &[]);
+        assert!(h.service.listing_snapshot(&[], &[], &ListFilter::default()).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn the_first_scan_removes_what_a_repo_left_out_still_has_on_disk() {
+        let h = harness(1);
+        scanned(&h, &["o/r", "p/q"]).await;
+        let (fresh, _) = service_in(h.dir.clone(), h.source.clone(), 1, h.busy.clone());
+        fresh.config.exclusions.set(CacheExclusions { repos: vec!["p/q".into()], branches: vec!["o/r@dev".into()], ..Default::default() });
+        fresh.scan(&[repo("o/r")], None, false).await;
+        until(&fresh, CatalogState::Idle).await;
+        assert!(!h.dir.join("p__q.json").exists());
+        let names: Vec<String> = fresh.repo_data("o/r").await.unwrap().branches.into_iter().map(|b| b.name).collect();
+        assert_eq!(names, ["main"]);
+    }
+
+    #[tokio::test]
+    async fn a_branch_left_out_while_its_tree_was_read_gets_no_commit() {
+        let h = harness(1);
+        h.source.set_heads("o/r", &[("main", "c1", None), ("dev", "c2", None)]);
+        h.source.set_tree("c1", &[("Assets/A.fbx", "a")]);
+        h.source.set_tree("c2", &[("Assets/B.fbx", "b")]);
+        h.busy.store(true, Ordering::SeqCst);
+        h.service.scan(&[repo("o/r")], None, false).await;
+        leave_out(&h, &[], &[], &["o/r@dev"]);
+        // Dropped from the queue and, were it in flight, from the catalog too.
+        h.service.apply_scope().await;
+        h.busy.store(false, Ordering::SeqCst);
+        until(&h.service, CatalogState::Idle).await;
+        assert_eq!(h.service.repo_data("o/r").await.unwrap().commits.len(), 1);
     }
 }

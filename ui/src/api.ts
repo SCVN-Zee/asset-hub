@@ -191,7 +191,8 @@ export const api: AssetHubApi = {
   },
   cache: {
     usage: () => result(commands.cacheUsage()),
-    clear: () => result(commands.cacheClear().then((o) => (o.status === 'ok' ? { status: 'ok' as const, data: undefined } : o)))
+    clear: () => result(commands.cacheClear().then((o) => (o.status === 'ok' ? { status: 'ok' as const, data: undefined } : o))),
+    scope: () => result(commands.cacheScope())
   },
   stats: {
     get: (keys) => value(commands.statsGet(keys)),

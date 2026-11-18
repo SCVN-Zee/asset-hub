@@ -6,7 +6,11 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 /** Commands */
 export const commands = {
 	getSettings: () => typedError<Settings_Serialize, IpcError_Serialize>(__TAURI_INVOKE("get_settings")),
-	/**  Applies a partial update and returns the settings as saved. */
+	/**
+	 *  Applies a partial update and returns the settings as saved. A change of what the catalog index
+	 *  leaves out removes what is stored for it before this answers; the scan that follows runs in the
+	 *  background.
+	 */
 	setSettings: (patch: { [key: string]: unknown }) => typedError<Settings_Serialize, IpcError_Serialize>(__TAURI_INVOKE("set_settings", { patch })),
 	/**  Opens a folder picker; answers `None` when it is cancelled. */
 	chooseFolder: () => typedError<string | null, IpcError_Serialize>(__TAURI_INVOKE("choose_folder")),
@@ -162,6 +166,11 @@ export const commands = {
 	cacheUsage: () => typedError<CacheUsage, IpcError_Serialize>(__TAURI_INVOKE("cache_usage")),
 	/**  Empties downloaded files (thumbnails and measurements stay). */
 	cacheClear: () => typedError<null, IpcError_Serialize>(__TAURI_INVOKE("cache_clear")),
+	/**
+	 *  Every repo of the session with its branches and the bytes its stored index takes, for the
+	 *  tree that picks what the index caches.
+	 */
+	cacheScope: () => typedError<CacheScopeRepo[], IpcError_Serialize>(__TAURI_INVOKE("cache_scope")),
 	/**  Model measurements by blob SHA. */
 	statsGet: (keys: string[]) => typedError<{ [key in string]: StatsSummary_Serialize }, IpcError_Serialize>(__TAURI_INVOKE("stats_get", { keys })),
 	/**
@@ -309,6 +318,31 @@ export type BundleMode = "zip" | "blender";
 export type BundleTexture = {
 	prop: string,
 	path: string,
+};
+
+/**
+ *  Orgs, repos and branches the background catalog index does not cache. A new repo or branch
+ *  is cached unless it is inside an excluded org or repo.
+ */
+export type CacheExclusions = {
+	/**  Owners, as in `owner`. */
+	orgs: string[],
+	/**  Repos, as in `owner/name`. */
+	repos: string[],
+	/**  Branches, as in `owner/name@branch`. */
+	branches: string[],
+};
+
+/**  One repo of the cache scope tree. */
+export type CacheScopeRepo = {
+	/**  "owner/name" */
+	fullName: string,
+	org: string,
+	defaultBranch: string,
+	/**  Branches the repo's catalog knows (none when it was never listed or was left out). */
+	branches: string[],
+	/**  Bytes the repo's stored catalog takes. */
+	bytes: number | null,
 };
 
 /**  Bytes the cache folder holds, by kind. */
@@ -1425,6 +1459,8 @@ export type Settings_Deserialize = {
 	targetProject?: string | null,
 	collections?: Collection_Deserialize[] | null,
 	recent?: RecentLists_Deserialize | null,
+	/**  What the background catalog index leaves out (absent: nothing). */
+	cacheExclusions?: CacheExclusions | null,
 };
 
 /**  The user's settings. */
@@ -1444,6 +1480,8 @@ export type Settings_Serialize = {
 	targetProject?: string,
 	collections?: Collection_Serialize[],
 	recent?: RecentLists_Serialize,
+	/**  What the background catalog index leaves out (absent: nothing). */
+	cacheExclusions?: CacheExclusions,
 };
 
 export type ShaderKind = "builtin" | "package" | "project";

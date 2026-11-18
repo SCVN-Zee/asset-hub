@@ -24,6 +24,8 @@ pub struct AppState {
     pub hub: Hub,
     /// Files the user saved through the app, which Finder may then show.
     saved_files: Mutex<HashSet<String>>,
+    /// The scan after the last change of what the catalog index leaves out.
+    pub scope_scan: Arc<crate::cache_scope::PendingScan>,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> Result<MutexGuard<'_, T>, IpcError> {
@@ -35,7 +37,8 @@ impl AppState {
         let auth = AuthService::new(paths.auth_file.clone(), paths.tools_dir.clone(), Arc::new(KeychainVault::new(paths.keychain_service.clone())));
         let caches = Arc::new(Caches::new(CacheConfig::new(paths.cache_dir.clone())));
         let hub = Hub::new(&caches);
-        Self { paths, settings: Mutex::new(settings), caches, hub, pending_link: Mutex::new(None), stash: Stash::default(), auth, saved_files: Mutex::default() }
+        hub.exclusions().set(settings.get().cache_exclusions.unwrap_or_default());
+        Self { paths, settings: Mutex::new(settings), caches, hub, pending_link: Mutex::new(None), stash: Stash::default(), auth, saved_files: Mutex::default(), scope_scan: Default::default() }
     }
 
     /// The GitHub session; `unauthorized` when nobody is signed in.

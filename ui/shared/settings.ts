@@ -1,4 +1,4 @@
-import { BUDGET_KEYS, BUDGET_PRESETS, type BudgetPreset, type PackageLayout } from '../src/bindings'
+import { BUDGET_KEYS, BUDGET_PRESETS, type BudgetPreset, type CacheExclusions, type PackageLayout } from '../src/bindings'
 import type { PlayableBudget } from './types'
 import { RECENT_LIMIT, sanitizeCollections, sanitizeItems, type Collection, type RecentLists } from './collections'
 
@@ -26,6 +26,8 @@ export interface Settings {
   collections?: Collection[]
   /** Assets viewed and exported lately, newest first (kept by the app). */
   recent?: RecentLists
+  /** Orgs, repos ('owner/name') and branches ('owner/name@branch') the background catalog index leaves out (absent: nothing). */
+  cacheExclusions?: CacheExclusions
 }
 
 export const EXPORT_LAYOUTS: readonly PackageLayout[] = ['byType', 'grouped', 'source']
@@ -41,7 +43,7 @@ export function isLanguage(value: unknown): value is Language {
 /** Every setting this version knows; anything else in the file was written by another version. */
 export const SETTINGS_KEYS = [
   'language', 'excludedFolders', 'lastRepo', 'lastBranch', 'budgetPreset', 'customBudget',
-  'exportLayout', 'targetProject', 'collections', 'recent'
+  'exportLayout', 'targetProject', 'collections', 'recent', 'cacheExclusions'
 ] as const satisfies ReadonlyArray<keyof Settings>
 
 /**
@@ -77,8 +79,21 @@ export function sanitizeSettings(raw: unknown, defaults: Settings): Settings {
             exported: sanitizeItems((input.recent as Record<string, unknown>).exported).slice(0, RECENT_LIMIT)
           }
         }
-      : {})
+      : {}),
+    ...sanitizeExclusions(input.cacheExclusions)
   }
+}
+
+/** Non-blank strings of a list, trimmed and without repeats. */
+const sanitizeNames = (raw: unknown): string[] =>
+  Array.isArray(raw) ? [...new Set(raw.filter((v): v is string => typeof v === 'string').map((v) => v.trim()).filter(Boolean))] : []
+
+/** The exclusions, or nothing when none is left. */
+function sanitizeExclusions(raw: unknown): Pick<Settings, 'cacheExclusions'> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const input = raw as Record<string, unknown>
+  const exclusions = { orgs: sanitizeNames(input.orgs), repos: sanitizeNames(input.repos), branches: sanitizeNames(input.branches) }
+  return exclusions.orgs.length || exclusions.repos.length || exclusions.branches.length ? { cacheExclusions: exclusions } : {}
 }
 
 /** Positive finite numbers for known limits only. */

@@ -9,6 +9,7 @@ import { BUDGET_KEYS, BUDGET_PRESETS, DEFAULT_BUDGET_PRESET, budgetFor } from '.
 import { commands, type CliInstall, type McpClient, type McpStatus } from '../bindings'
 import { Dropdown } from '../components/Dropdown'
 import { ExcludedFoldersDialog } from '../components/ExcludedFoldersDialog'
+import { CacheScope } from '../components/CacheScope'
 import { CloseIcon } from '../components/Icons'
 import { LangToggle } from '../components/LangToggle'
 import { useStoredFlag } from '../useStoredState'
@@ -16,7 +17,8 @@ import { useStoredFlag } from '../useStoredState'
 interface Props {
   settings: AppSettings
   auth: AuthStatus | undefined
-  onChange(patch: Partial<AppSettings>): void
+  /** Settles once the app has saved the patch. */
+  onChange(patch: Partial<AppSettings>): void | Promise<unknown>
   /** `gh`: also log the account out of GitHub CLI on this Mac. */
   onSignOut(gh: boolean): void
   onBack(): void
@@ -243,7 +245,7 @@ export function Settings({ settings, auth, onChange, onSignOut, onBack }: Props)
 
           <TargetProjectSetting settings={settings} onChange={onChange} />
 
-          <CacheSetting />
+          <CacheSetting settings={settings} onChange={onChange} />
 
           <CliSetting />
 
@@ -366,8 +368,8 @@ function McpSetting() {
   )
 }
 
-/** How much the cache holds, and a way to empty the downloads. The app keeps the folder and the size itself. */
-function CacheSetting() {
+/** How much the cache holds, a way to empty the downloads, and which repos and branches the index caches. The app keeps the folder and the size itself. */
+function CacheSetting({ settings, onChange }: { settings: AppSettings; onChange: Props['onChange'] }) {
   const { t } = useTranslation()
   const [usage, setUsage] = useState<CacheUsage>()
   const [clearing, setClearing] = useState(false)
@@ -392,6 +394,7 @@ function CacheSetting() {
           {t('settings.cacheUsage', { downloads: formatBytes(usage.downloads), thumbs: formatBytes(usage.thumbs), other: formatBytes(usage.other) })}
         </span>
       )}
+      <CacheScope exclusions={settings.cacheExclusions} onSave={(cacheExclusions) => onChange({ cacheExclusions })} onSaved={measure} />
     </section>
   )
 }

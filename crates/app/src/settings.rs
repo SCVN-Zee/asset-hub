@@ -10,13 +10,13 @@ use std::path::{Path, PathBuf};
 use serde_json::{Map, Value};
 
 use crate::constants::{BUDGET_KEYS, BUDGET_PRESETS, EXPORT_LAYOUTS, LANGUAGES};
-use crate::dto::{BudgetPreset, CollectionItem, Collection, CustomBudget, Language, PackageLayout, RecentLists, Settings};
+use crate::dto::{BudgetPreset, CacheExclusions, CollectionItem, Collection, CustomBudget, Language, PackageLayout, RecentLists, Settings};
 
 /// Most items of each recent list.
 const RECENT_LIMIT: usize = 30;
 
 /// Every setting this version knows; anything else in the file was written by another version.
-pub const SETTINGS_KEYS: [&str; 10] = [
+pub const SETTINGS_KEYS: [&str; 11] = [
     "language",
     "excludedFolders",
     "lastRepo",
@@ -27,6 +27,7 @@ pub const SETTINGS_KEYS: [&str; 10] = [
     "targetProject",
     "collections",
     "recent",
+    "cacheExclusions",
 ];
 
 /// Settings this version does not know, as they are in the file: an older and a newer copy of the
@@ -139,6 +140,25 @@ fn sanitize_budget(raw: Option<&Value>) -> Option<CustomBudget> {
     any.then_some(budget)
 }
 
+/// Non-blank strings of a list, trimmed and without repeats; anything else dropped.
+fn sanitize_names(raw: Option<&Value>) -> Vec<String> {
+    let mut seen = HashSet::new();
+    raw.and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(|name| name.trim().to_owned())
+        .filter(|name| !name.is_empty() && seen.insert(name.clone()))
+        .collect()
+}
+
+/// The cache exclusions, or none when nothing is excluded.
+fn sanitize_exclusions(raw: Option<&Value>) -> Option<CacheExclusions> {
+    let input = raw?.as_object()?;
+    let exclusions = CacheExclusions { orgs: sanitize_names(input.get("orgs")), repos: sanitize_names(input.get("repos")), branches: sanitize_names(input.get("branches")) };
+    (!exclusions.is_empty()).then_some(exclusions)
+}
+
 /// Merges untrusted stored/IPC data over defaults, dropping anything invalid.
 pub fn sanitize_settings(raw: &Value, defaults: &Settings) -> Settings {
     let empty = Map::new();
@@ -174,6 +194,7 @@ pub fn sanitize_settings(raw: &Value, defaults: &Settings) -> Settings {
         target_project: non_blank_string(input.get("targetProject")),
         collections: sanitize_collections(input.get("collections")),
         recent,
+        cache_exclusions: sanitize_exclusions(input.get("cacheExclusions")),
     }
 }
 
@@ -256,6 +277,7 @@ pub fn default_settings() -> Settings {
         target_project: None,
         collections: None,
         recent: None,
+        cache_exclusions: None,
     }
 }
 
@@ -463,6 +485,24 @@ mod tests {
         // A cache folder the user picked before is left where it is: kept in the file, never read.
         assert_eq!((saved["cacheDir"].clone(), saved["cacheLimitGB"].clone()), (json!("/c"), json!(5)));
         assert!(sanitize_settings(&json!({ "cacheDir": "/c", "cacheLimitGB": 5, "usageStats": false, "sharedIndexDir": "/team" }), &defaults()) == defaults());
+    }
+
+    #[test]
+    fn cache_exclusions_are_cleaned_and_survive_a_save() {
+        let raw = json!({ "cacheExclusions": { "orgs": [" a ", "a", 3, ""], "repos": ["a/b"], "branches": ["a/b@x", null], "other": 1 } });
+        let got = sanitize_settings(&raw, &defaults()).cache_exclusions.unwrap();
+        assert_eq!((got.orgs, got.repos, got.branches), (vec!["a".to_owned()], vec!["a/b".to_owned()], vec!["a/b@x".to_owned()]));
+        // Nothing excluded is the same as no setting; anything that is not an object is dropped.
+        assert_eq!(sanitize_settings(&json!({ "cacheExclusions": { "orgs": [], "repos": "x" } }), &defaults()).cache_exclusions, None);
+        assert_eq!(sanitize_settings(&json!({ "cacheExclusions": [1] }), &defaults()).cache_exclusions, None);
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("settings.json");
+        let mut store = SettingsStore::new(&file, store_defaults());
+        store.set(&json!({ "cacheExclusions": { "orgs": ["a"], "repos": [], "branches": ["a/b@x"] } })).unwrap();
+        assert_eq!(read(&file)["cacheExclusions"], json!({ "orgs": ["a"], "repos": [], "branches": ["a/b@x"] }));
+        assert_eq!(SettingsStore::new(&file, store_defaults()).get().cache_exclusions.unwrap().branches, vec!["a/b@x".to_owned()]);
+        store.set(&json!({ "cacheExclusions": null })).unwrap();
+        assert!(read(&file).get("cacheExclusions").is_none());
     }
 
     #[test]

@@ -626,6 +626,10 @@ impl RemoteCache {
 
     /// Takes in what the team's cache holds of `repo` and this machine lacks.
     pub async fn pull(&self, repo: &str) -> Counts {
+        // A repo the user leaves out of the cache is not pulled.
+        if self.deps.catalog.repo_excluded(repo) {
+            return Counts::default();
+        }
         let gate = self.repo_lock(repo);
         let _held = gate.lock().await;
         lock(&self.pulled_at).insert(repo.to_owned(), Instant::now());
@@ -1008,6 +1012,13 @@ impl RemoteCache {
                                         return Ok(0);
                                     }
                                 }
+                                // This machine's catalog has no branch it leaves out: writing it over a copy that
+                                // lists one would erase that branch for the team.
+                                let listed = catalog.get("branches").and_then(Value::as_array).into_iter().flatten().filter_map(|b| b.get("name").and_then(Value::as_str));
+                                if let Some(branch) = listed.into_iter().find(|name| self.deps.catalog.branch_excluded(repo, name)) {
+                                    trace(|| format!("[team] {name}: not written, the Worker's catalog lists {branch}, which is left out here"));
+                                    return Ok(0);
+                                }
                                 // Everything the Worker holds comes in first, or the write would drop it.
                                 self.deps.catalog.merge(&catalog).await;
                                 let Some(again) = self.mine(repo, object, trusted).await else { return Ok(0) };
@@ -1240,7 +1251,7 @@ impl RemoteCache {
 
     /// Pulls `repo` in the background unless it was pulled lately. The caller does not wait.
     pub fn schedule_pull(self: &Arc<Self>, repo: &str) {
-        if self.stopped.load(Ordering::SeqCst) || self.client.status() == TeamStatus::Disabled {
+        if self.stopped.load(Ordering::SeqCst) || self.client.status() == TeamStatus::Disabled || self.deps.catalog.repo_excluded(repo) {
             return;
         }
         {
@@ -2125,6 +2136,33 @@ mod contribute {
         }
     }
 
+    fn leaving_out_dev() -> crate::dto::CacheExclusions {
+        crate::dto::CacheExclusions { branches: vec![format!("{REPO}@dev")], ..Default::default() }
+    }
+
+    #[tokio::test]
+    async fn a_catalog_is_not_written_over_a_team_copy_that_lists_a_branch_left_out_here() {
+        let e = env(&[], true).await;
+        knows_a_repo(&e).await;
+        e.fake.lock().unwrap().put_object("catalog", &catalog_of(REPO, &[("main", "c1"), ("dev", "c2")], &[("c2", &[6])], 500));
+        e.cache.deps.catalog.leave_out(leaving_out_dev());
+        e.cache.contribute(REPO).await;
+        let fake = e.fake.lock().unwrap();
+        assert_eq!(fake.count("PUT /cache/catalog"), 0);
+        let (body, _) = fake.objects.get("catalog").unwrap();
+        assert!(gunzip(body)["branches"].as_array().unwrap().iter().any(|b| b["name"] == "dev"));
+    }
+
+    #[tokio::test]
+    async fn a_branch_left_out_that_the_team_no_longer_lists_does_not_stop_the_catalog() {
+        let e = env(&[], true).await;
+        knows_a_repo(&e).await;
+        e.fake.lock().unwrap().put_object("catalog", &catalog_of(REPO, &[("main", "c0")], &[("c0", &[5])], 500));
+        e.cache.deps.catalog.leave_out(leaving_out_dev());
+        assert!(e.cache.contribute(REPO).await.commits > 0);
+        assert!(e.fake.lock().unwrap().count("PUT /cache/catalog") > 0);
+    }
+
     /// The state of a machine that already wrote its measurements, and was told the Worker holds
     /// the thumbnail of blob 1.
     async fn wrote_stats_and_knows_thumb(e: &Env) {
@@ -2453,6 +2491,18 @@ mod run {
         e.cache.schedule_pull(REPO);
         tokio::time::sleep(Duration::from_millis(700)).await;
         assert_eq!(e.fake.lock().unwrap().count("GET /cache/catalog"), 1);
+    }
+
+    #[tokio::test]
+    async fn a_repo_left_out_of_the_cache_is_never_pulled() {
+        let e = env(&[], false).await;
+        e.list(REPO, &[1]).await;
+        e.cache.deps.catalog.leave_out(crate::dto::CacheExclusions { orgs: vec![REPO.split('/').next().unwrap().to_owned()], ..Default::default() });
+        e.cache.schedule_pull(REPO);
+        assert_eq!(e.cache.pull(REPO).await.commits, 0);
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        assert_eq!(e.fake.lock().unwrap().count("GET /cache/catalog"), 0);
+        assert!(lock(&e.cache.pulled_at).get(REPO).is_none());
     }
 
     #[tokio::test]

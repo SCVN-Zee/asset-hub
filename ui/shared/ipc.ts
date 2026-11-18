@@ -1,4 +1,5 @@
 import type { BundleMaterial, CatalogListing, CatalogLocation, DependencyReport, FactKind, PrefabMaterialsResult, PrefabScope, RepoRef, SourceErrorCode, StatsSummary, TreeEntry } from './types'
+import type { CacheScopeRepo } from '../src/bindings'
 import type { Settings } from './settings'
 
 /** Error codes that can cross IPC; the UI shows `errors.<code>`. */
@@ -268,6 +269,8 @@ export interface AssetHubApi {
     usage(): Promise<IpcResult<CacheUsage>>
     /** Empties downloaded files (thumbnails and measurements stay). */
     clear(): Promise<IpcResult<void>>
+    /** Every repo with its branches and the bytes its stored index takes, for choosing what the index caches. */
+    scope(): Promise<IpcResult<CacheScopeRepo[]>>
   }
   /** Model measurements by blob SHA, for ranking results without opening them. */
   stats: {

@@ -296,6 +296,11 @@ body.resizing * { cursor: inherit !important; }
 .scope-fold svg { transition: transform 0.1s; }
 .scope-fold[aria-expanded='true'] svg { transform: rotate(90deg); }
 .scope-only { flex: none; opacity: 0; }
+/* Settings → Cache: the tree of what the catalog index caches. */
+.cache-scope { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.cache-scope h3 { margin: 0; font-size: var(--fs-md); }
+.cache-scope-list { max-height: min(50vh, 420px); }
+.cache-size { flex: none; font-variant-numeric: tabular-nums; }
 .scope-row:hover .scope-only, .scope-row:focus-within .scope-only { opacity: 1; }
 @media (hover: none) { .scope-only { opacity: 1; } }
 /* A partly checked group: a dash in the box. */

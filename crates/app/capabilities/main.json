@@ -73,6 +73,7 @@
     "allow-thumbs-save",
     "allow-cache-usage",
     "allow-cache-clear",
+    "allow-cache-scope",
     "allow-stats-get",
     "allow-stats-save",
     "allow-exporter-unity-package",

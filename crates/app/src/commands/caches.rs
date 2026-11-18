@@ -3,7 +3,7 @@
 use tauri::State;
 
 use super::traced;
-use crate::dto::{CacheUsage, StatsSummary};
+use crate::dto::{CacheScopeRepo, CacheUsage, StatsSummary};
 use crate::ipc::IpcError;
 use crate::state::AppState;
 
@@ -52,6 +52,29 @@ pub async fn cache_usage(state: State<'_, AppState>) -> Result<CacheUsage, IpcEr
 #[specta::specta]
 pub async fn cache_clear(state: State<'_, AppState>) -> Result<(), IpcError> {
     traced("cache_clear", async { state.caches.janitor.clear().await.map_err(|e| IpcError::unknown(format!("could not empty the cache: {e}"))) }).await
+}
+
+/// Every repo of the session with its branches and the bytes its stored index takes, for the
+/// tree that picks what the index caches.
+#[tauri::command]
+#[specta::specta]
+pub async fn cache_scope(state: State<'_, AppState>) -> Result<Vec<CacheScopeRepo>, IpcError> {
+    traced("cache_scope", async {
+        let session = state.session()?;
+        let repos = session.repos().await?;
+        let names: Vec<String> = repos.iter().map(|r| r.full_name.clone()).collect();
+        let mut info = session.catalog.scope_info(&names).await;
+        let mut tree: Vec<CacheScopeRepo> = repos
+            .into_iter()
+            .map(|repo| {
+                let (branches, bytes) = info.remove(&repo.full_name).unwrap_or_default();
+                CacheScopeRepo { org: crate::cache_scope::org_of(&repo.full_name).to_owned(), full_name: repo.full_name, default_branch: repo.default_branch, branches, bytes: bytes as f64 }
+            })
+            .collect();
+        tree.sort_by_key(|r| r.full_name.to_lowercase());
+        Ok(tree)
+    })
+    .await
 }
 
 /// The page's end of the catalog and team progress: events on the app's windows.
