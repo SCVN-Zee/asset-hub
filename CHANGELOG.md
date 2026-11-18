@@ -2,6 +2,11 @@
 
 What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
 
+## [2.3.0] — 2026-11-18
+
+### Added
+- **Choose what the catalog caches:** Settings › Cache has an org › repo › branch checkbox tree with an All repos row. New repos and branches are cached unless you uncheck their org or repo. An unchecked repo is not scanned or pulled from the team cache, and its stored catalog is removed. An unchecked branch leaves the branch lists and the repo catalog. Checking an item again queues a scan. Your choices never remove branches from the team's shared catalog.
+
 ## [2.2.1] — 2026-11-18
 
 ### Changed
