@@ -9,6 +9,7 @@ export default mergeConfig(
   defineConfig({
     root: resolve('.'),
     cacheDir: resolve('e2e/.vite-cache'),
+    define: { __E2E__: true },
     server: { port: 5199, strictPort: true, host: 'localhost' },
     optimizeDeps: { entries: ['e2e/harness.html'] }
   })

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { BRANCH_COUNT, CATALOG_COUNT, RARE_COUNT, RARE_WORD } from './fixtures'
+import { BRANCH_COUNT, branchAssets, CATALOG_COUNT, catalogAssets, RARE_COUNT, RARE_WORD } from './fixtures'
+import { THUMB_CACHE_CAP } from '../ui/src/thumbCache'
 import { CARD, measure, openApp, scrollerTop, scrollTo, selectedInView, SELECTED, settle, waitForCards, type Measure, type Scope } from './helpers'
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -269,6 +270,11 @@ test('9. a short result list leaves no large padding', async ({ page }) => {
   // Own padding is 14 px above and below; nothing else may be left over.
   expect(grid - content, `grid ${grid}px vs rows ${content}px (${JSON.stringify(m)})`).toBeLessThanOrEqual(14 * 2 + 4)
   expect(m.scrollHeight, 'nothing to scroll for a short list').toBeLessThanOrEqual(m.viewHeight + 1)
+  // Placeholder cards cover complete rows only: none for the empty cells after the last card.
+  const pitch = m.rowHeight + m.rowGap
+  const complete = Math.floor(RARE_COUNT / m.columns)
+  const layer = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.content .grid')!, '::before').height))
+  expect(layer, `placeholder layer for ${RARE_COUNT} results in ${m.columns} columns`).toBeLessThanOrEqual(Math.max(0, complete * pitch - m.rowGap) + 1)
 })
 
 test('10. no card clips its content', async ({ page }) => {
@@ -316,6 +322,272 @@ test('10b. thumbnails render only for cards on screen, and scrolling renders the
   await settle(page)
   await expect.poll(reads, { message: 'newly visible cards render' }).toBeGreaterThan(idle)
   expect(await reads(), 'reads stay far below the list size').toBeLessThan(400)
+})
+
+test('10c. finishing thumbnails never blocks the main thread on a 375,000 asset catalog', async ({ page }) => {
+  test.setTimeout(240_000)
+  // Files read as a small PNG, so the grid's image thumbnails render for real and finish while it scrolls.
+  await openApp(page, 'catalog', { catalogCount: 375_000, readableFiles: true })
+  await waitForCards(page)
+  // Let the opening work (indexing, lookups) finish, so only what thumbnails cost is measured.
+  await page.waitForTimeout(3000)
+  await page.evaluate(() => {
+    const w = window as unknown as { __blocks: number[]; __worstFrame: number }
+    w.__blocks = []
+    w.__worstFrame = 0
+    new PerformanceObserver((list) => list.getEntries().forEach((e) => w.__blocks.push(e.duration))).observe({ type: 'longtask' })
+    // Longest wait for an animation frame: a blocked main thread shows up here even before it counts as a long task.
+    let last = performance.now()
+    const tick = () => {
+      const now = performance.now()
+      w.__worstFrame = Math.max(w.__worstFrame, now - last)
+      last = now
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+  const saves = () => page.evaluate(() => window.__e2e.calls.filter((c) => c === 'thumbs_save').length)
+  const before = await saves()
+  // Scrolling brings new cards, so thumbnails keep finishing.
+  const m = await measure(page)
+  const step = m.viewHeight / 2
+  for (let at = 0; at < 60 && (await saves()) - before < 12; at++) {
+    await scrollTo(page, Math.round((at + 1) * step))
+    await page.waitForTimeout(400)
+  }
+  await page.waitForTimeout(1500)
+  const finished = (await saves()) - before
+  const { blocks, worstFrame } = await page.evaluate(() => {
+    const w = window as unknown as { __blocks: number[]; __worstFrame: number }
+    return { blocks: w.__blocks, worstFrame: w.__worstFrame }
+  })
+  console.log(`${finished} thumbnails finished at 375k: long tasks ${JSON.stringify(blocks.map(Math.round))}, worst frame ${Math.round(worstFrame)} ms`)
+  expect(finished, 'thumbnails finished while scrolling').toBeGreaterThanOrEqual(8)
+  expect(Math.max(0, ...blocks), `longest main-thread block while ${finished} thumbnails finished: ${JSON.stringify(blocks)}`).toBeLessThan(200)
+  expect(worstFrame, 'worst wait for an animation frame').toBeLessThan(250)
+})
+
+test('10d. a background fact scan never blocks the main thread on a 375,000 asset catalog', async ({ page }) => {
+  test.setTimeout(240_000)
+  // Two scans (effects, then UI prefabs) find 6,000 prefab SHAs each over about six seconds; the UI ones start half way into the effects ones.
+  const scan = { perFlush: 200, intervalMs: 200, flushes: 30 }
+  const found = scan.perFlush * scan.flushes
+  const prefabs = catalogAssets(375_000).filter((a) => a.type === 'prefab').length
+  await openApp(page, 'catalog', { catalogCount: 375_000, factScan: scan })
+  await waitForCards(page)
+  // Let the opening work (indexing, lookups) finish, so only what the scan's findings cost is measured.
+  await page.waitForTimeout(2500)
+  await page.evaluate(() => {
+    const w = window as unknown as { __blocks: number[] }
+    w.__blocks = []
+    new PerformanceObserver((list) => list.getEntries().forEach((e) => w.__blocks.push(e.duration))).observe({ type: 'longtask' })
+  })
+  const scans = () => page.evaluate(() => window.__e2e.calls.filter((c) => c === 'assets_known_assets').length)
+  await expect.poll(scans, { timeout: 30_000, message: 'both fact scans started' }).toBe(2)
+  // Both are over once the sidebar shows the last findings.
+  const count = (label: string) => page.locator('.tab-sub', { hasText: label }).locator('.num')
+  await expect(count('Particle System')).toHaveText(String(found), { timeout: 60_000 })
+  await expect(count('UI')).toHaveText(String(found), { timeout: 60_000 })
+  // Prefabs with either tag are not Other: the two sets overlap by half.
+  await expect(count('Other')).toHaveText(String(prefabs - found * 1.5), { timeout: 60_000 })
+  const blocks = await page.evaluate(() => (window as unknown as { __blocks: number[] }).__blocks)
+  console.log(`fact scan at 375k: long tasks ${JSON.stringify(blocks.map(Math.round))}, total ${Math.round(blocks.reduce((a, b) => a + b, 0))} ms`)
+  expect(Math.max(0, ...blocks), `longest main-thread block while the scans reported: ${JSON.stringify(blocks)}`).toBeLessThan(100)
+})
+
+test('10e. saved thumbnails are read for the cards on screen only and held in a bounded cache', async ({ page }) => {
+  test.setTimeout(240_000)
+  const assets = catalogAssets(375_000)
+  // Half of the blobs have a saved thumbnail.
+  await openApp(page, 'catalog', { catalogCount: 375_000, cachedThumbs: 0.5 })
+  await waitForCards(page)
+  const m = await measure(page)
+  // Jumps far down the list, in an order that never repeats a place: far more saved thumbnails are read than the cache holds.
+  for (let k = 1; k <= 100; k++) {
+    await scrollTo(page, Math.round((((k * 7919) % 1000) / 1000) * (m.scrollHeight - m.viewHeight)))
+    await page.waitForTimeout(120)
+  }
+  await settle(page)
+  await page.waitForTimeout(800)
+
+  const e2e = await page.evaluate(() => ({ sizes: window.__e2e.thumbGetSizes, answered: window.__e2e.thumbAnswered, held: window.__e2eThumbCount?.() ?? -1 }))
+  console.log(`${e2e.sizes.length} thumbs_get calls, largest ${Math.max(...e2e.sizes)} keys; ${e2e.answered.length} thumbnails answered, ${e2e.held} held in memory`)
+  expect(e2e.sizes.length, 'saved thumbnails were asked for').toBeGreaterThan(0)
+  expect(Math.max(...e2e.sizes), 'keys in the largest thumbs_get request').toBeLessThanOrEqual(400)
+  expect(e2e.answered.length, 'more thumbnails were read than the cache holds, so evicting was exercised').toBeGreaterThan(THUMB_CACHE_CAP)
+  expect(e2e.held, 'thumbnails held in memory').toBeGreaterThan(0)
+  expect(e2e.held, 'thumbnails held in memory').toBeLessThanOrEqual(THUMB_CACHE_CAP)
+
+  // Cards in the viewport show the saved thumbnail the cache has for them.
+  const idsInView = () =>
+    page.evaluate((cardSelector) => {
+      const view = document.querySelector('.content')!.getBoundingClientRect()
+      return [...document.querySelectorAll<HTMLElement>(cardSelector)]
+        .filter((c) => c.getBoundingClientRect().bottom > view.top && c.getBoundingClientRect().top < view.bottom)
+        .map((c) => ({ id: c.dataset.assetId!, img: c.querySelector('img.asset-img')?.getAttribute('src')?.startsWith('data:') ?? false }))
+    }, CARD)
+  const answered = new Set(e2e.answered)
+  const withoutThumb = async () => {
+    const cards = await idsInView()
+    return { cards: cards.length, expected: cards.filter((c) => answered.has(c.id)).length, missing: cards.filter((c) => answered.has(c.id) && !c.img).map((c) => c.id) }
+  }
+  await expect.poll(async () => (await withoutThumb()).missing.length, { message: 'cards in the viewport whose saved thumbnail is not shown' }).toBe(0)
+  const shown = await withoutThumb()
+  expect(shown.expected, `cards in the viewport with a saved thumbnail (of ${shown.cards})`).toBeGreaterThan(0)
+
+  // A card answered from the cache is never drawn again; the ones the cache has nothing for are.
+  const reads = await page.evaluate(() => window.__e2e.readPaths)
+  const drawnAgain = assets.filter((a) => answered.has(a.sha) && reads.includes(a.path)).length
+  expect(drawnAgain, `cards with a saved thumbnail that were read for drawing, of ${reads.length} reads`).toBe(0)
+  expect(reads.length, 'cards without a saved thumbnail are drawn').toBeGreaterThan(0)
+})
+
+test('rows outside the window show placeholder cards at the real card pitch', async ({ page }) => {
+  await openApp(page, 'catalog')
+  await waitForCards(page)
+  const top = await measure(page)
+  await scrollTo(page, Math.round(top.scrollHeight * (0.2 + Math.random() * 0.6)))
+  await settle(page)
+  const m = await measure(page)
+
+  const found = await page.evaluate((cardSelector) => {
+    const grid = document.querySelector<HTMLElement>('.content .grid')!
+    const style = getComputedStyle(grid)
+    const before = getComputedStyle(grid, '::before')
+    const g = grid.getBoundingClientRect()
+    const originX = g.left + grid.clientLeft + parseFloat(before.left)
+    const originY = g.top + grid.clientTop + parseFloat(before.top)
+    const cards = [...grid.querySelectorAll<HTMLElement>(cardSelector.replace('.grid ', ''))].map((c) => {
+      const r = c.getBoundingClientRect()
+      return { left: r.left, top: r.top, opaque: getComputedStyle(c).backgroundColor !== 'rgba(0, 0, 0, 0)' }
+    })
+    return {
+      marked: grid.hasAttribute('data-placeholders'),
+      maskSize: before.getPropertyValue('mask-size') || before.getPropertyValue('-webkit-mask-size'),
+      mask: before.getPropertyValue('mask-image') || before.getPropertyValue('-webkit-mask-image'),
+      background: before.backgroundColor,
+      colWidth: parseFloat(style.gridTemplateColumns.split(' ')[0]),
+      colGap: parseFloat(style.columnGap),
+      originX,
+      originY,
+      beforeHeight: parseFloat(before.height),
+      cards,
+    }
+  }, CARD)
+
+  expect(found.marked, 'grid carries the placeholder background').toBe(true)
+  expect(found.mask, 'placeholder mask').toContain('svg')
+  const pitchX = found.colWidth + found.colGap
+  const pitchY = m.rowHeight + m.rowGap
+  expect(found.maskSize.replace(/px/g, '').split(' ').map(Number), 'placeholder tile equals the card pitch').toEqual([pitchX, pitchY])
+  expect(found.beforeHeight, 'placeholder layer is bounded').toBeLessThanOrEqual(m.viewHeight * 4 + Math.ceil(found.cards.length / m.columns) * pitchY)
+  expect(found.background, 'placeholder colour').not.toBe('rgba(0, 0, 0, 0)')
+
+  // Every rendered card sits on a placeholder cell, within a pixel, and covers it.
+  expect(found.cards.length).toBeGreaterThan(0)
+  for (const c of found.cards) {
+    const col = Math.round((c.left - found.originX) / pitchX)
+    const row = Math.round((c.top - found.originY) / pitchY)
+    expect(Math.abs(c.left - (found.originX + col * pitchX)), `card column ${col} off its placeholder`).toBeLessThanOrEqual(1)
+    expect(Math.abs(c.top - (found.originY + row * pitchY)), `card row ${row} off its placeholder`).toBeLessThanOrEqual(1)
+    expect(c.opaque, 'rendered card is opaque').toBe(true)
+  }
+
+  // With the rendered cards hidden, the placeholders are what the eye sees.
+  await page.addStyleTag({ content: `${CARD} { visibility: hidden !important }` })
+  await settle(page)
+  await page.screenshot({ path: 'e2e/screenshots/placeholder-cards-behind-the-grid.png' })
+})
+
+test('row height follows the natural card height across cell size toggles', async ({ page }) => {
+  await openApp(page, 'catalog')
+  await waitForCards(page)
+  const naturalHeight = () =>
+    page.evaluate((cardSelector) => {
+      const card = document.querySelector<HTMLElement>(cardSelector)!
+      const saved = card.style.minHeight
+      card.style.minHeight = '0'
+      const height = card.offsetHeight
+      card.style.minHeight = saved
+      return height
+    }, CARD)
+  const sizes = page.locator('.size-toggle button')
+  const first = (await measure(page)).rowHeight
+  expect(first, 'start: row height is the natural card height').toBe(await naturalHeight())
+  for (const [name, button] of [['large', 1], ['small', 0], ['large', 1], ['small', 0]] as const) {
+    await sizes.nth(button).click()
+    await settle(page, 4)
+    const m = await measure(page)
+    expect(m.rowHeight, `${name} cells: row height equals the natural card height`).toBe(await naturalHeight())
+    if (name === 'small') expect(m.rowHeight, 'small cells return to the starting row height').toBe(first)
+  }
+})
+
+test('10f. importing many picked assets into Unity sends the previews the disk cache has, also those not held in memory', async ({ page }) => {
+  test.setTimeout(120_000)
+  await openApp(page, 'branch', { cachedThumbs: 1, unityEditor: true })
+  await waitForCards(page)
+  await page.keyboard.press('Control+a')
+  const held = await page.evaluate(() => window.__e2eThumbCount?.() ?? -1)
+  expect(held, 'thumbnails in memory are only those of the cards seen').toBeLessThan(BRANCH_COUNT / 2)
+  await page.keyboard.press('Control+i')
+  await expect.poll(() => page.evaluate(() => window.__e2e.exportPreviews.length), { message: 'an export was sent', timeout: 60_000 }).toBe(1)
+  const previews = await page.evaluate(() => window.__e2e.exportPreviews[0])
+  expect(previews.length, 'previews sent with the export').toBe(BRANCH_COUNT)
+  expect(await page.evaluate(() => window.__e2eThumbCount?.() ?? -1), 'the export keeps nothing in memory').toBeLessThan(BRANCH_COUNT / 2)
+})
+
+test('10h. a scan that ends while the catalog is open still shows in the branch tab when coming back', async ({ page }) => {
+  test.setTimeout(120_000)
+  const scan = { perFlush: 25, intervalMs: 400, flushes: 12, of: 'branch' as const }
+  const prefabs = branchAssets().filter((a) => a.type === 'prefab').length
+  await openApp(page, 'branch', { effectsTab: true, factScan: scan })
+  await waitForCards(page)
+  const tab = page.locator('.tab', { hasText: 'VFX' })
+  // The VFX tab appears when the first findings land; the scan goes on after the tab is opened and the scope is left.
+  await tab.click({ timeout: 15_000 })
+  const scans = () => page.evaluate(() => window.__e2e.calls.filter((c) => c === 'assets_known_assets').length)
+  await page.locator('.crumb-seg .picker-trigger').click()
+  await page.locator('.scope-all label').first().click()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.crumb-seg .picker-value')).toContainText('All repos')
+  // Both scans end while the catalog is open (it holds none of the branch's prefabs).
+  await expect.poll(scans, { timeout: 30_000 }).toBe(2)
+  await page.waitForTimeout((scan.flushes * scan.intervalMs) + 2500)
+  await page.locator('.crumb-seg .picker-trigger').click()
+  await page.getByRole('button', { name: 'Only acme/alpha' }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.crumb-seg .picker-value')).not.toContainText('All repos')
+  const tabCount = tab.locator('.num')
+  await expect(tabCount).toHaveText(String(prefabs))
+  await expect(page.locator('.toolbar-count')).toHaveText(String(prefabs))
+})
+
+test('the placeholder layer stays small on a 375,000 asset catalog and the visible grid is always covered', async ({ page }) => {
+  await openApp(page, 'catalog', { catalogCount: 375_000 })
+  await waitForCards(page)
+  const layer = () =>
+    page.evaluate((cardSelector) => {
+      const grid = document.querySelector<HTMLElement>('.content .grid')!
+      const before = getComputedStyle(grid, '::before')
+      const g = grid.getBoundingClientRect()
+      const top = g.top + grid.clientTop + parseFloat(before.top)
+      return { top, bottom: top + parseFloat(before.height), cards: grid.querySelectorAll(cardSelector.replace('.grid ', '')).length }
+    }, CARD)
+  const positions = [0.5, 0.9, 0.12, 0.999, 0.37, Math.random(), Math.random()]
+  for (const at of positions) {
+    const before = await measure(page)
+    await scrollTo(page, Math.round((before.scrollHeight - before.viewHeight) * at))
+    await settle(page, 4)
+    const m = await measure(page)
+    const l = await layer()
+    const pitch = m.rowHeight + m.rowGap
+    expect(l.bottom - l.top, `layer height at ${at} (${JSON.stringify(m)})`).toBeLessThanOrEqual(m.viewHeight * 4 + Math.ceil(l.cards / m.columns) * pitch)
+    expectCovered(m, `position ${at}`)
+    // The visible grid area lies inside the placeholder layer, so what no card covers shows a placeholder.
+    expect(l.top, `layer starts above the visible area at ${at}`).toBeLessThanOrEqual(m.areaTop + 1)
+    expect(l.bottom, `layer ends below the visible area at ${at}`).toBeGreaterThanOrEqual(m.areaBottom - 1)
+  }
 })
 
 test.describe('11. branch scope', () => {
