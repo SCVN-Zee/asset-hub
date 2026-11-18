@@ -93,6 +93,9 @@ struct StoredAuth {
     /// Whom GitHub said the token belongs to, as of the last sign-in or check.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     login: Option<String>,
+    /// The logins of the other gh accounts (not secret), so a launch can read their tokens locally.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    others: Vec<String>,
 }
 
 /// Remembers how the user signed in.
@@ -123,10 +126,22 @@ impl AuthStore {
         stored.login.filter(|l| !l.is_empty())
     }
 
-    /// Saves `login` next to the stored method. Nothing happens when no method is stored.
+    /// The logins of the other gh accounts saved next to the method, the active one's excluded.
+    pub fn saved_others(&self) -> Vec<String> {
+        std::fs::read(&self.file).ok().and_then(|b| serde_json::from_slice::<StoredAuth>(&b).ok()).map(|s| s.others).unwrap_or_default()
+    }
+
+    /// Saves `login` next to the stored method, keeping the saved other accounts. Nothing happens
+    /// when no method is stored.
     pub fn save_login(&self, login: &str) {
         let Some(stored) = std::fs::read(&self.file).ok().and_then(|b| serde_json::from_slice::<StoredAuth>(&b).ok()) else { return };
-        let _ = self.write(&StoredAuth { method: stored.method, login: Some(login.to_owned()) });
+        let _ = self.write(&StoredAuth { login: Some(login.to_owned()), ..stored });
+    }
+
+    /// Saves `login` and the logins of the other gh accounts. Nothing happens when no method is stored.
+    pub fn save_accounts(&self, login: &str, others: &[String]) {
+        let Some(stored) = std::fs::read(&self.file).ok().and_then(|b| serde_json::from_slice::<StoredAuth>(&b).ok()) else { return };
+        let _ = self.write(&StoredAuth { login: Some(login.to_owned()), others: others.to_vec(), ..stored });
     }
 
     /// False when the method could not be persisted (no usable vault): the session then stays in
@@ -136,7 +151,7 @@ impl AuthStore {
             self.clear();
             return false;
         }
-        self.write(&StoredAuth { method, login: None }).is_ok()
+        self.write(&StoredAuth { method, login: None, others: Vec::new() }).is_ok()
     }
 
     pub fn clear(&self) {
@@ -436,26 +451,30 @@ async fn validate(session: Arc<Mutex<Option<Session>>>, store: AuthStore, api: S
     }
 }
 
-/// Fills in the other gh accounts of a session that was restored from the active token alone. Reading
-/// them asks gh to check every token online, which is slow, so it runs after the launch has answered.
-/// The session is left alone when it was signed out, or signed in as another account, in the meantime.
+/// Reads every gh account after the launch has answered (asking gh to check each token online is
+/// slow) and settles the session with them. The session already holds the accounts that were saved, so
+/// nothing changes when gh agrees, which keeps everything built on the session. When an account was
+/// added or removed, or a login corrected, the session and the saved logins follow. The session is
+/// left alone when it was signed out, or signed in as another account, in the meantime.
 async fn refresh_gh_accounts(session: Arc<Mutex<Option<Session>>>, store: AuthStore, gh: Option<PathBuf>, token: String) {
     let Ok(read) = read_gh_accounts(gh.as_deref()).await else { return };
     let mut read = read.into_iter();
     let Some((gh_login, active_token)) = read.next().filter(|(_, t)| *t == token) else { return };
     let others: Vec<(String, String)> = read.filter_map(|(login, token)| Some((login?, token))).collect();
-    let corrected = {
+    let saved = {
         let Ok(mut current) = session.lock() else { return };
         let Some(s) = current.as_mut().filter(|s| s.status.method == Some(AuthMethod::Gh) && s.accounts.first().is_some_and(|(_, t)| *t == token)) else { return };
         let login = gh_login.unwrap_or_else(|| s.accounts[0].0.clone());
-        let changed = login != s.accounts[0].0;
         let persisted = s.status.persisted.unwrap_or(true);
-        *s = AuthService::new_session(AuthMethod::Gh, login.clone(), &active_token, others, persisted);
-        changed.then_some(login)
+        let settled = AuthService::new_session(AuthMethod::Gh, login.clone(), &active_token, others, persisted);
+        if settled.accounts == s.accounts {
+            return;
+        }
+        let logins: Vec<String> = settled.accounts[1..].iter().map(|(l, _)| l.clone()).collect();
+        *s = settled;
+        (login, logins)
     };
-    if let Some(login) = corrected {
-        let _ = tokio::task::spawn_blocking(move || store.save_login(&login)).await;
-    }
+    let _ = tokio::task::spawn_blocking(move || store.save_accounts(&saved.0, &saved.1)).await;
 }
 
 pub struct AuthService {
@@ -531,12 +550,13 @@ impl AuthService {
         }
         let login = http::get_user_login(http::client(), &self.api, token).await?;
         let (saved, saved_login) = (token.to_owned(), login.clone());
+        let other_logins: Vec<String> = others.iter().map(|(l, _)| l.clone()).collect();
         let persisted = self
             .blocking_store(move |store| {
                 // A restore keeps what is stored and only adds the login; a sign-in stores the method too.
                 let stored = !persist || store.save(method, &saved);
                 if stored {
-                    store.save_login(&saved_login);
+                    store.save_accounts(&saved_login, &other_logins);
                 }
                 stored
             })
@@ -584,12 +604,19 @@ impl AuthService {
         *restored = true;
         let Ok(Some((method, saved))) = self.blocking_store(|store| store.load()).await else { return };
         let saved_login = self.blocking_store(|store| store.saved_login()).await.ok().flatten();
-        // A gh user with a saved login needs only the active token now: listing every account asks gh to
-        // check each token online, which is slow, so the other accounts follow in the background.
+        // A gh user with a saved login reads the tokens locally: the active one and those of the saved
+        // other accounts. Listing the accounts asks gh to check each token online, which is slow, so
+        // that runs in the background and leaves the session alone when it finds the same accounts.
         if let (AuthMethod::Gh, Some(login), Some(gh)) = (method, saved_login.clone(), self.gh()) {
             if let Some(token) = gh_token(&gh, None).await.ok().map(|t| t.trim().to_owned()).filter(|t| !t.is_empty()) {
+                let mut others = Vec::new();
+                for other in self.blocking_store(|store| store.saved_others()).await.unwrap_or_default() {
+                    if let Ok(other_token) = gh_token(&gh, Some(&other)).await {
+                        others.push((other, other_token));
+                    }
+                }
                 if let Ok(mut session) = self.session.lock() {
-                    *session = Some(Self::new_session(method, login, &token, Vec::new(), true));
+                    *session = Some(Self::new_session(method, login, &token, others, true));
                 }
                 tauri::async_runtime::spawn(validate(self.session.clone(), self.store.clone(), self.api.clone(), token.clone(), self.signed_out.clone()));
                 tauri::async_runtime::spawn(refresh_gh_accounts(self.session.clone(), self.store.clone(), Some(gh), token));
@@ -607,8 +634,13 @@ impl AuthService {
         };
         let token = token.trim().to_owned();
         if let (Some(login), false) = (gh_login.or(saved_login), token.is_empty()) {
-            if let Ok(mut session) = self.session.lock() {
-                *session = Some(Self::new_session(method, login, &token, others, true));
+            let session = Self::new_session(method, login, &token, others, true);
+            if method == AuthMethod::Gh {
+                let (login, logins): (String, Vec<String>) = (session.accounts[0].0.clone(), session.accounts[1..].iter().map(|(l, _)| l.clone()).collect());
+                let _ = self.blocking_store(move |store| store.save_accounts(&login, &logins)).await;
+            }
+            if let Ok(mut current) = self.session.lock() {
+                *current = Some(session);
             }
             tauri::async_runtime::spawn(validate(self.session.clone(), self.store.clone(), self.api.clone(), token, self.signed_out.clone()));
             return;
@@ -1250,16 +1282,16 @@ sleep 0.2"#);
         assert_eq!(auth.accounts().unwrap(), [("octo".to_owned(), "token-octo".to_owned()), ("other-user".to_owned(), "token-other".to_owned())]);
         assert_eq!(auth.token().as_deref(), Some("token-octo"));
         assert_eq!(auth.account().unwrap().0, "octo");
-        // The next launch signs in again from gh, with both accounts.
+        // The other account's login is saved, so the next launch signs in again with both accounts at once.
+        assert_eq!(AuthStore::new(dir.path().join("auth.json"), Arc::new(MemoryVault::default())).saved_others(), ["other-user"]);
         let mut next = service(dir.path(), Arc::new(MemoryVault::default()), &api);
         next.gh_dirs = auth.gh_dirs.clone();
-        assert!(next.status().await.unwrap().signed_in);
-        assert!(eventually(|| next.accounts().is_some_and(|a| a.len() == 2)).await, "the other account follows in the background");
         assert_eq!(next.status().await.unwrap().accounts, ["octo", "other-user"]);
+        assert_eq!(next.accounts().unwrap(), auth.accounts().unwrap());
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn a_gh_restore_with_a_saved_login_answers_before_gh_lists_its_accounts() {
+    async fn a_gh_restore_with_saved_logins_answers_with_every_account_before_gh_lists_them() {
         let dir = tempfile::tempdir().unwrap();
         let gh_dir = dir.path().join("bin");
         std::fs::create_dir_all(&gh_dir).unwrap();
@@ -1269,24 +1301,63 @@ sleep 0.2"#);
         let vault = Arc::new(MemoryVault::default());
         let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
         store.save(AuthMethod::Gh, "");
-        store.save_login("octo");
+        store.save_accounts("octo", &["other-user".to_owned()]);
         let mut auth = service(dir.path(), vault, &api);
         auth.gh_dirs = vec![gh_dir];
         let began = std::time::Instant::now();
         let status = auth.status().await.unwrap();
         assert!(began.elapsed() < Duration::from_secs(1), "status waited for gh auth status: {:?}", began.elapsed());
-        assert_eq!((status.signed_in, status.login.as_deref(), status.accounts.as_slice()), (true, Some("octo"), ["octo".to_owned()].as_slice()));
+        assert_eq!((status.signed_in, status.login.as_deref(), status.accounts.as_slice()), (true, Some("octo"), ["octo".to_owned(), "other-user".to_owned()].as_slice()));
         assert!(!marker.exists(), "gh auth status has not finished yet");
-        assert_eq!(auth.account(), Some(("octo".into(), "token-octo".into())));
-        let both = tokio::time::timeout(Duration::from_secs(6), async {
-            while auth.accounts().is_none_or(|a| a.len() < 2) {
+        let before = auth.accounts().unwrap();
+        assert_eq!(before, [("octo".to_owned(), "token-octo".to_owned()), ("other-user".to_owned(), "token-other".to_owned())]);
+
+        // gh lists the same accounts: the session stays as it is and the saved logins do not change.
+        let listed = tokio::time::timeout(Duration::from_secs(6), async {
+            while !marker.exists() {
                 tokio::time::sleep(Duration::from_millis(50)).await;
             }
         })
         .await;
-        assert!(both.is_ok(), "the other account follows in the background");
-        assert_eq!(auth.accounts().unwrap(), [("octo".to_owned(), "token-octo".to_owned()), ("other-user".to_owned(), "token-other".to_owned())]);
+        assert!(listed.is_ok(), "gh auth status runs in the background");
+        tokio::time::sleep(Duration::from_millis(800)).await;
+        assert_eq!(auth.accounts().unwrap(), before);
         assert_eq!(auth.status().await.unwrap().accounts, ["octo", "other-user"]);
+        assert_eq!(store.saved_others(), ["other-user"]);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn an_account_gh_reports_in_the_background_joins_the_session_and_the_saved_logins() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh_dir = dir.path().join("bin");
+        std::fs::create_dir_all(&gh_dir).unwrap();
+        let three = TWO_ACCOUNTS
+            .replace(r#"{"state":"error","active":false,"login":"stale"}"#, r#"{"state":"success","active":false,"login":"third"}"#)
+            .replace(r#"*) exit 1;;"#, "\"auth token --hostname github.com --user third\") echo token-third;;\n*) exit 1;;");
+        script(&gh_dir, "gh", &three);
+        let api = github("token-octo").await;
+        let vault = Arc::new(MemoryVault::default());
+        let store = AuthStore::new(dir.path().join("auth.json"), vault.clone());
+        store.save(AuthMethod::Gh, "");
+        store.save_accounts("octo", &["other-user".to_owned()]);
+        let mut auth = service(dir.path(), vault, &api);
+        auth.gh_dirs = vec![gh_dir];
+        assert_eq!(auth.status().await.unwrap().accounts, ["octo", "other-user"]);
+        assert!(eventually(|| auth.accounts().is_some_and(|a| a.len() == 3)).await, "the new account follows in the background");
+        assert_eq!(auth.accounts().unwrap(), [("octo".to_owned(), "token-octo".to_owned()), ("other-user".to_owned(), "token-other".to_owned()), ("third".to_owned(), "token-third".to_owned())]);
+        assert!(eventually(|| store.saved_others() == ["other-user", "third"]).await, "the saved logins follow");
+        assert_eq!(store.saved_login().as_deref(), Some("octo"));
+    }
+
+    #[test]
+    fn the_saved_other_logins_survive_a_login_update_and_an_old_file_still_loads() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = AuthStore::new(dir.path().join("auth.json"), Arc::new(MemoryVault::default()));
+        std::fs::write(dir.path().join("auth.json"), r#"{"method":"gh","login":"octo"}"#).unwrap();
+        assert_eq!((store.saved_login().as_deref(), store.saved_others()), (Some("octo"), Vec::<String>::new()));
+        store.save_accounts("octo", &["other-user".to_owned()]);
+        store.save_login("octo2");
+        assert_eq!((store.saved_login().as_deref(), store.saved_others()), (Some("octo2"), vec!["other-user".to_owned()]));
     }
 
     #[tokio::test]
