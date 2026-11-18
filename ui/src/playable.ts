@@ -108,3 +108,16 @@ export function rankForPlayable<T>(
   })
   return keyed.map((k) => k.item)
 }
+
+/**
+ * The user's history score of a file. `scores` is keyed by "repo\npath"; `paths` holds just the paths of those keys,
+ * so the key (a new string) is built only for the few files that are in the history, not for every asset of a catalog.
+ */
+export function historyScore(scores: ReadonlyMap<string, number>, paths: ReadonlySet<string>, repo: string, path: string): number {
+  return paths.has(path) ? (scores.get(`${repo}\n${path}`) ?? 0) : 0
+}
+
+/** The paths of "repo\npath" keys. */
+export function historyPaths(scores: ReadonlyMap<string, number>): Set<string> {
+  return new Set([...scores.keys()].map((key) => key.slice(key.indexOf('\n') + 1)))
+}

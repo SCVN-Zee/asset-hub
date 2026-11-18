@@ -59,10 +59,19 @@ interface BuildInput<A extends Asset> {
 export interface SearchOptions {
   /** False: no index is built (the scope is hidden); the last one is kept. */
   enabled?: boolean
+  /**
+   * Changes whenever `tags` was changed in place (the map keeps its identity). The tags are only read by a search with a
+   * query, so the index is rebuilt for them only while a query is typed.
+   */
+  tagsVersion?: number
+  /** True while tags are still being found: the index is then rebuilt for them at most every `TAG_BUILD_GAP_MS`, and at once when it stops. */
+  tagsBusy?: boolean
 }
 
 /** Least time between two index builds while their inputs keep changing. */
 const BUILD_GAP_MS = 500
+/** Least time between two index builds that only take in tags found since the last one. */
+const TAG_BUILD_GAP_MS = 4000
 
 /**
  * Searches `assets` (matching groups, typos and folder names, best first) and lists their folders.
@@ -75,6 +84,10 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
   const enabled = options.enabled ?? true
   const enabledRef = useRef(enabled)
   enabledRef.current = enabled
+  const tagsVersion = options.tagsVersion ?? 0
+  const tagsBusy = options.tagsBusy ?? false
+  const latest = useRef<BuildInput<A>>({ assets, extraNames, tags })
+  latest.current = { assets, extraNames, tags }
   const [index, setIndex] = useState<Index<A>>()
   const [folders, setFolders] = useState<FolderNode>(EMPTY_FOLDERS)
   const [answered, setAnswered] = useState<Answered<A>>()
@@ -90,13 +103,11 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
 
   // One build at a time, the newest inputs next, and a pause between builds: every build sends the whole list
   // to Rust, which reads it on the app's main thread, so a burst of changes (a scan finding assets) froze the app.
-  const build = useRef<{ busy: boolean; next?: BuildInput<A> }>({ busy: false })
-  useEffect(() => {
-    if (!enabled) {
-      build.current.next = undefined
-      return
-    }
-    build.current.next = { assets, extraNames, tags }
+  const build = useRef<{ busy: boolean; next?: BuildInput<A>; builtAt: number; tagsVersion: number; assets?: readonly A[] }>({ busy: false, builtAt: 0, tagsVersion: 0 })
+  const requestBuild = useRef(() => {})
+  requestBuild.current = () => {
+    build.current.next = latest.current
+    build.current.tagsVersion = tagsVersion
     if (build.current.busy) return
     build.current.busy = true
     void (async () => {
@@ -107,10 +118,16 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
             const handle = await parse.searchBuild(wanted.assets, Object.fromEntries(wanted.extraNames), Object.fromEntries([...wanted.tags].map(([id, list]) => [id, [...list]])))
             if (!alive.current) return
             const list = wanted.assets
-            setIndex({ handle, assets: list, byKey: new Map(list.map((a) => [keyOf(a), a])) })
-            const root = await parse.searchFolders(handle)
-            if (!alive.current) return
-            setFolders(root)
+            // The same assets again (only tags changed): their lookup and folders are still right.
+            const sameAssets = build.current.assets === list
+            build.current.assets = list
+            build.current.builtAt = Date.now()
+            setIndex((prev) => ({ handle, assets: list, byKey: sameAssets && prev?.assets === list ? prev.byKey : new Map(list.map((a) => [keyOf(a), a])) }))
+            if (!sameAssets) {
+              const root = await parse.searchFolders(handle)
+              if (!alive.current) return
+              setFolders(root)
+            }
           } catch (error) {
             if (alive.current) setFailure(error)
           }
@@ -120,9 +137,23 @@ export function useSearch<A extends Asset>(assets: readonly A[], extraNames: Rea
         build.current.busy = false
       }
     })()
+  }
+  useEffect(() => {
+    if (!enabled) {
+      build.current.next = undefined
+      return
+    }
+    requestBuild.current()
   }, [assets, extraNames, tags, enabled])
-  const run = useRef<{ busy: boolean; next?: Wanted<A> }>({ busy: false })
   const searching = query.trim() !== ''
+  // Tags changed in place: a query reads them, so the index takes them in, but not on every batch a scan finds.
+  useEffect(() => {
+    if (!enabled || !searching || tagsVersion === build.current.tagsVersion) return
+    const wait = tagsBusy ? Math.max(0, build.current.builtAt + TAG_BUILD_GAP_MS - Date.now()) : 0
+    const timer = setTimeout(() => requestBuild.current(), wait)
+    return () => clearTimeout(timer)
+  }, [enabled, searching, tagsVersion, tagsBusy])
+  const run = useRef<{ busy: boolean; next?: Wanted<A> }>({ busy: false })
   useEffect(() => {
     if (!index || !searching) return
     run.current.next = { index, query, folder }

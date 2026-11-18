@@ -24,7 +24,7 @@ export default defineConfig({
       '@renderer': resolve('ui/src')
     }
   },
-  define: { __APP_VERSION__: JSON.stringify(version) },
+  define: { __APP_VERSION__: JSON.stringify(version), __E2E__: false },
   plugins: [react(), dropWoff()],
   clearScreen: false,
   server: { port: 5173, strictPort: true, host: 'localhost' },

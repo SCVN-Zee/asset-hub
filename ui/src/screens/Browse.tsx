@@ -5,14 +5,15 @@ import { formatBytes } from '../format'
 import type { HandlerRegistry } from '../handlers'
 import { parse } from '../parse'
 import { useSearch } from '../useSearch'
-import { inSubCategory, SUB_ALL, SUB_CATEGORIES, subCategoriesOf, tagsOf, type AssetTag, type SubCategory } from '../tags'
-import { mergeKnown } from '../catalogScan'
+import { inSubCategory, SUB_ALL, subCategoriesOf, type AssetTag, type SubCategory } from '../tags'
+import { FactIndex } from '../factIndex'
 import { AssetCard, SkeletonCard } from '../components/AssetCard'
 import { VirtualGrid, type VirtualGridHandle } from '../components/VirtualGrid'
 import { AssetDetails } from '../components/AssetDetails'
 import { ExportBar, packCapacity, type ExportOptions, type ExportState, type PackItem } from '../components/ExportBar'
 import { unwrap } from '../remoteSource'
 import { useThumbnailQueue, type ThumbKind } from '../useThumbnailQueue'
+import { ThumbCache } from '../thumbCache'
 import { Dropdown } from '../components/Dropdown'
 import { ScopePicker } from '../components/ScopePicker'
 import { ErrorNote } from '../components/ErrorNote'
@@ -29,7 +30,8 @@ import { CatalogDetails, CatalogStatusLine, githubUrl, locationNote } from '../c
 import { useCatalog, type SearchScope } from '../useCatalog'
 import { filterOf, selectionOf, targetOf, type Selection } from '../scopeTree'
 import type { BudgetPreset } from '@shared/types'
-import { BUDGET_PRESETS, rankForPlayable, summaryIssues, type SortMode } from '../playable'
+import { BUDGET_PRESETS, historyPaths, historyScore, rankForPlayable, summaryIssues, type SortMode } from '../playable'
+import { mergeStatFact, NO_STAT_FACTS, type StatFacts } from '../statFacts'
 import { usePopularity } from '../usePopularity'
 import { useBudget } from '../budget'
 import { parseAssetLink } from '@shared/deeplink'
@@ -146,21 +148,22 @@ interface Props {
 }
 
 const ALL = 'all'
-/** The tags of each asset that has any, by asset id. */
-function tagsByAsset(list: readonly Asset[], stats: Record<string, StatsSummary>, facts: AssetFacts): Map<string, AssetTag[]> {
-  const byId = new Map<string, AssetTag[]>()
-  for (const a of list) {
-    const tags = tagsOf(a, stats[a.sha], facts)
-    if (tags.length) byId.set(a.id, tags)
-  }
-  return byId
-}
+const NO_ASSETS: readonly Asset[] = []
+/** Tags of no asset, for the view that is not open. */
+const NO_TAGS: ReadonlyMap<string, AssetTag[]> = new Map()
 
 /** What a scan of the prefabs finds, for the tags of prefabs. */
 const TAG_FACTS: readonly FactKind[] = ['effects', 'uiPrefabs']
 /** Cards rendered per step while scrolling. */
-/** Least time between two updates of the known assets while a scan reports them. */
-const KNOWN_FLUSH_MS = 300
+/**
+ * Least time between two updates of the known assets while a scan reports them. Each update touches only the assets that have
+ * the new SHAs, but it still renders the page, so a scan's findings land in a few batches.
+ */
+const KNOWN_FLUSH_MS = 2000
+/** Longest a finished thumbnail waits before it reaches the grid: thumbnails that finish within it share one update. */
+const SAVE_FLUSH_MS = 250
+/** Cards after the one that came on screen whose saved thumbnails are read ahead: a few rows. */
+const THUMB_PREFETCH = 24
 /** Models bigger than this are only rendered when opened, not for grid thumbnails. */
 const THUMB_MAX_BYTES = 40 * 1024 * 1024
 /** Images are decoded on the page: very large PSDs would stall it, so they are only drawn when opened. */
@@ -286,15 +289,52 @@ export function Browse({
   /** Where to land once a branch opened from another view has loaded. */
   const nav = useRef<{ repo: string; branch: string; path: string }>()
   const [selectedId, setSelectedId] = useState<string>()
-  const [thumbs, setThumbs] = useState<Record<string, string>>({})
+  /** Saved thumbnails of the cards on screen (and a few more), read from the disk cache as they are needed. */
+  const [thumbCache] = useState(() => new ThumbCache({ load: (keys) => window.api.thumbs.get(keys), onChange: () => setThumbVersion((v) => v + 1) }))
+  const [thumbVersion, setThumbVersion] = useState(0)
+  const thumbs = useMemo(() => thumbCache.snapshot(), [thumbCache, thumbVersion])
+  useEffect(() => {
+    if (typeof __E2E__ !== 'undefined' && __E2E__) window.__e2eThumbCount = () => thumbCache.size
+    return () => thumbCache.dispose()
+  }, [thumbCache])
   /** Model measurements by blob SHA, for ranking. */
   const [modelStats, setModelStats] = useState<Record<string, StatsSummary>>({})
+  /** `modelStats` as last merged: current even before React renders it, for code that must not re-run on every measurement. */
+  const statsRef = useRef(modelStats)
+  const [statFacts, setStatFacts] = useState<StatFacts>(NO_STAT_FACTS)
+  const statFactsRef = useRef(statFacts)
+  /** Clip names by blob SHA, kept next to `statFacts`. */
+  const clipNamesBySha = useRef(new Map<string, string[]>())
+  /**
+   * Merges measurements into `modelStats` with one state update. Without `replace` a known model keeps its reading
+   * (a thumbnail's measurement never replaces one taken in the viewer); with it the incoming one wins.
+   */
+  const mergeStats = useCallback((incoming: Record<string, StatsSummary>, replace: boolean) => {
+    const known = statsRef.current
+    let next: Record<string, StatsSummary> | undefined
+    let facts = statFactsRef.current
+    for (const sha of Object.keys(incoming)) {
+      const after = incoming[sha]
+      const before = known[sha]
+      if (before === after || (before && !replace)) continue
+      next ??= { ...known }
+      next[sha] = after
+      facts = mergeStatFact(facts, clipNamesBySha.current, sha, before, after)
+    }
+    if (!next) return
+    statsRef.current = next
+    setModelStats(next)
+    if (facts !== statFactsRef.current) {
+      statFactsRef.current = facts
+      setStatFacts(facts)
+    }
+  }, [])
   const [sortMode, setSortMode] = useState<SortMode>('popular')
   // Ticks kept between launches (Filters and export-list options).
   const [onlyFits, setOnlyFits] = useStoredFlag('assethub.filter.onlyFits', false)
-  /** Saved thumbnails are known; only then is it worth rendering missing ones. */
-  const [thumbsLoaded, setThumbsLoaded] = useState(false)
-  const [catalogThumbsLoaded, setCatalogThumbsLoaded] = useState(false)
+  /** Saved measurements are known; only then is it worth rendering (or measuring again) a card. */
+  const [statsLoaded, setStatsLoaded] = useState(false)
+  const [catalogStatsLoaded, setCatalogStatsLoaded] = useState(false)
   const [mergeCopies, setMergeCopies] = useStoredFlag('assethub.filter.mergeCopies', true)
   const gridHandle = useRef<VirtualGridHandle>(null)
   const [pack, setPack] = useState<PackItem[]>([])
@@ -421,45 +461,71 @@ export function Browse({
   const roots = tree.status === 'ready' ? tree.data.roots : []
   const assets = listing.assets
   const hiddenCount = listing.hidden
-  // Clip names of measured models, keyed so the search is rebuilt only when they change (not on every thumbnail).
-  const clipKey = Object.entries(modelStats)
-    .filter(([, s]) => s.clips > 0 && s.clipNames)
-    .map(([sha, s]) => `${sha}:${s.clipNames!.join(',')}`)
-    .sort()
-    .join('|')
-  const clipNames = useMemo(() => new Map(Object.entries(modelStats).flatMap(([sha, s]) => (s.clipNames ? [[sha, s.clipNames] as const] : []))), [clipKey])
+  // Clip names of measured models, rebuilt only when they change (not on every thumbnail).
+  const clipNames = useMemo(() => new Map(clipNamesBySha.current), [statFacts.clipKey])
   /** Shas of models known to hold clips, for tabs that list them (`alsoShows`). */
   /** Shown anyway: assets their handler leaves out of lists (clips no model was found for). */
   const [showUnlisted, setShowUnlisted] = useStoredFlag('assethub.filter.showUnlisted', false)
-  const unlistedKey = useMemo(() => Object.entries(modelStats).filter(([, s]) => s.rigged === false).map(([sha]) => sha).sort().join('|'), [modelStats])
-  const withClips = useMemo(() => Object.entries(modelStats).filter(([, s]) => s.clips > 0).map(([sha]) => sha).sort().join('|'), [modelStats])
+  const { unlistedKey, withClips, withParticles } = statFacts
   /** Shas measured as effects or not (particles read), for the effects tab. */
-  const withParticles = useMemo(() => Object.entries(modelStats).filter(([, s]) => s.particles !== undefined).map(([sha, s]) => `${sha}:${s.emitters ?? 0}`).sort().join('|'), [modelStats])
-  /** Assets known by reading them (effect prefabs, sprites, TextMeshPro fonts), by blob SHA, from every branch scanned so far. */
-  const [known, setKnown] = useState<AssetFacts>({})
+  /**
+   * Assets known by reading them (effect prefabs, sprites, TextMeshPro fonts), by blob SHA, from every branch scanned so far.
+   * The sets grow in place, through `FactIndex.add`: a new copy of them for each batch a scan finds would cost as much as the catalog is large.
+   */
+  const knownRef = useRef<Partial<Record<FactKind, Set<string>>>>({})
+  /** Changes whenever a batch of found SHAs changed a count or a tag, so what shows them is drawn again. */
+  const [factVersion, setFactVersion] = useState(0)
+  /** Changes when found SHAs moved an asset into or out of the open tab, so its list is filtered again. */
+  const [memberKey, setMemberKey] = useState(0)
   const [scan, setScan] = useState<{ kind: FactKind; status: 'scanning' | 'error'; done: number; total: number }>()
+  const tagsBusy = scan?.status === 'scanning'
   /** Scans started (or done), as "kind:repo@branch". */
   const scans = useRef(new Set<string>())
   /** In the open tab: its own type, or another type the tab's handler also lists. */
   const listed = useCallback((a: Asset) => showUnlisted || !registry.get(a.type)?.unlisted?.(modelStats[a.sha]), [registry, showUnlisted, unlistedKey])
-  const inTab = useCallback(
-    (a: Asset, tab: string) =>
-      tab === ALL ? !registry.get(a.type)?.hidden && listed(a) : (a.type === tab && listed(a)) || !!registry.get(tab)?.alsoShows?.(a, modelStats[a.sha], known),
-    // modelStats matters only through which models hold clips, which prefabs are effects and which clips have no model.
-    [registry, withClips, withParticles, known, listed]
+  const inCatalog = scope !== 'branch'
+  /** `inTab` as the given facts would have it. */
+  const inTabWith = useCallback(
+    (a: Asset, tab: string, facts: AssetFacts) =>
+      tab === ALL ? !registry.get(a.type)?.hidden && listed(a) : (a.type === tab && listed(a)) || !!registry.get(tab)?.alsoShows?.(a, statsRef.current[a.sha], facts),
+    // The measurements matter only through which models hold clips, which prefabs are effects and which clips have no model.
+    [registry, withClips, withParticles, listed]
   )
+  // The facts are read from `knownRef`, not from a dependency: an asset joins or leaves a tab only when found SHAs
+  // say so (`memberKey`), which is rare next to the batches a scan reports. `memberKey` follows only the list of the open
+  // scope, so the lists are also filtered again when the scope changes: scans go on while the other one is open.
+  const inTab = useCallback((a: Asset, tab: string) => inTabWith(a, tab, knownRef.current), [inTabWith, memberKey, inCatalog])
   /** In the open tab but left out (see `listed`), for the offer to show them. */
   const unlistedCount = useMemo(
-    () => (showUnlisted || !unlistedKey ? 0 : assets.filter((a) => registry.get(a.type)?.unlisted?.(modelStats[a.sha]) && (typeFilter === ALL || a.type === typeFilter)).length),
+    () => (showUnlisted || !statFacts.unlisted ? 0 : assets.filter((a) => registry.get(a.type)?.unlisted?.(modelStats[a.sha]) && (typeFilter === ALL || a.type === typeFilter)).length),
     [assets, registry, typeFilter, showUnlisted, unlistedKey]
   )
   /** Every model of the branch, as repo paths (rigs to play clips on). */
   const modelPaths = useMemo(() => assets.filter((a) => registry.get(a.type)?.preview.kind === 'three').map((a) => root + a.path), [assets, registry, root])
+  const selection = scope === 'branch' ? selectionOf(repo, branch) : scopeSel
+  const target = useMemo(() => targetOf(selection, repoNames), [selection, repoNames])
+  // Filtered by repos and branches where the catalog is: every repo's results are too many to send whole.
+  const catalogFilter = useMemo(() => filterOf(scopeSel), [scopeSel])
+  // The cached catalog needs no repo list from GitHub: it reads at once, with no limit on repos until the list arrives.
+  const catalog = useCatalog(scope, repo, branch, excludedFolders, scope === 'branch' || !target.empty || repos.status === 'loading', catalogFilter)
+  /** Counts for the type tabs and sub-categories: of the open branch, or of the cross-branch results. */
+  const typeSource: readonly Asset[] = inCatalog ? (catalog.assets ?? NO_ASSETS) : assets
+  const factIndex = useMemo(
+    () =>
+      new FactIndex(typeSource, {
+        registry,
+        facts: knownRef.current,
+        inTab: inTabWith,
+        statsOf: (sha) => statsRef.current[sha]
+      }),
+    [typeSource, registry, inTabWith]
+  )
+  const factIndexRef = useRef(factIndex)
+  factIndexRef.current = factIndex
+  const branchTags = inCatalog ? NO_TAGS : factIndex.tags
   const ofType = useMemo(() => (typeFilter === ALL ? assets : assets.filter((a) => inTab(a, typeFilter))), [assets, typeFilter, inTab])
   // Matches groups (fish → shark), typos and folder names, best matches first (done in Rust, so answers follow the typing).
-  const branchTags = useMemo(() => tagsByAsset(ofType, modelStats, known), [ofType, withClips, known])
-  const inCatalog = scope !== 'branch'
-  const { found, folders: folderRoot, suggest: suggestHere } = useSearch(ofType, clipNames, query, folder, branchTags, { enabled: !inCatalog })
+  const { found, folders: folderRoot, suggest: suggestHere } = useSearch(ofType, clipNames, query, folder, branchTags, { enabled: !inCatalog, tagsVersion: factVersion, tagsBusy })
   const visible = found.assets
   // Same blob SHA = byte-identical file; with merging on, one card stands for all copies.
   const copiesBySha = useMemo(() => {
@@ -475,17 +541,20 @@ export function Browse({
   const merged = visible.length - shown.length
   const selected = visible.find((a) => a.id === selectedId)
 
-  const selection = scope === 'branch' ? selectionOf(repo, branch) : scopeSel
-  const target = useMemo(() => targetOf(selection, repoNames), [selection, repoNames])
-  // Filtered by repos and branches where the catalog is: every repo's results are too many to send whole.
-  const catalogFilter = useMemo(() => filterOf(scopeSel), [scopeSel])
-  // The cached catalog needs no repo list from GitHub: it reads at once, with no limit on repos until the list arrives.
-  const catalog = useCatalog(scope, repo, branch, excludedFolders, scope === 'branch' || !target.empty || repos.status === 'loading', catalogFilter)
   const catalogOfType = useMemo(() => (catalog.assets ?? []).filter((a) => inTab(a, typeFilter)), [catalog.assets, typeFilter, inTab])
-  const catalogTags = useMemo(() => tagsByAsset(catalogOfType, modelStats, known), [catalogOfType, withClips, known])
-  const { found: catalogFound, suggest: suggestCatalog } = useSearch(catalogOfType, clipNames, query, '', catalogTags, { enabled: inCatalog })
+  // The tags are kept for the cards of the open view, and set before anything reads them. The branch lists every asset under All,
+  // the catalog only those the tab lists. Redone when the list or the tab changes, not when scans find more.
+  // This runs during render. That is safe only because `setView` is idempotent for the same inputs and nothing above Browse
+  // uses transitions or Suspense, so a render is never started and thrown away with a half-applied view.
+  useMemo(
+    () => factIndex.setView((a, facts) => (!inCatalog && typeFilter === ALL) || inTabWith(a, typeFilter, facts), inCatalog ? catalogOfType : ofType),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `inTabWith` follows the same inputs as `factIndex`.
+    [factIndex, inCatalog, typeFilter, catalogOfType, ofType]
+  )
+  const catalogTags = inCatalog ? factIndex.tags : NO_TAGS
+  const { found: catalogFound, suggest: suggestCatalog } = useSearch(catalogOfType, clipNames, query, '', catalogTags, { enabled: inCatalog, tagsVersion: factVersion, tagsBusy })
   const catalogShown = catalogFound.assets
-  const catalogSelected = catalogShown.find((a) => a.sha === catalogSel)
+  const catalogSelected = useMemo(() => catalogShown.find((a) => a.sha === catalogSel), [catalogShown, catalogSel])
   /** The tags of the cards in the open view. */
   const viewTags = inCatalog ? catalogTags : branchTags
   // The sub-category picked under a tab of the sidebar. Another tab starts again on All.
@@ -523,15 +592,18 @@ export function Browse({
   const toggleChip = (c: QuickChip) => setChips((on) => (on.includes(c) ? on.filter((x) => x !== c) : [...on, c]))
   /** Filters changed from the defaults, counted on the Filters button. */
   const activeFilters = chips.length + (budget ? 1 : 0) + (onlyFits && budget ? 1 : 0) + (mergeCopies ? 0 : 1) + (showUnlisted ? 1 : 0)
+  const chipStats = chips.some((c) => c !== 'small') ? modelStats : undefined
   const passesChips = useCallback(
     (a: Asset) => {
       if (!inSubCategory(typeFilter, subTab, viewTags.get(a.id))) return false
-      const s = modelStats[a.sha]
+      const s = statsRef.current[a.sha]
       return chips.every((c) =>
         c === 'small' ? (a.size ?? Infinity) <= 500 * 1024 : c === 'lowPoly' ? !!s && s.triangles > 0 && s.triangles <= 5000 : a.type === 'animation' || (!!s && s.clips > 0)
       )
     },
-    [chips, modelStats, typeFilter, subTab, viewTags]
+    // The measurements are read through a ref, so only a chip that reads them ties the result to a change of them.
+    // `viewTags` changes in place as scans find facts: only a sub-category picked under the tab reads them, so only then does a batch redo the list.
+    [chips, chipStats, typeFilter, subTab, viewTags, subTab === SUB_ALL ? 0 : factVersion]
   )
   const teamScores = usePopularity(repo || undefined, branch)
   /** The user's own history: a favorite counts 2, a recently viewed or exported asset 1. */
@@ -555,34 +627,38 @@ export function Browse({
   const personalKey = `${listKey}\n${recent ? 1 : 0}${storedCollections ? 1 : 0}`
   if (personalFrozen.current?.key !== personalKey) personalFrozen.current = { key: personalKey, scores: personalNow }
   const personalScores = personalFrozen.current.scores
+  const historyFiles = useMemo(() => historyPaths(personalScores), [personalScores])
+  // Measurements move the order only for sorts and filters that read them; `popular`, `used` and `relevance`
+  // keep it while thumbnails finish (re-sorting a whole catalog for each one froze the app).
+  const rankStats = sortMode === 'smallest' || sortMode === 'triangles' || (sortMode === 'playable' && !!budget) || (onlyFits && !!budget) ? modelStats : undefined
   const rankedShown = useMemo(
     () => rankForPlayable(
-        (onlyFits && budget ? shown.filter((a) => modelStats[a.sha] && !summaryIssues(modelStats[a.sha], budget).length) : shown).filter(passesChips),
+        (onlyFits && budget ? shown.filter((a) => statsRef.current[a.sha] && !summaryIssues(statsRef.current[a.sha], budget).length) : shown).filter(passesChips),
         sortMode === 'used' || (sortMode === 'playable' && !budget) ? 'relevance' : sortMode,
-        (a) => modelStats[a.sha],
+        (a) => statsRef.current[a.sha],
         undefined,
         (a) => found.scores.get(a.id) ?? 0,
         budget,
-        (a) => ({ team: teamScores[a.sha] ?? 0, personal: personalScores.get(`${repo}\n${root + a.path}`) ?? 0 })
+        (a) => ({ team: teamScores[a.sha] ?? 0, personal: historyScore(personalScores, historyFiles, repo, root + a.path) })
       ),
-    [shown, sortMode, onlyFits, modelStats, found, budget, passesChips, teamScores, personalScores, repo, root]
+    [shown, sortMode, onlyFits, rankStats, found, budget, passesChips, teamScores, personalScores, historyFiles, repo, root]
   )
   const rankedCatalog = useMemo(
     () =>
       rankForPlayable(
-        (onlyFits && budget ? catalogShown.filter((a) => modelStats[a.sha] && !summaryIssues(modelStats[a.sha], budget).length) : catalogShown).filter(passesChips),
+        (onlyFits && budget ? catalogShown.filter((a) => statsRef.current[a.sha] && !summaryIssues(statsRef.current[a.sha], budget).length) : catalogShown).filter(passesChips),
         sortMode === 'playable' && !budget ? 'relevance' : sortMode,
-        (a) => modelStats[a.sha],
+        (a) => statsRef.current[a.sha],
         (a) => a.branchCount,
         (a) => catalogFound.scores.get(a.id) ?? 0,
         budget,
         // The team's counts are of the current repo; assets of other repos keep the plain order.
         (a) => ({
           team: a.repos.includes(repo) ? (teamScores[a.sha] ?? 0) : 0,
-          personal: personalScores.get(`${a.locations[0].repo}\n${a.locations[0].path}`) ?? 0
+          personal: historyScore(personalScores, historyFiles, a.locations[0].repo, a.locations[0].path)
         })
       ),
-    [catalogShown, sortMode, onlyFits, modelStats, catalogFound, budget, passesChips, teamScores, personalScores, repo]
+    [catalogShown, sortMode, onlyFits, rankStats, catalogFound, budget, passesChips, teamScores, personalScores, historyFiles, repo]
   )
   const gridItems: readonly Asset[] = inCatalog ? rankedCatalog : rankedShown
   /** The inspector column only exists while an asset is selected; otherwise the grid takes the width. */
@@ -594,8 +670,12 @@ export function Browse({
       : t(registry.get(typeFilter)?.labelKey ?? 'browse.allAssets') + (subTab === SUB_ALL ? '' : ` · ${t(`tags.${subTab}`)}`)
   const gridTitle = inCatalog ? t(`catalog.title.${scope}`, { repo: repo.split('/').pop() }) : folder && typeFilter !== ALL ? `${folder} · ${typeLabel}` : folder || typeLabel
   const gridCount = inCatalog ? rankedCatalog.length : rankedShown.length
-  const measuredCount = (inCatalog ? catalogShown : shown).filter((a) => modelStats[a.sha]).length
-  const unmeasured = (inCatalog ? catalogShown : shown).filter((a) => !modelStats[a.sha])
+  const inView = inCatalog ? catalogShown : shown
+  /** The "measured" counter and the Measure button only show for these sorts and filters. */
+  const showMeasured = (sortMode !== 'relevance' && sortMode !== 'popular') || (onlyFits && !!budget) || chips.some((c) => c !== 'small')
+  // Scanning the whole list on every render stalls scrolling on a large catalog, so it runs only when its result shows.
+  const unmeasured = useMemo(() => (showMeasured ? inView.filter((a) => !modelStats[a.sha]) : []), [showMeasured, inView, modelStats])
+  const measuredCount = inView.length - unmeasured.length
   const gridSelected = inCatalog ? catalogSel : selectedId
   const setGridSelected = inCatalog ? setCatalogSel : setSelectedId
   /** What the grid selection holds for an item: the catalog selects by blob SHA, a branch by asset id. */
@@ -603,24 +683,22 @@ export function Browse({
   const gridAnchor = useMemo(() => gridItems.findIndex((a) => gridKey(a) === gridSelected), [gridItems, gridSelected, inCatalog])
   const searchFound = inCatalog ? catalogFound : found
 
-  // Saved thumbnails of results from other branches (same content = same thumbnail).
+  // Saved measurements of results from other branches (same content = same measurement).
   useEffect(() => {
-    setCatalogThumbsLoaded(false)
+    setCatalogStatsLoaded(false)
     if (!catalog.assets?.length) return
     let cancelled = false
-    const shas = catalog.assets.map((a) => a.sha)
-    void Promise.all([window.api.thumbs.get(shas).catch(() => ({})), window.api.stats.get(shas).catch(() => ({}))]).then(([moreThumbs, moreStats]) => {
+    void window.api.stats.get(catalog.assets.map((a) => a.sha)).catch(() => ({})).then((moreStats) => {
       if (cancelled) return
-      setThumbs((prev) => ({ ...moreThumbs, ...prev }))
-      setModelStats((prev) => ({ ...moreStats, ...prev }))
-      setCatalogThumbsLoaded(true)
+      mergeStats(moreStats, false)
+      setCatalogStatsLoaded(true)
     })
     return () => {
       cancelled = true
     }
   }, [catalog.assets])
-  /** Cards ask for thumbnails once the saved ones of the listing they belong to are in. */
-  const thumbsReady = inCatalog ? catalogThumbsLoaded : thumbsLoaded
+  /** Cards draw thumbnails once the saved measurements of the listing they belong to are in. */
+  const statsReady = inCatalog ? catalogStatsLoaded : statsLoaded
 
   /** Selects `repoPath` in the loaded branch: picks its Unity project and clears filters that would hide it. */
   function land(roots: readonly string[], repoPath: string) {
@@ -705,7 +783,7 @@ export function Browse({
   const exportFromCatalog = async (a: CatalogAsset, unity?: RunningUnity) => {
     const at = a.locations[0]
     setExportState({ status: 'running' })
-    const thumb = thumbs[a.sha]
+    const thumb = (await thumbCache.saved([a.sha]))[a.sha]
     const png = thumb ? await thumbToPng(thumb) : undefined
     try {
       const result = await sendPackage(
@@ -833,6 +911,14 @@ export function Browse({
   /** Changes whenever the set of branches read or tried changes: the prefab scan plan is asked again then. */
   const [scanEpoch, setScanEpoch] = useState(0)
   const scanKey = (kind: FactKind, repo: string, branch: string) => `${kind}:${repo}@${branch}`
+  /** Takes found SHAs into the known facts and the figures built from them (see `FactIndex`). */
+  const applyKnown = useRef((_kind: FactKind, _shas: readonly string[]) => {})
+  applyKnown.current = (kind, shas) => {
+    const { changed, viewChanged } = factIndexRef.current.add(kind, shas)
+    if (!changed) return
+    setFactVersion((n) => n + 1)
+    if (viewChanged) setMemberKey((n) => n + 1)
+  }
   const startScans = useCallback((at: { repo: string; branch: string }, kinds: readonly FactKind[]) => {
     const pending = kinds.filter((kind) => !scans.current.has(scanKey(kind, at.repo, at.branch)))
     if (!pending.length) return
@@ -840,14 +926,14 @@ export function Browse({
     setScanEpoch((n) => n + 1)
     const run = async (kind: FactKind) => {
       const key = scanKey(kind, at.repo, at.branch)
-      // Found SHAs are buffered: every update of `known` rebuilds the search indexes, so they land at most every KNOWN_FLUSH_MS.
+      // Found SHAs are buffered: each batch draws the page again, so they land at most every KNOWN_FLUSH_MS.
       let pending: string[] = []
       let timer: ReturnType<typeof setTimeout> | undefined
       const flush = () => {
         timer = undefined
         const shas = pending
         pending = []
-        if (shas.length) setKnown((prev) => mergeKnown(prev, kind, shas))
+        if (shas.length) applyKnown.current(kind, shas)
       }
       const add = (shas: readonly string[]) => {
         pending.push(...shas)
@@ -916,30 +1002,25 @@ export function Browse({
   }
   useEffect(() => runPlan.current(), [inCatalog, tagScans, !!catalog.assets, catalog.revision, scanEpoch, scope, repo, excludedFolders, catalogFilter])
 
-  // Saved thumbnails and measurements of an open collection's assets, from any repo or branch (by content).
+  // Saved measurements of an open collection's assets, from any repo or branch (by content). Its thumbnails are kept in memory below.
   const collectionShas = shownCollection?.items.map((i) => i.sha).join(',') ?? ''
   useEffect(() => {
     if (!collectionShas) return
     let cancelled = false
-    const keys = collectionShas.split(',')
-    void window.api.thumbs.get(keys).then((more) => !cancelled && setThumbs((prev) => ({ ...more, ...prev })), () => undefined)
-    void window.api.stats.get(keys).then((more) => !cancelled && setModelStats((prev) => ({ ...more, ...prev })), () => undefined)
+    void window.api.stats.get(collectionShas.split(',')).then((more) => !cancelled && mergeStats(more, false), () => undefined)
     return () => {
       cancelled = true
     }
-  }, [collectionShas, thumbsLoaded])
-  // Thumbnails rendered earlier, keyed by the model's content hash.
+  }, [collectionShas, statsLoaded])
+  // Measurements made earlier, keyed by the model's content hash: known before rendering starts, so nothing is measured twice.
   useEffect(() => {
-    setThumbsLoaded(false)
+    setStatsLoaded(false)
     if (!assets.length) return
     let cancelled = false
-    const keys = assets.map((a) => a.sha)
-    // Both known before rendering starts, so nothing is rendered or measured twice.
-    void Promise.all([window.api.thumbs.get(keys).catch(() => ({})), window.api.stats.get(keys).catch(() => ({}))]).then(([found, measured]) => {
+    void window.api.stats.get(assets.map((a) => a.sha)).catch(() => ({})).then((measured) => {
       if (cancelled) return
-      setThumbs(found)
-      setModelStats((prev) => ({ ...prev, ...measured }))
-      setThumbsLoaded(true)
+      mergeStats(measured, true)
+      setStatsLoaded(true)
     })
     return () => {
       cancelled = true
@@ -953,8 +1034,10 @@ export function Browse({
     if (!live || !items.length) return
     setExportState({ status: 'running' })
     const previews: Record<string, Uint8Array> = {}
+    // Picked assets are not all in memory (it holds the cards seen lately): the rest are read from the disk cache for this export only.
+    const saved = await thumbCache.saved(items.map((i) => i.asset.sha))
     for (const item of items) {
-      const thumb = thumbs[item.asset.sha]
+      const thumb = saved[item.asset.sha]
       const png = thumb ? await thumbToPng(thumb) : undefined
       if (png) previews[item.path] = png
     }
@@ -1214,23 +1297,61 @@ export function Browse({
     setPack((items) => items.map((i) => (i.path === path ? { ...i, report } : i)))
   }
 
-  const saveStats = (key: string, summary: StatsSummary) => {
-    // A thumbnail's measurement never replaces one taken in the viewer (which counts every texture).
-    // What is kept (the saved reading merged with what is known) comes back from the save.
-    setModelStats((prev) => (prev[key] ? prev : { ...prev, [key]: summary }))
-    void window.api.stats.save(key, summary).then(
-      (kept) => kept && setModelStats((prev) => ({ ...prev, [key]: kept })),
-      () => undefined
-    )
-  }
-  const saveThumb = (key: string, dataUrl: string, summary?: StatsSummary, motion?: string) => {
-    setThumbs((prev) => ({ ...prev, [key]: dataUrl }))
-    void window.api.thumbs.save(key, dataUrl)
-    if (motion) void window.api.thumbs.save(motionKey(key), motion)
-    // Drawn this session: not drawn again, even if it is still not up to date.
-    unmeasuredPrefabs.current.add(key)
-    if (summary) saveStats(key, summary)
-  }
+  /**
+   * Finished thumbnails and measurements wait here and reach state together: each state update copies a map of the
+   * whole catalog and re-renders the screen, so one per thumbnail would stall the app while a batch renders.
+   * A timer (not an animation frame) sets the flush, so it also runs while the window is hidden.
+   */
+  const pendingSaves = useRef<{ thumbs: Record<string, string>; fresh: Record<string, StatsSummary>; kept: Record<string, StatsSummary> }>({ thumbs: {}, fresh: {}, kept: {} })
+  const flushTimer = useRef<ReturnType<typeof setTimeout>>()
+  const flushSaves = useCallback(() => {
+    clearTimeout(flushTimer.current)
+    flushTimer.current = undefined
+    const { thumbs: finished, fresh, kept } = pendingSaves.current
+    pendingSaves.current = { thumbs: {}, fresh: {}, kept: {} }
+    thumbCache.putAll(finished)
+    // A thumbnail's measurement never replaces one taken in the viewer (which counts every texture);
+    // what the save kept (the saved reading merged with what is known) replaces what is held.
+    mergeStats(fresh, false)
+    mergeStats(kept, true)
+  }, [mergeStats, thumbCache])
+  const queueSave = useCallback(
+    (now: boolean) => {
+      if (now) flushSaves()
+      else flushTimer.current ??= setTimeout(flushSaves, SAVE_FLUSH_MS)
+    },
+    [flushSaves]
+  )
+  useEffect(() => () => clearTimeout(flushTimer.current), [])
+  /** The asset the user selected: its thumbnail shows at once, not with the next batch. */
+  const selectedSha = useRef<string>()
+  const saveStats = useCallback(
+    (key: string, summary: StatsSummary) => {
+      pendingSaves.current.fresh[key] ??= summary
+      queueSave(key === selectedSha.current)
+      void window.api.stats.save(key, summary).then(
+        (kept) => {
+          if (!kept) return
+          pendingSaves.current.kept[key] = kept
+          queueSave(key === selectedSha.current)
+        },
+        () => undefined
+      )
+    },
+    [queueSave]
+  )
+  const saveThumb = useCallback(
+    (key: string, dataUrl: string, summary?: StatsSummary, motion?: string) => {
+      pendingSaves.current.thumbs[key] = dataUrl
+      void window.api.thumbs.save(key, dataUrl)
+      if (motion) void window.api.thumbs.save(motionKey(key), motion)
+      // Drawn this session: not drawn again, even if it is still not up to date.
+      unmeasuredPrefabs.current.add(key)
+      if (summary) saveStats(key, summary)
+      else queueSave(key === selectedSha.current)
+    },
+    [saveStats, queueSave]
+  )
   /** The opened model is loading: thumbnails wait so it gets the bandwidth. */
   const [loadingSha, setLoadingSha] = useState<string>()
   const viewerLoading = loadingSha !== undefined
@@ -1241,32 +1362,55 @@ export function Browse({
 
   // The asset the user selected renders before the cards queued behind it (the right panel shows a cube until it has a picture).
   const priorityAsset = inCatalog ? catalogSelected : live ? selected : undefined
-  const prioritySha = priorityAsset && thumbsReady && !thumbs[priorityAsset.sha] && canRender(priorityAsset) && !thumbQueue.failedRecently(priorityAsset.sha) ? priorityAsset.sha : undefined
+  selectedSha.current = priorityAsset?.sha
+  const prioritySha = priorityAsset && statsReady && thumbCache.isMiss(priorityAsset.sha) && canRender(priorityAsset) && !thumbQueue.failedRecently(priorityAsset.sha) ? priorityAsset.sha : undefined
   useEffect(() => {
     // Set before the request so the card starts first even if a visibility request re-queues it later.
     thumbQueue.prioritize(prioritySha)
     if (priorityAsset && prioritySha) requestThumb(priorityAsset, -1)
   }, [prioritySha, inCatalog, live])
 
-  /** Counts for the type tabs: of the open branch, or of the cross-branch results. */
-  const typeSource: readonly Asset[] = inCatalog ? (catalog.assets ?? []) : assets
-  const typeCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const a of typeSource) counts.set(a.type, (counts.get(a.type) ?? 0) + 1)
-    // Tabs that also list other types count them too.
-    for (const h of registry.all()) if (h.alsoShows) counts.set(h.id, (counts.get(h.id) ?? 0) + typeSource.filter((a) => a.type !== h.id && inTab(a, h.id)).length)
-    return counts
-  }, [typeSource, registry, inTab])
-  /** Under Model and Prefab: how many of the same list the tab counts have each sub-category. */
-  const subCounts = useMemo(() => {
-    const byTab = new Map<string, Map<SubCategory, number>>()
-    for (const tab of Object.keys(SUB_CATEGORIES)) {
-      const tagged = typeSource.filter((a) => inTab(a, tab)).map((a) => tagsOf(a, modelStats[a.sha], known))
-      byTab.set(tab, new Map(subCategoriesOf(tab).map((sub) => [sub, tagged.filter((tags) => inSubCategory(tab, sub, tags)).length])))
+  // Thumbnails that stay in memory whatever the scrolling: the selected asset's, the export list's and an open collection's.
+  const keptKey = [priorityAsset?.sha ?? '', ...pack.map((i) => i.asset.sha), collectionShas].join(',')
+  useEffect(() => thumbCache.keep(keptKey.split(',').filter(Boolean)), [thumbCache, keptKey])
+
+  /** Cards on screen whose thumbnail may need drawing, once the saved one has been looked up: card and its place in the grid. */
+  const awaitingLookup = useRef(new Map<string, { asset: Asset; order: number }>())
+  /** Queues the drawing of every waiting card whose lookup came back with nothing (or with a thumbnail that is out of date). */
+  const decideDrawing = () => {
+    if (!statsReady || (!inCatalog && !live)) return
+    for (const [sha, { asset, order }] of awaitingLookup.current) {
+      if (!thumbCache.answered(sha)) continue
+      awaitingLookup.current.delete(sha)
+      // A thumbnail missing from memory but saved is never drawn again: it is read back when its card shows.
+      if (thumbCache.has(sha) && modelStats[sha] && !remeasure(asset)) continue
+      requestThumb(asset, order)
     }
-    return byTab
-    // modelStats matters only through which models hold clips.
-  }, [typeSource, inTab, known, withClips])
+  }
+  const decideDrawingRef = useRef(decideDrawing)
+  decideDrawingRef.current = decideDrawing
+  useEffect(decideDrawing, [thumbVersion, statsReady, live, inCatalog])
+
+  /** A card came on screen or left it: its saved thumbnail is read (with the next few cards' ahead of them), and drawn only when there is none. */
+  const cardVisible = (a: Asset, i: number, items: readonly Asset[], on: boolean) => {
+    if (canRender(a)) markVisible(a.sha, on)
+    if (!on) {
+      thumbCache.release(a.sha)
+      awaitingLookup.current.delete(a.sha)
+      return thumbQueue.cancel(a.sha)
+    }
+    thumbCache.request(a.sha)
+    thumbCache.prefetch(items.slice(i + 1, i + 1 + THUMB_PREFETCH).map((n) => n.sha))
+    if (!canRender(a)) return
+    awaitingLookup.current.set(a.sha, { asset: a, order: i })
+    decideDrawingRef.current()
+  }
+
+  // Copies of the index's small tables (a few entries each), so the sidebar is drawn again when a batch of facts changed them.
+  const typeCounts = useMemo(() => new Map(factIndex.typeCounts), [factIndex, factVersion])
+  const allCount = useMemo(() => typeSource.filter((a) => !registry.get(a.type)?.hidden).length, [typeSource, registry])
+  /** Under Model and Prefab: how many of the same list the tab counts have each sub-category. */
+  const subCounts = useMemo(() => new Map([...factIndex.subCounts].map(([tab, counts]) => [tab, new Map(counts)])), [factIndex, factVersion])
 
   return (
     <div className="browse">
@@ -1324,7 +1468,7 @@ export function Browse({
               <button type="button" className="tab" aria-pressed={typeFilter === ALL} onClick={() => { setTypeFilter(ALL); setSubSel(undefined); setOpenCollection(undefined) }}>
                 <span className="type-dot" style={{ background: 'var(--text)' }} />
                 <span className="tab-label">{t('assetTypes.all')}</span>
-                <span className="num">{typeSource.filter((a) => !registry.get(a.type)?.hidden).length}</span>
+                <span className="num">{allCount}</span>
               </button>
               {/* A type with nothing in this view is left out, unless it is the one being filtered on. */}
               {registry.all().filter((h) => !h.hidden && ((typeCounts.get(h.id) ?? 0) > 0 || typeFilter === h.id)).map((h) => (
@@ -1437,7 +1581,7 @@ export function Browse({
                         {t('browse.mergeCopies')}
                         {merged > 0 && <span className="num"> ({merged})</span>}
                       </label>
-                      {(unlistedCount > 0 || (showUnlisted && unlistedKey)) && (
+                      {(unlistedCount > 0 || (showUnlisted && statFacts.unlisted > 0)) && (
                         <label className="check small">
                           <input type="checkbox" checked={showUnlisted} onChange={(e) => setShowUnlisted(e.target.checked)} />
                           {t('filters.unlisted')}
@@ -1465,7 +1609,7 @@ export function Browse({
                   </button>
                 )}
                 {chips.length > 0 && !gridItems.length && <span className="muted small">{t('chips.none')}</span>}
-                {((sortMode !== 'relevance' && sortMode !== 'popular') || (onlyFits && budget) || chips.some((c) => c !== 'small')) && (
+                {showMeasured && (
                   <>
                     <span className="num" title={t('ranking.measured', { done: measuredCount, total: inCatalog ? catalogShown.length : shown.length })}>
                       {t('ranking.measured', { done: measuredCount, total: inCatalog ? catalogShown.length : shown.length })}
@@ -1519,17 +1663,7 @@ export function Browse({
                     tags={catalogTags.get(a.id)}
                     generating={thumbQueue.busy.has(a.sha)}
                     stats={modelStats[a.sha]}
-                    onVisible={
-                      thumbsReady && canRender(a)
-                        ? (on) => {
-                            markVisible(a.sha, on)
-                            if (!on) return thumbQueue.cancel(a.sha)
-                            if (thumbs[a.sha] && modelStats[a.sha] && !remeasure(a)) return
-                            const src = catalogSource(a)
-                            thumbQueue.request(a.sha, src.path, i, src.ctx, kindOf(a))
-                          }
-                        : undefined
-                    }
+                    onVisible={(on) => cardVisible(a, i, rankedCatalog, on)}
                   />
                 )}
               />
@@ -1607,16 +1741,7 @@ export function Browse({
                     inList={packIds.has(a.id)}
                     starred={favorites.has(`${repo}\n${root + a.path}`)}
                     stats={modelStats[a.sha]}
-                    onVisible={
-                      live && thumbsLoaded && canRender(a)
-                        ? (on) => {
-                            markVisible(a.sha, on)
-                            if (!on) return thumbQueue.cancel(a.sha)
-                            if (thumbs[a.sha] && modelStats[a.sha] && !remeasure(a)) return
-                            thumbQueue.request(a.sha, root + a.path, i, undefined, kindOf(a))
-                          }
-                        : undefined
-                    }
+                    onVisible={(on) => cardVisible(a, i, rankedShown, on)}
                   />
                 )}
               />

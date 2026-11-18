@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { budgetFor, rankForPlayable, summaryIssues, TIGHT_BUDGET } from './playable'
+import { budgetFor, historyPaths, historyScore, rankForPlayable, summaryIssues, TIGHT_BUDGET } from './playable'
 import type { StatsSummary } from '@shared/types'
 
 const stat = (o: Partial<StatsSummary>): StatsSummary => ({
@@ -79,5 +79,23 @@ describe('budget presets', () => {
     expect(summaryIssues(s, budgetFor('tight')).map((i) => i.key)).toEqual(['triangles', 'textureSize', 'fileBytes'])
     expect(budgetFor('custom', { triangles: 5000 })).toMatchObject({ triangles: 5000, textureSize: 1024 })
     expect(budgetFor(undefined)).not.toBe(TIGHT_BUDGET)
+  })
+})
+
+describe('historyScore', () => {
+  const scores = new Map([
+    ['acme/a\nAssets/Crate.fbx', 3],
+    ['acme/b\nAssets/Tree.fbx', 1]
+  ])
+  const paths = historyPaths(scores)
+
+  it('finds the score by repo and path', () => {
+    expect(historyScore(scores, paths, 'acme/a', 'Assets/Crate.fbx')).toBe(3)
+    expect(historyScore(scores, paths, 'acme/b', 'Assets/Tree.fbx')).toBe(1)
+  })
+
+  it('is 0 for a path outside the history, or the same path in another repo', () => {
+    expect(historyScore(scores, paths, 'acme/a', 'Assets/Other.fbx')).toBe(0)
+    expect(historyScore(scores, paths, 'acme/b', 'Assets/Crate.fbx')).toBe(0)
   })
 })

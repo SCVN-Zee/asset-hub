@@ -1,5 +1,6 @@
 import { Fragment, forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ForwardedRef, type ReactElement, type ReactNode } from 'react'
-import { anchorItem, windowRange } from '../virtualWindow'
+import { anchorItem, placeholderMask, windowRange } from '../virtualWindow'
+import './VirtualGrid.css'
 
 export interface VirtualGridHandle {
   /** Scroll so the row that holds `index` is just visible. */
@@ -20,11 +21,15 @@ interface Metrics {
   columns: number
   rowGap: number
   rowHeight: number
+  /** Width of one column track, the gap between columns and the grid's left padding. */
+  colWidth: number
+  colGap: number
+  padLeft: number
   viewTop: number
   viewHeight: number
 }
 
-const EMPTY: Metrics = { columns: 0, rowGap: 0, rowHeight: 0, viewTop: 0, viewHeight: 0 }
+const EMPTY: Metrics = { columns: 0, rowGap: 0, rowHeight: 0, colWidth: 0, colGap: 0, padLeft: 0, viewTop: 0, viewHeight: 0 }
 
 /** The nearest ancestor that scrolls vertically. */
 function scrollParentOf(el: HTMLElement): HTMLElement | null {
@@ -60,6 +65,9 @@ function VirtualGridInner<T>({ items, itemKey, renderItem, overscanRows = 3, anc
     const tracks = style.gridTemplateColumns.split(' ').filter(Boolean)
     const columns = tracks.length
     const rowGap = parseFloat(style.rowGap) || 0
+    const colWidth = parseFloat(tracks[0] ?? '') || 0
+    const colGap = parseFloat(style.columnGap) || 0
+    const padLeft = parseFloat(style.paddingLeft) || 0
 
     // A new column width means new card sizes. The cards in the page are already laid out at
     // the new width, so the row height is taken from them at once: the padding never collapses.
@@ -97,9 +105,9 @@ function VirtualGridInner<T>({ items, itemKey, renderItem, overscanRows = 3, anc
         viewTop += delta
       }
     }
-    const next: Metrics = { columns, rowGap, rowHeight: tallest.current, viewTop, viewHeight }
+    const next: Metrics = { columns, rowGap, rowHeight: tallest.current, colWidth, colGap, padLeft, viewTop, viewHeight }
     lastMetrics.current = next
-    setMetrics((m) => (m.columns === next.columns && m.rowGap === next.rowGap && m.rowHeight === next.rowHeight && m.viewTop === next.viewTop && m.viewHeight === next.viewHeight ? m : next))
+    setMetrics((m) => (m.columns === next.columns && m.rowGap === next.rowGap && m.rowHeight === next.rowHeight && m.colWidth === next.colWidth && m.colGap === next.colGap && m.padLeft === next.padLeft && m.viewTop === next.viewTop && m.viewHeight === next.viewHeight ? m : next))
   }, [])
 
   // Cheap when nothing changed: setMetrics returns the old object, so this does not loop.
@@ -149,7 +157,31 @@ function VirtualGridInner<T>({ items, itemKey, renderItem, overscanRows = 3, anc
 
   const { start, end, padTop, padBottom } = useMemo(() => windowRange({ count: items.length, ...metrics, overscanRows }), [items.length, metrics, overscanRows])
   const base = basePad.current
+  // Placeholder cards drawn by the grid itself at the measured pitch, so rows outside the window look like cards.
+  // The layer covers only the rendered rows plus one viewport of rows on each side, always starting on a row
+  // boundary so its tile lines up with real cards. It changes only when the window's rows change, not per scroll event,
+  // and it stays far smaller than the full scroll height, which can reach the browser's layout limit.
+  const { columns, rowGap, rowHeight, colWidth, colGap, padLeft, viewHeight } = metrics
+  const placeholders = useMemo(() => {
+    if (!base || items.length < 1 || columns < 1 || rowHeight <= 0 || colWidth <= 0) return undefined
+    const pitchX = colWidth + colGap
+    const pitchY = rowHeight + rowGap
+    const spare = Math.ceil(viewHeight / pitchY)
+    const firstRow = Math.max(0, Math.floor(start / columns) - spare)
+    // A partly filled final row gets no placeholders: its empty cells would show cards that never load.
+    const complete = Math.floor(items.length / columns)
+    const lastRow = Math.min(complete, Math.ceil(end / columns) + spare)
+    return {
+      '--ph-mask': placeholderMask({ colWidth, colGap, rowHeight, rowGap }),
+      '--ph-size': `${pitchX}px ${pitchY}px`,
+      '--ph-left': `${padLeft}px`,
+      '--ph-top': `${base.top + firstRow * pitchY}px`,
+      '--ph-width': `${columns * pitchX - colGap}px`,
+      '--ph-height': `${Math.max(0, (lastRow - firstRow) * pitchY - rowGap)}px`,
+    }
+  }, [base, items.length, start, end, viewHeight, columns, rowGap, rowHeight, colWidth, colGap, padLeft])
   const style = {
+    ...placeholders,
     paddingTop: base ? base.top + padTop : undefined,
     paddingBottom: base ? base.bottom + padBottom : undefined,
     gridAutoRows: metrics.rowHeight ? `${metrics.rowHeight}px` : undefined,
@@ -165,7 +197,7 @@ function VirtualGridInner<T>({ items, itemKey, renderItem, overscanRows = 3, anc
     shown.push(<Fragment key={itemKey(item)}>{renderItem(item, i)}</Fragment>)
   }
   return (
-    <div className="grid" ref={gridRef} style={style}>
+    <div className="grid" ref={gridRef} style={style} data-placeholders={placeholders ? '' : undefined}>
       {shown}
     </div>
   )

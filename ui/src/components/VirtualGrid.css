@@ -1,0 +1,21 @@
+/* Placeholder cards behind the virtual grid: one skeleton cell per card position, set from the measured layout. */
+.grid[data-placeholders] { position: relative; isolation: isolate; }
+.grid[data-placeholders]::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: var(--ph-left);
+  top: var(--ph-top);
+  width: var(--ph-width);
+  height: var(--ph-height);
+  background: var(--panel);
+  -webkit-mask-image: var(--ph-mask);
+  mask-image: var(--ph-mask);
+  -webkit-mask-size: var(--ph-size);
+  mask-size: var(--ph-size);
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  pointer-events: none;
+}
+/* Rendered cards cover the placeholder under them completely. */
+.grid[data-placeholders] > .asset-card:not(.skeleton) { background: var(--ground); }

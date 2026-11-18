@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { anchorItem, windowRange } from './virtualWindow'
+import { anchorItem, placeholderMask, windowRange } from './virtualWindow'
 
 const base = { count: 1000, columns: 5, rowHeight: 100, rowGap: 10, viewTop: 0, viewHeight: 500, overscanRows: 2 }
 // 200 rows, pitch 110.
@@ -88,5 +88,14 @@ describe('anchorItem', () => {
     expect(anchorItem({ ...view, count: 20, preferred: -1 })).toBe(19)
     expect(anchorItem({ ...view, columns: 0, preferred: 0 })).toBe(-1)
     expect(anchorItem({ ...view, count: 0, preferred: 0 })).toBe(-1)
+  })
+})
+
+describe('placeholderMask', () => {
+  it('draws one tile of a card plus its gaps', () => {
+    const url = decodeURIComponent(placeholderMask({ colWidth: 120, colGap: 8, rowHeight: 170, rowGap: 12 }))
+    expect(url).toContain("width='128' height='182'")
+    expect(url).toContain("<rect width='120' height='120'")
+    expect(url.startsWith('url("data:image/svg+xml,')).toBe(true)
   })
 })
