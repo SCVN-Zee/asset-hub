@@ -2,7 +2,7 @@
 
 What changed in each release of Asset Hub. `bun run release` publishes the section of the version in `package.json` as the release notes, so add each change under an **Unreleased** heading as it is made, and rename that heading to the version when releasing.
 
-## Unreleased
+## [2.2.0] — 2026-11-18
 
 ### Removed
 - **Pin branch:** the pin button next to the branch picker, the Pinned branches list in the sidebar, the NEW badge and the new-assets banner are gone. Pinned branches saved in settings are ignored.
@@ -12,9 +12,17 @@ What changed in each release of Asset Hub. `bun run release` publishes the secti
 - **Old cache leftovers:** at start-up the app deletes the clone of the shared index repo, the shared index record and the usage reports folder it wrote before, which could take close to 1 GB. The old Backblaze thumbnail rows and the legacy `.txt` thumbnail conversion are gone from the team backend and the app.
 
 ### Added
+- **Model category and tags:** a Model tab lists .fbx, .obj, .gltf, .glb and .dae files, each with its own preview. Models with animation clips are tagged Animation, and prefabs are tagged Particle System or UI.
+- **Tag sub-categories:** the sidebar lists the tags under the Model and Prefab tabs, with Static or Other for assets without a tag, each with its count. Tags also work across branches in the catalog.
+- **One repo and branch picker:** one checkbox picker replaces the repo and branch pickers and the This branch, All branches and All repos tabs. The app remembers the selection between launches.
+- **Background tasks:** thumbnail loading, catalog indexing, project scans and exports show in one Background tasks panel in the top bar.
 - **Connect to coding agents:** Settings has a Connect Claude Code and a Connect Codex button. One click adds the asset-hub MCP server to that client for your user account, using the asset-hub-cli inside the app.
 
 ### Changed
+- **Faster large catalogs:** the app opens the cached catalog at once, without waiting for GitHub. The grid stays responsive while you scroll and while prefabs are scanned in the background. Only the thumbnails of cards on screen are kept in memory, and rows that are not drawn yet show grey placeholder cards instead of a blank area.
+- **Result details:** the detail panel groups locations by repo, with one row per branch and a branch filter. Export and Import into Unity sit side by side.
+- **Viewer controls:** every viewer puts its controls in one bar under the preview instead of over the asset.
+- **Team thumbnails:** the app shares thumbnails with the team backend in groups, and one thumbnail is at most 128 KiB.
 - **The app looks after the cache:** it always lives in the app's own data folder, so Settings no longer has the Cache folder row or the Cache size limit. Downloads are kept to 5 GB, or to a quarter of the free disk space (but not less than 512 MB) when less than 20 GB is free, and the oldest go first. Thumbnails and the catalog are not limited. Settings files that still name a cache folder or limit load fine. A folder you picked earlier is not moved or deleted, so delete it yourself if you want the space back. The command-line tool and the MCP server use the same folder and budget.
 - **Every GitHub CLI account is used:** the repos of all accounts signed in to `gh` are listed together, and each repo is read with an account that can read it (the next account is tried when GitHub refuses the first). Settings shows every account. Signing out with the GitHub CLI option signs out every account.
 
